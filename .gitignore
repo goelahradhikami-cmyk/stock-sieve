@@ -1,0 +1,50 @@
+# ── Python ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Virtual envs ────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── IDE ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+
+# ── Data & runtime artifacts (never track DBs/backups/logs/screenshots) ──
+*.bak
+data/*.db
+data/*.db-journal
+data/*.db.bak
+data/*.db.good
+data/*.bak2
+data/*.bak3
+data/*.good
+data/*.log
+data/*.png
+data/cache/
+data/logs/
+data/backups/
+data/screenshots/
+_run.log
+
+# ── Tooling scratch ─────────────────────────────────
+.playwright-cli/
+.workbuddy/
+*.tmp.*
+
+# ── OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Streamlit ───────────────────────────────────────
+.streamlit/

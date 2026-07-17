@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install project + dev deps
+        run: uv pip install --system -e ".[dev]" ruff mypy
+
+      - name: Lint (ruff check)
+        run: ruff check src/
+        continue-on-error: true
+
+      - name: Format check (ruff format)
+        run: ruff format --check src/
+        continue-on-error: true
+
+      - name: Type check (mypy)
+        run: mypy src/
+        continue-on-error: true
+
+      - name: Run tests (pytest)
+        run: pytest tests/ -v --tb=short

@@ -1,0 +1,71 @@
+# personality_genome — insider_follower
+schema: "stock-sieve.io/personality-genome"
+schema_version: "3.2.0"
+contract_version: "1.1"
+role: "research_agent"
+
+identity:
+  agent_id: "insider_follower_v1"
+  strategy_genus: "insider"
+  strategy_species: "smart_money"
+  generation: 1
+  parent_agent_id: null
+  birth_date: "2026-07-14"
+  status: "active"
+
+investment_identity:
+  dimensions:
+    valuation: 55
+    quality: 55
+    growth: 50
+    momentum: 35
+    macro: 40
+    contrarian: 45
+    patience: 60
+    concentration: 65
+  archetype: "内部人跟踪 — 跟随最了解公司的人的脚步"
+
+doctrine:
+  belief_parameters:
+    insider_signal:
+      description: "内部人士的交易行为包含关于公司前景的重要信息"
+      belief_strength: 0.85
+    smart_money:
+      description: "机构和大股东的动向值得跟随"
+      belief_strength: 0.75
+  alpha_source:
+    - "高管和大股东增持信号"
+    - "股份回购力度"
+    - "股东户数持续减少"
+    - "机构持仓变化"
+  time_horizon: "1-2年"
+
+factor_model:
+  quality: {weight: 0.20, sub_factors: [{name: roe, weight: 0.5}, {name: gross_margin, weight: 0.5}]}
+  value: {weight: 0.20, sub_factors: [{name: pe_ttm, weight: 0.5}, {name: pb, weight: 0.3}, {name: fcf_yield, weight: 0.2}]}
+  growth: {weight: 0.20, sub_factors: [{name: earnings_growth_1y, weight: 0.5}, {name: revenue_growth_1y, weight: 0.5}]}
+  momentum: {weight: 0.10, sub_factors: [{name: momentum_6m, weight: 0.6}, {name: momentum_3m, weight: 0.4}]}
+  risk: {weight: 0.10, sub_factors: [{name: debt_to_equity, weight: 0.5}, {name: max_drawdown_1y, weight: 0.5}]}
+  sentiment:
+    weight: 0.20
+    sub_factors:
+      - {name: holder_change_pct, weight: 0.70}
+      - {name: volume_ratio, weight: 0.30}
+
+thesis_engine:
+  pattern_weights:
+    turnaround_opportunity: 0.60
+    deep_value: 0.55
+    quality_compound: 0.40
+    growth_at_reasonable_price: 0.35
+    dividend_compound: 0.20
+    momentum_breakout: 0.15
+
+decision_graph:
+  entry_gate: "sentiment_score > 50 AND holder_change_pct < -0.05"
+  sizing_rule: "confidence_driven"
+  risk_check: "debt_to_equity < 2.0"
+
+evolution:
+  mutation_allowed: [factor_weight, thesis_scoring, decision_graph.entry_gate]
+  mutation_forbidden: [doctrine, investment_identity, strategy_genus]

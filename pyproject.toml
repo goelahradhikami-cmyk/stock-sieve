@@ -1,0 +1,43 @@
+[project]
+name = "stock-sieve"
+version = "0.1.0"
+description = "Multi-Personality Evolutionary Stock Selection Engine"
+requires-python = ">=3.10"
+dependencies = [
+    "mootdx>=0.10",
+    "pandas>=2.0",
+    "stockstats>=0.6",
+    "litellm>=1.0",
+    "streamlit>=1.28",
+    "plotly>=5.18",
+    "pyyaml>=6.0",
+    "numpy>=1.24",
+    "requests>=2.28",
+    "akshare>=1.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+# Console entry point. `pip install -e .` exposes the `stock-sieve` command,
+# which dispatches to src/cli.py:main (argparse, prog="stock-sieve").
+[project.scripts]
+stock-sieve = "src.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+# The whole codebase imports via `from src.xxx import ...`, so `src` itself
+# must be shipped as a package. Discover it (and all subpackages) from the
+# repo root rather than treating src/ as the package root.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

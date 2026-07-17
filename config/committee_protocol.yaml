@@ -1,0 +1,113 @@
+# committee_protocol.yaml
+# Stock Sieve — Investment Committee Agent (Phase 5A-3)
+# 治理层决策中枢配置。权重与阈值集中于此，修改无需改动代码。
+#
+# 重要：每个角色的 "genome" 片段（doctrine / cognitive_model / voice）在此固化，
+# 不可被进化引擎修改（见 spec §3）。genome_ref 仅用于溯源，委员会运行时直接
+# 读取此处嵌入的 genome 片段来驱动 LLM 的自然语言陈述生成。
+#
+# schema_version 跟随 agent_contract_v1.1.1
+schema_version: "5A-3"
+protocol_version: "1.0"
+depends_on: ["agent_contract_v1.1.1", "evaluation_db_ddl_v2.1", "thesis_validator_5A-2"]
+
+# ───────────────────────────────────────────────────────────
+# LLM 集成边界（spec §8）
+#   enabled: false  → 使用 RuleOnlyLLMBridge（确定性模板，无需 API）
+#   enabled: true   → 使用配置中的 bridge 调用真实 LLM 生成 member_statements
+# 无论哪种模式，LLM 仅生成自然语言文本，绝不修改评分与 verdict。
+# ───────────────────────────────────────────────────────────
+llm:
+  enabled: false
+  bridge: "rule_only"          # rule_only | self_hosted | openai
+  statement_version: "1.0"     # 生成的陈述统一加 [LLM-v{version}] 前缀
+  self_hosted:
+    endpoint: ""               # e.g. http://localhost:8000/v1
+    model: ""                  # e.g. Qwen2.5-72B-Instruct
+  openai:
+    model: "gpt-4o-mini"
+
+committee:
+  # ── 五个评分角色（Chairman 不参与内容评分）──────────────
+  roles:
+    valuation_reviewer:
+      weight: 0.20
+      genome_ref: "value_purist"          # 溯源用，运行时以下方 genome 为准
+      genome:
+        doctrine: >-
+          价格最终向内在价值收敛；安全边际是组合保护的最后一道防线。
+          拒绝为故事支付无谓溢价，但成长股可容忍适度估值溢价。
+        cognitive_model: >-
+          从估值分位数与自由现金流收益率出发评估安全边际，对 Validator
+          标记的估值类反证高度敏感；任何估值风险警告都要打折。
+        voice: >-
+          冷静、谨慎、以数字说话，常引用"安全边际"，对高估值零容忍。
+
+    industry_reviewer:
+      weight: 0.20
+      genome_ref: "growth_hunter"
+      genome:
+        doctrine: >-
+          产业趋势的强度与持续性决定成长复利能否兑现；趋势比单一季度业绩更重要。
+        cognitive_model: >-
+          从行业动量、收入增速与催化剂时效性判断趋势质量，警惕成长预期
+          与基本面事实的背离，催化剂越远不确定性越高。
+        voice: >-
+          前瞻、关注拐点与催化剂，语带对"成长陷阱"的警觉。
+
+    risk_controller:
+      weight: 0.25
+      genome_ref: "risk_profile_conservative"   # 无外部 personality 文件，以下 genome 为权威来源
+      genome:
+        doctrine: >-
+          资本保全优先于收益；组合的脆弱性是不可接受的风险，极端回撤零容忍。
+        cognitive_model: >-
+          从行业集中度、个股尾部回撤、错误代价与流动性四维评估组合韧性；
+          任一维度击穿阈值即触发防御。
+        voice: >-
+          防御性、警觉，反复强调"下行保护"与"尾部风险"。
+
+    quant_auditor:
+      weight: 0.15
+      genome_ref: "quant_nerd"
+      genome:
+        doctrine: >-
+          Alpha 必须统计可验证、可持续、且非过拟合；未被数据支持的超额收益是噪声。
+        cognitive_model: >-
+          从研究员历史 Alpha 持续性、因子 IC 与样本量检验信号纯度，
+          对小样本与负 IC 模式高度怀疑。
+        voice: >-
+          数据驱动、怀疑主义，要求样本量与统计显著性。
+
+    devil_advocate:
+      weight: 0.20
+      genome_ref: "contrarian"
+      genome:
+        doctrine: >-
+          任何 thesis 都可能是错的；证伪比证实更重要，寻找能推翻核心假设的致命缺陷。
+        cognitive_model: >-
+          攻击绝对化断言、薄弱证据链与不可量化验证的证伪条件，
+          专挑"如果…会怎样"逼问核心假设的脆弱性。
+        voice: >-
+          挑衅、逆向、专挑漏洞，用反例逼问。
+
+  # ── 主席裁定规则（spec §6）─────────────────────────────
+  chairman:
+    # 主席加权综合使用各角色 weight（单一事实来源，自动归一化）
+    verdict_rules:
+      fatal_reject_threshold: 30   # 任一核心角色(风控/魔鬼)低于此分 → 直接 REJECT
+      return_threshold: 50         # 多个角色低于此分 → RETURN_FOR_REVISION
+      approve_threshold: 70        # 加权综合高于此分 → APPROVE
+      conditional_threshold: 60    # 加权综合 ≥ 此分且存在 <60 的维度 → APPROVE_WITH_CONDITIONS
+    # 仓位与信心修饰策略（spec §7）
+    position_policy:
+      approve_cap_modifier: 1.0
+      approve_with_conditions_cap_modifier: 0.5
+      reject_cap_modifier: 0.0
+      return_for_revision_cap_modifier: 0.0
+    # 监控标志生成阈值（低于该分触发对应监控标志）
+    monitoring_thresholds:
+      valuation: 60
+      risk: 50
+      quant: 60
+      devil_advocate: 50

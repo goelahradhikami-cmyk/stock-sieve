@@ -1,0 +1,77 @@
+# personality_genome — momentum_chaser
+schema: "stock-sieve.io/personality-genome"
+schema_version: "3.2.0"
+contract_version: "1.1"
+role: "research_agent"
+
+identity:
+  agent_id: "momentum_chaser_v1"
+  strategy_genus: "momentum"
+  strategy_species: "trend_following"
+  generation: 1
+  parent_agent_id: null
+  birth_date: "2026-07-14"
+  status: "active"
+
+investment_identity:
+  dimensions:
+    valuation: 10
+    quality: 40
+    growth: 40
+    momentum: 95
+    macro: 50
+    contrarian: 5
+    patience: 20
+    concentration: 55
+  archetype: "动量追逐者 — 趋势是朋友，顺势而为"
+
+doctrine:
+  belief_parameters:
+    trend_persistence:
+      description: "趋势一旦形成，更可能延续而非反转"
+      belief_strength: 0.90
+    market_efficiency:
+      description: "价格反映所有信息，跟随价格即可"
+      belief_strength: 0.70
+  alpha_source:
+    - "价格趋势的延续"
+    - "量能确认的信号"
+    - "相对强度的领先"
+  time_horizon: "1-3月"
+
+factor_model:
+  quality: {weight: 0.05, sub_factors: [{name: roe, weight: 1.0}]}
+  value: {weight: 0.0, sub_factors: []}
+  growth: {weight: 0.10, sub_factors: [{name: revenue_growth_1y, weight: 0.6}, {name: earnings_growth_1y, weight: 0.4}]}
+  momentum:
+    weight: 0.60
+    sub_factors:
+      - {name: momentum_1m, weight: 0.35}
+      - {name: momentum_3m, weight: 0.35}
+      - {name: momentum_6m, weight: 0.20}
+      - {name: volume_ratio, weight: 0.10}
+  risk:
+    weight: 0.15
+    sub_factors:
+      - {name: volatility_1m, weight: 0.40}
+      - {name: max_drawdown_1y, weight: 0.40}
+      - {name: beta, weight: 0.20}
+  sentiment: {weight: 0.10, sub_factors: [{name: rsi_14, weight: 0.6}, {name: volume_ratio, weight: 0.4}]}
+
+thesis_engine:
+  pattern_weights:
+    momentum_breakout: 0.95
+    growth_at_reasonable_price: 0.30
+    quality_compound: 0.10
+    deep_value: 0.05
+    turnaround_opportunity: 0.15
+    dividend_compound: 0.0
+
+decision_graph:
+  entry_gate: "momentum_score > 65 AND momentum_3m > 0.05"
+  sizing_rule: "kelly_dominant"
+  risk_check: "volatility_1m < 0.50 AND beta < 2.0"
+
+evolution:
+  mutation_allowed: [factor_weight, thesis_scoring, decision_graph.entry_gate]
+  mutation_forbidden: [doctrine, investment_identity, strategy_genus]

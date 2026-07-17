@@ -1,0 +1,49 @@
+# Static counter-evidence rules (Phase 5A-2 §5)
+
+# These are industry-specific, always-active rules that don't need
+# Post-Mortem validation. They represent known market patterns.
+
+rules:
+  - rule_id: static_low_pe_manufacturing_trap
+    name: "低PE制造业价值陷阱"
+    description: "PE<10且无品牌壁垒的制造业公司容易出现价值陷阱"
+    severity: 0.8
+    common_thesis_types: [deep_value]
+    common_factors:
+      pe_ttm: {max: 10}
+      gross_margin: {max: 0.25}
+    preventive_action: "增加经营稳定性过滤（ROE连续5年>10%）"
+
+  - rule_id: static_high_pe_cyclical_trap
+    name: "高PE周期股陷阱"
+    description: "周期股在盈利顶点时PE极低（看似便宜），实际是卖出信号"
+    severity: 0.7
+    common_thesis_types: [deep_value, turnaround_opportunity]
+    common_factors:
+      pe_ttm: {max: 8}
+      roe: {min: 0.25}
+    preventive_action: "检查行业周期位置，确认不是在周期顶部买低PE"
+
+  - rule_id: static_smallcap_liquidity_risk
+    name: "小市值流动性风险"
+    description: "流通市值<50亿的股票容易出现流动性问题和价格操纵"
+    severity: 0.5
+    common_thesis_types: [momentum_breakout, turnaround_opportunity]
+    preventive_action: "小市值股票限制最大仓位为5%"
+
+  - rule_id: static_high_leverage_value_trap
+    name: "高杠杆价值陷阱"
+    description: "高负债率公司即使PB很低也可能是价值陷阱"
+    severity: 0.6
+    common_thesis_types: [deep_value, dividend_compound]
+    common_factors:
+      debt_to_equity: {min: 1.5}
+      pb: {max: 0.8}
+    preventive_action: "高负债率公司排除或要求ROE>15%作为补偿"
+
+  - rule_id: static_story_stock_risk
+    name: "故事股风险"
+    description: "过于复杂或多层因果链的Thesis容易过度拟合"
+    severity: 0.4
+    common_thesis_types: [growth_at_reasonable_price, turnaround_opportunity]
+    preventive_action: "复杂Thesis需要更多证据支持和更严格的invalidation条件"

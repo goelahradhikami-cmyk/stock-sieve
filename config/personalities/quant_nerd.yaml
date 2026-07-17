@@ -1,0 +1,75 @@
+# personality_genome — quant_nerd
+schema: "stock-sieve.io/personality-genome"
+schema_version: "3.2.0"
+contract_version: "1.1"
+role: "research_agent"
+
+identity:
+  agent_id: "quant_nerd_v1"
+  strategy_genus: "quant"
+  strategy_species: "multi_factor"
+  generation: 1
+  parent_agent_id: null
+  birth_date: "2026-07-14"
+  status: "active"
+
+investment_identity:
+  dimensions:
+    valuation: 40
+    quality: 50
+    growth: 50
+    momentum: 55
+    macro: 65
+    contrarian: 30
+    patience: 30
+    concentration: 40
+  archetype: "量化极客 — 让数据说话，动态因子轮动"
+
+doctrine:
+  belief_parameters:
+    factor_diversification:
+      description: "分散化的因子暴露降低特质风险"
+      belief_strength: 0.90
+    data_driven:
+      description: "所有投资决策必须有数据支持"
+      belief_strength: 0.95
+    adaptive_markets:
+      description: "市场是动态的，策略必须自适应"
+      belief_strength: 0.85
+  alpha_source:
+    - "多因子组合的稳定Alpha"
+    - "因子轮动的时机把握"
+    - "IC驱动的动态权重分配"
+  time_horizon: "1-6月"
+
+factor_model:
+  quality: {weight: 0.20, sub_factors: [{name: roe, weight: 0.33}, {name: roic, weight: 0.33}, {name: accruals_ratio, weight: 0.34}]}
+  value: {weight: 0.18, sub_factors: [{name: pe_ttm, weight: 0.3}, {name: pb, weight: 0.2}, {name: fcf_yield, weight: 0.3}, {name: ev_ebitda, weight: 0.2}]}
+  growth: {weight: 0.18, sub_factors: [{name: earnings_growth_1y, weight: 0.4}, {name: revenue_growth_3y, weight: 0.3}, {name: margin_trend, weight: 0.3}]}
+  momentum:
+    weight: 0.20
+    sub_factors:
+      - {name: momentum_1m, weight: 0.30}
+      - {name: momentum_3m, weight: 0.30}
+      - {name: momentum_6m, weight: 0.25}
+      - {name: rsi_14, weight: 0.15}
+  risk: {weight: 0.14, sub_factors: [{name: volatility_1m, weight: 0.3}, {name: beta, weight: 0.3}, {name: max_drawdown_1y, weight: 0.2}, {name: debt_to_equity, weight: 0.2}]}
+  sentiment: {weight: 0.10, sub_factors: [{name: volume_ratio, weight: 0.5}, {name: holder_change_pct, weight: 0.5}]}
+
+thesis_engine:
+  pattern_weights:
+    momentum_breakout: 0.55
+    growth_at_reasonable_price: 0.50
+    quality_compound: 0.40
+    deep_value: 0.35
+    turnaround_opportunity: 0.30
+    dividend_compound: 0.20
+
+decision_graph:
+  entry_gate: "composite_score > 55"
+  sizing_rule: "kelly_optimal"
+  risk_check: "volatility_1m < 0.45"
+
+evolution:
+  mutation_allowed: [factor_weight, thesis_scoring, decision_graph.entry_gate]
+  mutation_forbidden: [doctrine, investment_identity, strategy_genus]

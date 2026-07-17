@@ -1,0 +1,31 @@
+# Ruff — fast Python linter & formatter for stock-sieve
+# Docs: https://docs.astral.sh/ruff/configuration/
+
+target-version = "py310"
+line-length = 100
+extend-exclude = ["data", ".playwright-cli", ".workbuddy"]
+
+[lint]
+# E/W pycodestyle, F pyflakes, I isort, UP pyupgrade,
+# B bugbear, SIM simplify
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # line length handled by formatter
+    "E402",   # module-level import not at top (some files import after sys.path tweak)
+    "B008",   # function call in default argument (Streamlit widget patterns)
+    "B904",   # raise from in except — gradual adoption
+    "SIM117", # nested with — readability preference
+]
+
+[lint.isort]
+known-first-party = ["src"]
+
+[lint.per-file-ignores]
+# __init__.py re-exports are intentional public API — do not strip them
+"__init__.py" = ["F401", "E402"]
+# Tests: relax import-order and top-import rules
+"tests/**" = ["E402", "I001"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

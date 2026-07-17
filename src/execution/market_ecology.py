@@ -274,16 +274,17 @@ class MarketRealityEngine:
         return dict(zip(cols, row))
 
     def simulate_order(self, security_id: str, action: str, quantity: int,
-                        signal_price: float, trade_date: date) -> dict:
+                        signal_price: float, trade_date: date,
+                        prev_close: float = None) -> dict:
         """Simulate a single order with full market friction."""
         code = security_id.split('.')[0] if '.' in security_id else security_id
 
-        # 1. Limit-up/down filter
-        if self.config.get('limit_up_down_filter'):
+        # 1. Limit-up/down filter (requires previous close)
+        if self.config.get('limit_up_down_filter') and prev_close is not None and prev_close > 0:
             limit_rate = self.micro.get_limit_rate(code)
-            if action in ('BUY', 'ADD') and signal_price >= signal_price * 1.09:
+            if action in ('BUY', 'ADD') and signal_price >= prev_close * (1 + limit_rate):
                 return self._reject('涨停无法买入')
-            if action in ('SELL', 'REDUCE') and signal_price <= signal_price * 0.91:
+            if action in ('SELL', 'REDUCE') and signal_price <= prev_close * (1 - limit_rate):
                 return self._reject('跌停无法卖出')
 
         # 2. Suspension filter (skip if no data available for trade_date)

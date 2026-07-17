@@ -361,4 +361,31 @@ CREATE TABLE IF NOT EXISTS thesis_patterns (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_tp_name ON thesis_patterns(pattern_name);
+
+-- §17 Portfolio Execution (v2.4) — paper-trade order fills
+CREATE TABLE IF NOT EXISTS portfolio_execution (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    portfolio_decision_id   INTEGER NOT NULL,
+    research_decision_id    INTEGER NOT NULL,
+    agent_id                TEXT NOT NULL,
+    security_id             TEXT NOT NULL,
+    action                  TEXT NOT NULL,
+    order_price             REAL,
+    fill_price              REAL,
+    quantity                INTEGER,
+    slippage                REAL,
+    commission              REAL,
+    stamp_tax               REAL,
+    transfer_fee            REAL,
+    total_cost              REAL,
+    execution_mode          TEXT DEFAULT 'PAPER',
+    execution_status        TEXT DEFAULT 'filled',
+    execution_date          DATE NOT NULL,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (portfolio_decision_id) REFERENCES portfolio_decisions(id),
+    FOREIGN KEY (research_decision_id) REFERENCES research_decisions(id)
+);
+CREATE INDEX IF NOT EXISTS idx_pe_portfolio ON portfolio_execution(portfolio_decision_id);
+CREATE INDEX IF NOT EXISTS idx_pe_agent_date ON portfolio_execution(agent_id, execution_date);
+CREATE INDEX IF NOT EXISTS idx_pe_security ON portfolio_execution(security_id);
 """

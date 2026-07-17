@@ -495,3 +495,170 @@ class EvaluationCRUDMixin:
                 WHERE rd.thesis_pattern = ?
             """, (thesis_pattern,)).fetchone()
         return int(row[0]) if row and row[0] is not None else 0
+
+    # ═══════════════════════════════════════════════════════
+    # Portfolio decision & execution persistence
+    # ═══════════════════════════════════════════════════════
+
+    @with_conn
+    def insert_portfolio_decision(self, conn, research_decision_id: int,
+                                  agent_id: str, decision,
+                                  market_regime: str = None,
+                                  market_risk_score: float = None,
+                                  decision_date: str = None) -> int:
+        """Persist a single PositionDecision from a PortfolioDecision.
+
+        ``decision`` can be a PortfolioDecision object or a plain dict. When
+        it contains multiple PositionDecisions, only the first is persisted
+        (the daily pipeline is per-stock). The caller should iterate if
+        multiple positions need saving.
+        """
+        import json as _json
+        from datetime import date as _date
+
+        if isinstance(decision, dict):
+            g = lambda attr, default=None: decision.get(attr, default)
+        else:
+            g = lambda attr, default=None: getattr(decision, attr, default)
+
+        # Extract the first PositionDecision (per-stock pipeline)
+        decisions = g("decisions", [])
+        pd = decisions[0] if decisions else {}
+
+        def _pg(attr, default=None):
+            if isinstance(pd, dict):
+                return pd.get(attr, default)
+            return getattr(pd, attr, default)
+
+        trace = _pg("position_engine_trace", {}) or {}
+        d_date = decision_date or _date.today().isoformat()
+
+        c = conn.execute("""
+            INSERT INTO portfolio_decisions
+            (research_decision_id, policy_id, agent_id,
+             base_weight, kelly_weight, regime_multiplier,
+             risk_penalty, liquidity_penalty, valuation_gate_applied,
+             final_weight, market_regime, market_risk_score,
+             cash_level, portfolio_herfindahl, sector_exposure_current,
+             decision_trace, execution_instruction, status, decision_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            research_decision_id,
+            g("policy_id", "default"),
+            agent_id,
+            trace.get("base_weight", _pg("target_weight", 0.0)),
+            trace.get("kelly_weight"),
+            trace.get("regime_multiplier", 1.0),
+            trace.get("risk_penalty", 0.0),
+            trace.get("liquidity_penalty", 0.0),
+            1 if trace.get("valuation_gate_applied") else 0,
+            _pg("target_weight", 0.0),
+            market_regime,
+            market_risk_score,
+            g("cash_target", 0.08),
+            trace.get("herfindahl", 0.0),
+            trace.get("sector_exposure", 0.0),
+            _json.dumps(trace, ensure_ascii=False, default=str),
+            _pg("execution_instruction", "normal"),
+            "active",
+            d_date,
+        ))
+        conn.commit()
+        return c.lastrowid
+
+    @with_conn
+    def insert_portfolio_execution(self, conn, portfolio_decision_id: int,
+                                   research_decision_id: int, agent_id: str,
+                                   execution_result: dict) -> int:
+        """Persist a paper-trade execution result from ExecutionSimulator."""
+        c = conn.execute("""
+            INSERT INTO portfolio_execution
+            (portfolio_decision_id, research_decision_id, agent_id,
+             security_id, action, order_price, fill_price, quantity,
+             slippage, commission, stamp_tax, transfer_fee, total_cost,
+             execution_mode, execution_status, execution_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            portfolio_decision_id,
+            research_decision_id,
+            agent_id,
+            execution_result.get("security_id"),
+            execution_result.get("action"),
+            execution_result.get("order_price"),
+            execution_result.get("fill_price"),
+            execution_result.get("quantity"),
+            execution_result.get("slippage"),
+            execution_result.get("commission"),
+            execution_result.get("stamp_tax"),
+            execution_result.get("transfer_fee"),
+            execution_result.get("total_cost"),
+            execution_result.get("execution_mode", "PAPER"),
+            execution_result.get("execution_status", "filled"),
+            execution_result.get("execution_date"),
+        ))
+        conn.commit()
+        return c.lastrowid
+
+    @with_conn
+    def get_latest_portfolio_state(self, conn, agent_id: str) -> dict:
+        """Reconstruct current positions and cash from recent executions.
+
+        Returns a dict with cash_balance, positions (list of {code, shares,
+        avg_cost}), realized_pnl, last_rebalance_date. Falls back to empty
+        state (1M cash, no positions) when no executions exist.
+        """
+        rows = conn.execute("""
+            SELECT security_id, action, quantity, fill_price, total_cost, execution_date
+            FROM portfolio_execution
+            WHERE agent_id = ?
+            ORDER BY execution_date ASC, id ASC
+        """, (agent_id,)).fetchall()
+
+        if not rows:
+            return {
+                "cash_balance": 1_000_000.0,
+                "positions": [],
+                "realized_pnl": 0.0,
+                "last_rebalance_date": "",
+            }
+
+        cash = 1_000_000.0
+        realized_pnl = 0.0
+        holdings: dict[str, dict] = {}  # code -> {shares, total_cost}
+
+        for r in rows:
+            code = r["security_id"]
+            action = r["action"]
+            qty = r["quantity"] or 0
+            price = r["fill_price"] or 0.0
+            cost = r["total_cost"] or 0.0
+
+            if action in ("BUY", "ADD"):
+                cash -= qty * price + cost
+                if code not in holdings:
+                    holdings[code] = {"shares": 0, "total_cost": 0.0}
+                holdings[code]["shares"] += qty
+                holdings[code]["total_cost"] += qty * price + cost
+            elif action in ("SELL", "REDUCE"):
+                proceeds = qty * price - cost
+                cash += proceeds
+                if code in holdings:
+                    avg_cost = (holdings[code]["total_cost"] / holdings[code]["shares"]
+                                if holdings[code]["shares"] > 0 else 0)
+                    realized_pnl += qty * (price - avg_cost) - cost
+                    holdings[code]["shares"] -= qty
+                    holdings[code]["total_cost"] -= qty * avg_cost
+                    if holdings[code]["shares"] <= 0:
+                        del holdings[code]
+
+        positions = [
+            {"code": code, "shares": h["shares"], "avg_cost": h["total_cost"] / h["shares"]}
+            for code, h in holdings.items()
+        ]
+
+        return {
+            "cash_balance": round(cash, 2),
+            "positions": positions,
+            "realized_pnl": round(realized_pnl, 2),
+            "last_rebalance_date": rows[-1]["execution_date"] if rows else "",
+        }

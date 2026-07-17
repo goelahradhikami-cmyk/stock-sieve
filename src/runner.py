@@ -29,6 +29,7 @@ from src.data.evaluation_db import EvaluationDB
 from src.data.financials import FinancialDataProvider
 from src.data.market_brain import MarketBrain
 from src.data.provider import DataProvider
+from src.execution.simulator import ExecutionSimulator
 from src.factors.engine import FactorEngine
 from src.utils.logger import get_logger
 from src.validation.rule_registry import RuleRegistry
@@ -281,11 +282,50 @@ def run_single_stock(code: str):
     pa = PortfolioAgent()
     state = PortfolioState()
     pdec = pa.construct_portfolio([best], state, market_dict)
+    # Apply committee position cap modifier
+    pdec.apply_committee_cap(getattr(decision, "position_cap_modifier", 1.0))
+
     if pdec.decisions:
         d = pdec.decisions[0]
         print(f"   Action: {d.action}, Target weight: {d.target_weight:.4f}")
-        final_weight = apply_committee_decision(decision, d.target_weight)
-        print(f"   After committee: {final_weight:.4f}")
+
+        # Persist portfolio decision
+        pd_id = db.insert_portfolio_decision(
+            research_decision_id=rid,
+            agent_id=best.agent_id,
+            decision=pdec,
+            market_regime=market_dict.get("regime_type"),
+            market_risk_score=market_dict.get("risk_score"),
+            decision_date=date.today().isoformat(),
+        )
+        print(f"   ✅ portfolio_decision id={pd_id}")
+
+        # Simulate order execution
+        sim = ExecutionSimulator()
+        port_value = state.cash_balance
+        target_value = port_value * d.target_weight
+        order_qty = int(target_value / (snap.price or 100) / 100) * 100  # round to lots
+        if order_qty > 0:
+            exec_result = sim.simulate_portfolio_decision(
+                decision={
+                    "stock_code": code,
+                    "action": d.action if d.action in ("BUY", "ADD", "SELL", "REDUCE") else "BUY",
+                    "quantity": order_qty,
+                    "portfolio_decision_id": pd_id,
+                },
+                current_price=snap.price or 100,
+            )
+            # Persist execution
+            db.insert_portfolio_execution(
+                portfolio_decision_id=pd_id,
+                research_decision_id=rid,
+                agent_id=best.agent_id,
+                execution_result=exec_result,
+            )
+            fp = exec_result.get("fill_price", 0)
+            tc = exec_result.get("total_cost", 0)
+            print(f"   📊 Fill: ¥{fp:.2f} × {order_qty} shares | Cost: ¥{tc:.2f}")
+            print(f"      Slippage: {exec_result.get('slippage', 0):.4%} | Mode: {exec_result.get('execution_mode', 'PAPER')}")
 
     # ── 9. Evaluation + Post-Mortem ──────────────────────
     print("\n9. Evaluation & Post-Mortem...")

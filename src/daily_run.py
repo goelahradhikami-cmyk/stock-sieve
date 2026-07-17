@@ -30,6 +30,7 @@ from src.data.provider import DataProvider, MarketDataProvider
 from src.data.security_master import SecurityMaster
 from src.data.universe_filter import UniverseFilter
 from src.evaluation.batch_runner import BatchEvaluationRunner
+from src.execution.simulator import ExecutionSimulator
 from src.factors.engine import FactorEngine
 from src.postmortem.engine import PostMortemEngine
 from src.utils.logger import get_logger
@@ -246,6 +247,8 @@ def daily_run(sample_size: int = 0):
     print(f"   Regime: {regime_type}, Risk: {regime_risk:.0f}")
 
     total_decisions = 0
+    portfolio_state = PortfolioState()
+    simulator = ExecutionSimulator()
 
     # ── Factor pass: compute raw composites for the whole universe first ──
     # Factors must be computed for every stock *before* scoring, so the
@@ -344,7 +347,63 @@ def daily_run(sample_size: int = 0):
 
                 if dec.verdict in ("APPROVE", "APPROVE_WITH_CONDITIONS"):
                     pa = PortfolioAgent()
-                    pdec = pa.construct_portfolio([sa], PortfolioState(), market_dict)
+                    pdec = pa.construct_portfolio([sa], portfolio_state, market_dict)
+                    # Apply committee position cap modifier
+                    cap_mod = getattr(dec, "position_cap_modifier", 1.0)
+                    pdec.apply_committee_cap(cap_mod)
+
+                    if pdec.decisions:
+                        pd0 = pdec.decisions[0]
+                        # Persist portfolio decision
+                        pd_id = db.insert_portfolio_decision(
+                            research_decision_id=rid,
+                            agent_id=sa.agent_id,
+                            decision=pdec,
+                            market_regime=regime_type,
+                            market_risk_score=regime_risk,
+                            decision_date=today.isoformat(),
+                        )
+
+                        # Compute order quantity from target weight
+                        port_value = portfolio_state.cash_balance + sum(
+                            p.get("shares", 0) * p.get("avg_cost", 0)
+                            for p in portfolio_state.positions
+                        )
+                        target_value = port_value * pd0.target_weight
+                        order_qty = int(target_value / (snap.price or 100) / 100) * 100  # round to lots
+                        if order_qty > 0:
+                            exec_result = simulator.simulate_portfolio_decision(
+                                decision={
+                                    "stock_code": code,
+                                    "action": pd0.action if pd0.action in ("BUY", "ADD", "SELL", "REDUCE") else "BUY",
+                                    "quantity": order_qty,
+                                    "portfolio_decision_id": pd_id,
+                                },
+                                current_price=snap.price or 100,
+                            )
+                            # Persist execution
+                            db.insert_portfolio_execution(
+                                portfolio_decision_id=pd_id,
+                                research_decision_id=rid,
+                                agent_id=sa.agent_id,
+                                execution_result=exec_result,
+                            )
+                            # Update portfolio state
+                            fill_price = exec_result.get("fill_price", snap.price or 100)
+                            total_cost = exec_result.get("total_cost", 0)
+                            if pd0.action in ("BUY", "ADD", "HOLD") or pd0.action not in ("SELL", "REDUCE"):
+                                portfolio_state.cash_balance -= order_qty * fill_price + total_cost
+                                portfolio_state.positions.append({
+                                    "code": code, "shares": order_qty,
+                                    "avg_cost": fill_price,
+                                })
+                            else:
+                                portfolio_state.cash_balance += order_qty * fill_price - total_cost
+                                portfolio_state.positions = [
+                                    p for p in portfolio_state.positions if p.get("code") != code
+                                ]
+                            portfolio_state.last_rebalance_date = today.isoformat()
+
                     # Save signal snapshot
                     try:
                         from src.evaluation.batch_runner import save_signal_snapshot

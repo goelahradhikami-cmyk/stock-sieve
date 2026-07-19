@@ -62,33 +62,41 @@ section[data-testid="stSidebar"] h3 {{
 }}
 
 /* === Navigation radio buttons → terminal-style tabs === */
-.nav-radio .stRadio > div {{
+/* Note: st.markdown('<div class="nav-radio">') does NOT wrap the radio —
+   Streamlit puts each element in its own container, so target the sidebar
+   radiogroup directly (there is only one radio in the sidebar). */
+section[data-testid="stSidebar"] div[role="radiogroup"] {{
+    display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 0;
 }}
-.nav-radio .stRadio label {{
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"] {{
     padding: 10px 16px;
     border-radius: 6px;
-    font-size: 0.95rem;
+    border-left: 3px solid transparent;
     transition: background 0.15s;
-    color: {TEXT_SECONDARY};
-    border: 1px solid transparent;
+    cursor: pointer;
 }}
-.nav-radio .stRadio label:hover {{
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"]:hover {{
     background-color: {BG_TERTIARY};
+}}
+/* hide the circle dot (first child div), keep the text */
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"] > div:first-child {{
+    display: none !important;
+}}
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"] p {{
+    color: {TEXT_SECONDARY};
+    font-size: 0.95rem;
+}}
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"]:hover p {{
     color: {TEXT_PRIMARY};
 }}
-.nav-radio .stRadio label[data-baseweb="radio"] > div {{
-    display: none;
-}}
-.nav-radio .stRadio input[type="radio"] {{
-    display: none;
-}}
-.nav-radio div[role="radiogroup"] label[data-baseweb="radio"][aria-checked="true"] {{
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"]:has(input[type="radio"]:checked) {{
     background-color: {BG_TERTIARY};
-    color: {ACCENT_CYAN};
     border-left: 3px solid {ACCENT_CYAN};
+}}
+section[data-testid="stSidebar"] div[role="radiogroup"] label[data-baseweb="radio"]:has(input[type="radio"]:checked) p {{
+    color: {ACCENT_CYAN};
     font-weight: 600;
 }}
 
@@ -266,9 +274,16 @@ section[data-testid="stSidebar"] h3 {{
     font-size: 0.75rem;
 }}
 
-/* === Hide default Streamlit footer === */
+/* === Hide default Streamlit chrome === */
 #MainMenu {{visibility: hidden;}}
 footer {{visibility: hidden;}}
+[data-testid="stDeployButton"],
+.stDeployButton {{
+    display: none !important;
+}}
+[data-testid="stToolbar"] {{
+    display: none !important;
+}}
 header[data-testid="stHeader"] {{
     background-color: {BG_PRIMARY};
     border-bottom: 1px solid {BORDER_COLOR};

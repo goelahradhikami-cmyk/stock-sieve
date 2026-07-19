@@ -10,6 +10,7 @@ from ..utils.theme import (
     TEXT_PRIMARY,
     TEXT_SECONDARY,
     WARN,
+    terminal_layout,
     verdict_badge,
 )
 
@@ -59,13 +60,14 @@ def committee_card(decision: dict):
             font=dict(size=10, color=TEXT_SECONDARY),
         )
 
-    fig.update_layout(
+    layout = terminal_layout()
+    layout.update(
         xaxis=dict(range=[0, 110], title="评分"),
         showlegend=False,
         height=240,
         margin=dict(l=10, r=50, t=10, b=10),
-        template="plotly_white",
     )
+    fig.update_layout(**layout)
     st.plotly_chart(fig, use_container_width=True)
 
     # ── Devil's Advocate attack points ───────────────────

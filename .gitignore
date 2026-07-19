@@ -47,4 +47,5 @@ Thumbs.db
 desktop.ini
 
 # ── Streamlit ───────────────────────────────────────
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml

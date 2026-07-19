@@ -44,7 +44,7 @@ def render():
 
     # ── Meeting summary card ─────────────────────────────
     with st.container(border=True):
-        cols = st.columns(4)
+        cols = st.columns(3)
         with cols[0]:
             st.markdown(f"**📅 {decision.get('created_at', '?')[:10]}**")
             st.caption(f"时间: {decision.get('created_at', '?')[11:16]}")
@@ -52,12 +52,8 @@ def render():
             st.markdown(f"**📈 {decision.get('security_id', '?')}**")
             st.caption(f"研究员: `{decision.get('research_agent_id', '?')}`")
         with cols[2]:
-            alpha = decision.get("alpha_score", 0)
             conf = decision.get("confidence", 0)
-            st.metric("Alpha / Confidence", f"{alpha:.1f} / {conf:.1f}")
-        with cols[3]:
-            cap = decision.get("position_cap_modifier", 1.0)
-            st.metric("仓位上限", f"{cap:.0%}")
+            st.metric("Confidence", f"{conf:.1f}")
 
     # ── Committee card ───────────────────────────────────
     committee_card(decision)

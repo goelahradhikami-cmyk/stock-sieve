@@ -1,0 +1,11 @@
+# Stock Sieve — Streamlit native theme
+# Aligns with src/ui/utils/theme.py (Financial Terminal Theme).
+# Native theming covers what injected CSS cannot reach:
+# st.dataframe, radio/slider accents, native widget surfaces.
+
+[theme]
+base = "dark"
+primaryColor = "#00bcd4"
+backgroundColor = "#0b0e14"
+secondaryBackgroundColor = "#131720"
+textColor = "#e6edf3"

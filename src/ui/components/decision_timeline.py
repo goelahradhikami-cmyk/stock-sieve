@@ -24,8 +24,9 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
             # ── Header row ───────────────────────────────
             cols = st.columns([3, 1, 1])
             with cols[0]:
-                thesis = rd.get("thesis_claim", "未命名 Thesis")[:60]
-                st.markdown(f"**🧠 {thesis}**...")
+                thesis_full = rd.get("thesis_claim", "未命名 Thesis")
+                thesis = thesis_full if len(thesis_full) <= 80 else thesis_full[:80] + "…"
+                st.markdown(f"**🧠 {thesis}**")
             with cols[1]:
                 alpha = rd.get("alpha_score", 0)
                 st.metric("Alpha", f"{alpha:.1f}/10")
@@ -139,9 +140,6 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                                 st.metric(k, f"{v:.2f}" if isinstance(v, float) else str(v))
             except (json.JSONDecodeError, TypeError):
                 pass
-
-            if idx < len(decisions) - 1:
-                st.divider()
 
 
 # Import SERIES_COLORS for inline HTML usage

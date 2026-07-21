@@ -884,3 +884,167 @@ freeze_history:
       RS is absorbed into Expectation Gap as the 'price_reaction' dimension.
     
     next_phase: "v3.3 Expectation Gap Engine - RS demoted to EGE input, not gate"
+
+  v3_3_expectation_gap_design_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.15.0"
+    tag: "security-analyst-v3.3-expectation-gap-design"
+    scope: "Expectation Gap Engine (EGE) Design Freeze - research contract"
+    freeze_status: "DESIGN FROZEN (research hypothesis + schema + validation gates)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Core Research Hypothesis (falsifiable)
+    # ═══════════════════════════════════════════════════════════
+    core_hypothesis: |
+      The market underreacts to the SPEED of earnings improvement,
+      not to cheapness. Mispricing occurs when:
+        fundamental_improvement > price_repricing
+      This is the opposite of the v1/v2 assumption (drawdown + cheap =
+      mispriced), which v3.2 proved wrong.
+
+    falsification_chain:
+      cheap_stocks: "DISPROVED (v2: cheap ≠ mispriced)"
+      cheap_plus_healthy: "DISPROVED (v2: deserved cheapness)"
+      fundamental_recovery: "PROVEN (v3.1: FRM produces +2.52% alpha)"
+      recovery_plus_strong_trend: "DISPROVED (v3.2.2: RS gate destroys alpha)"
+      recovery_plus_market_underreaction: "UNTESTED (v3.3 tests this)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture:
+      stage_1_recovery_eligibility:
+        status: "FROZEN (v3.1 validated, produces +2.52% alpha)"
+        gate: "FRM direction = improving (hard reject deteriorating)"
+        note: "This is the proven alpha source. v3.3 must NOT break it."
+
+      stage_2_expectation_gap_engine:
+        status: "NEW (replaces RS gate)"
+        components:
+          earnings_acceleration:
+            formula: "EA = earnings_yoy_current - earnings_yoy_previous"
+            note: "SPEED of improvement, not level. -30%->+5% (EA=+35) beats +20%->+22% (EA=+2)"
+            vintage_aware: true
+            data_source: "akshare_financials (3 periods, vintage-safe)"
+          price_reaction:
+            formula: "return from available_date to available_date + N trading days"
+            windows: ["T+5 (short-term)", "T+20 (medium-term)"]
+            anchor: "available_date (earnings announcement date)"
+            forbidden: ["momentum_3m", "momentum_6m (span announcement, contaminate signal)"]
+            sector_neutral: "price_reaction_alpha = stock_return - sector_return"
+            note: "RS_20d is ABSORBED here as price_reaction input (demoted from gate)"
+          gap_score:
+            formula: "Expectation_Gap_Z = z(EA) - z(PriceReaction)"
+            interpretation:
+              high_gap: "fundamental improved but price hasn't reacted -> candidate"
+              low_gap: "market already priced in the improvement -> exclude"
+            note: "Standardized (z-score) to handle different volatility scales"
+
+      stage_3_mispricing_validation:
+        status: "SIMPLIFIED (valuation as last gate, not primary)"
+        role: "Confirm the EGE candidate is not a value trap"
+        factors: ["valuation_gap (retained)", "quality_filter (ROE/debt)"]
+        note: "Cheapness is now a CONFIRMATION signal, not an entrance signal"
+
+    # ═══════════════════════════════════════════════════════════
+    # Candidate Ranking (frozen)
+    # ═══════════════════════════════════════════════════════════
+    candidate_ranking:
+      formula: "0.4 * Earnings_Acceleration + 0.4 * Expectation_Gap + 0.2 * Quality_Filter"
+      note: "RS does NOT directly add to score. It enters via Expectation_Gap as price_reaction."
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen, 3-stage)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v3_3_a_gap_discrimination:
+        test: "Gap Decile: D10 (highest gap) residual_alpha > D1 (lowest gap)"
+        purpose: "EGE has discriminative power"
+        required: "D10 > D1 (statistically meaningful)"
+
+      v3_3_b_frm_preservation:
+        test: "FRM+EGE residual_alpha >= FRM-only baseline (+2.52%)"
+        purpose: "EGE does NOT break FRM's proven alpha"
+        required: "residual >= +2% OR positive_rate >= 58%"
+
+      v3_3_c_positive_alpha:
+        test: "residual_alpha > 0"
+        purpose: "True selection alpha exists"
+        required: "mean residual_alpha > 0"
+        note: "This is the ultimate goal but may require v3.4 iteration"
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_rs_gate: "MUST NOT re-add RS > threshold as a gate (disproved by v3.2.2)"
+      no_valuation_primary: "MUST NOT use PE/PB/drawdown as primary signal (v2 proved cheap ≠ mispriced)"
+      no_evolution: "Evolution v4 remains disabled until EGE validated"
+      no_momentum_as_price_reaction: "MUST NOT use momentum_3m/6m as price_reaction (spans announcement)"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+      no_kill_uw_changes: "MUST NOT modify KillCriteria / DoctrineUnderwriter signatures"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "src/thesis/expectation_gap_engine.py: NEW module"
+      - "src/thesis/candidate_generator.py: replace Stage 2 (RS gate) with EGE, replace Stage 3"
+      - "src/thesis/market_anomaly.py: extend V3CandidateFeatures with EGE fields"
+      - "migrations/shadow_trading_schema_v4.sql: earnings_event_reaction table"
+      - "scripts/run_v3_3_validation.py: 3-experiment validation script"
+
+    # ═══════════════════════════════════════════════════════════
+    # New Schema (frozen)
+    # ═══════════════════════════════════════════════════════════
+    new_schema:
+      earnings_event_reaction_table:
+        purpose: "Event-study data: price reaction to earnings announcements"
+        key_fields:
+          - "security_id, available_date (PK)"
+          - "earnings_yoy_current, earnings_yoy_previous, earnings_yoy_previous2"
+          - "earnings_acceleration_1st, earnings_acceleration_2nd"
+          - "stock_return_5d, stock_return_20d"
+          - "sector_return_5d, sector_return_20d"
+          - "price_reaction_alpha_5d, price_reaction_alpha_20d"
+          - "expectation_gap_5d, expectation_gap_20d"
+
+      v3_candidate_features_extension:
+        new_fields:
+          - "earnings_acceleration_2nd (2nd derivative, 3-period)"
+          - "available_date_latest (event anchor)"
+          - "event_window_return_5d, event_window_return_20d"
+          - "sector_neutral_reaction_5d, sector_neutral_reaction_20d"
+          - "expectation_gap (core signal)"
+          - "failure_class (5-class taxonomy)"
+
+      failure_classification:
+        classes:
+          FUNDAMENTAL_FALSE_POSITIVE: "earnings_acceleration > 0 AND residual_alpha < -5%"
+          PRICE_ALREADY_PRICED: "price_reaction_alpha > 0 AND expectation_gap < 0"
+          SECTOR_BETA_TRAP: "sector_beta < -5% AND residual_alpha < 0"
+          LIQUIDITY_TRAP: "volume_ratio < 0.5 AND residual_alpha < 0"
+          EVENT_RISK: "|stock_return - market_return| > 3*sigma AND earnings_acceleration ≈ 0"
+
+    # ═══════════════════════════════════════════════════════════
+    # Implementation Phases
+    # ═══════════════════════════════════════════════════════════
+    implementation_phases:
+      phase_1: "earnings_event_reaction table + event window return calculation"
+      phase_2: "ExpectationGapEngine module (EA + price_reaction + gap_score)"
+      phase_3: "Replace CandidateGenerator Stage 2 (RS gate) with EGE"
+      phase_4: "3-experiment validation (gap decile / FRM preservation / positive alpha)"
+      phase_5: "Commit + tag based on results"
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Feasibility (verified by 6-S.14.2 exploration)
+    # ═══════════════════════════════════════════════════════════
+    data_feasibility:
+      earnings_3period: "5225/5226 stocks have >=3 vintage-aware periods (99.98%)"
+      available_date: "123971 announcement records in TDX coverage (2021-08+)"
+      industry_daily_returns: "87276 rows, 2021-08-03 to 2026-07-17 (1200 days, 77 industries)"
+      hs300: "1254 rows, 2021-05-18 to 2026-07-17"
+      poc_result: "acceleration>0 group has residual +3.4pp better than acceleration<=0 group"
+
+    next_phase: "Phase 1: earnings_event_reaction table + event window return calculation"

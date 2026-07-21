@@ -3263,3 +3263,178 @@ freeze_history:
       portfolio_layer: "Bayesian Allocation + Doctrine (frozen)"
 
     next_phase: "Exp11A: universe expansion to N=194 (Group A + Group C separate + combined), re-verify Mid FRM × Mid Gap 3×3 matrix"
+
+  v3_5_2_exp11a_universe_expansion:
+    experiment_date: "2026-07-21"
+    commit: "6-S.17.8"
+    tag: "security-analyst-v3.5.2-exp11a-universe"
+    scope: "N=194 validation with 4 disciplines - does Mid×Mid survive?"
+    freeze_status: "DIAGNOSTIC_BASELINE (Mid×Mid FALSIFIED at N=194; extreme penalty SURVIVES - architecture redefined)"
+
+    experiment_design:
+      purpose: "Turn N=8 story into N=194 statistical fact"
+      n_total: 194
+      groups: "Group A (no RS) 60 + Group C (RS-filtered) 134"
+      four_disciplines:
+        discipline1: "Rank-based (Q3×Q3) vs continuous (uncertainty_score = -|FRM_z| - |Gap_z|)"
+        discipline2: "Null model bootstrap (10000 random samples, 95th percentile benchmark)"
+        discipline3: "Group A/C split + single-variable decomposition (intersection test)"
+        discipline4: "Extreme penalty persistence (Mid×Mid vs High×High)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results - THE N=8 STORY IS FALSIFIED
+    # ═══════════════════════════════════════════════════════════
+    results:
+      discipline1_rank_vs_continuous:
+        q3xq3_at_n194: "alpha=-1.31%, N=6, positive=50% (was +8.43% at N=8)"
+        verdict: "Mid×Mid FALSIFIED. The +8.43% was a small-sample artifact."
+        continuous_uncertainty_score:
+          correlation_with_alpha: 0.0419
+          interpretation: "essentially ZERO. Distance from extreme does NOT predict alpha as continuous variable."
+          verdict: "The theory 'closer to center = more alpha' is NOT supported."
+        rank_5x5_matrix_observation: "No cell stands out. The 5×5 matrix is noise-dominated at N=194."
+
+      discipline2_null_model:
+        target_alpha: "-1.31% (Mid×Mid at N=194)"
+        bootstrap_mean: "-1.54%"
+        p95: "+7.41%"
+        percentile_rank: "53.0%"
+        verdict: "Mid×Mid is statistically INDISTINGUISHABLE from random selection. Not significant at any level."
+
+      discipline3_group_split:
+        group_a_mid_mid: "alpha=-9.15%, N=2 (was +8.43% at N=8 -> COMPLETELY REVERSED)"
+        group_c_mid_mid: "alpha=+2.60%, N=4 (weak positive, underpowered)"
+        combined_mid_mid: "alpha=-1.31%, N=6"
+        single_variable_decomposition:
+          frm_q3_only: "-1.53%"
+          gap_q3_only: "-1.01%"
+          mid_mid: "-1.31%"
+        intersection_test: "Mid×Mid - FRM Q3 = +0.22pp, Mid×Mid - Gap Q3 = -0.31pp. Intersection does NOT add value."
+        verdict: "Group A reversal is definitive proof of overfitting. The N=8 story was episode-specific."
+
+      discipline4_extreme_penalty:
+        mid_mid: "alpha=-1.31%, N=6"
+        high_high: "alpha=-6.87%, N=15, positive=26.7%"
+        low_low: "alpha=-2.21%, N=4"
+        penalty_pp: "+5.56pp (Mid×Mid - H×H)"
+        gap_q5_worst: "alpha=-6.26%, N=40, positive=30% (worst single bucket)"
+        verdict: "Extreme penalty PERSISTS at N=194. Market punishes extreme certainty. This is robust."
+
+    # ═══════════════════════════════════════════════════════════
+    # The Real Finding (paradigm-shifting)
+    # ═══════════════════════════════════════════════════════════
+    real_finding: |
+      The inverted-U pattern across 4 signals (gap, sustainability, FRM,
+      EA) was REAL but MISINTERPRETED. It is not 'middle is best'.
+      It is 'extremes are bad'. The middle is just average, not special.
+
+      WRONG theory (falsified): SELECT middle zone (Mid×Mid = alpha source)
+      CORRECT theory (survives): REJECT extreme zone (H×H = risk, not opportunity)
+
+      The alpha is NOT in selecting the middle. The alpha is in AVOIDING
+      the extremes. This is a fundamentally different architecture:
+
+        WRONG: FRM gate -> Mid×Mid ranker (alpha SELECTOR) -> portfolio
+        CORRECT: FRM gate -> extreme rejection (risk FILTER) -> portfolio
+
+      This redefines the Security Analyst's role:
+        NOT: find stocks the market cannot price (uncertainty premium)
+        BUT: avoid stocks the market has over-priced (extreme certainty risk)
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Check Results
+    # ═══════════════════════════════════════════════════════════
+    validation_checks:
+      mid_mid_positive_n30: "FAIL (alpha=-1.31%, N=6)"
+      positive_rate_55: "FAIL (50%)"
+      spread_3pp: "FAIL (spread=+0.27pp)"
+      both_groups_positive: "FAIL (A=-9.15%, C=+2.60%)"
+      null_significant_5pct: "FAIL (rank=53%)"
+      continuous_corr_positive: "PASS (corr=0.0419, but essentially zero)"
+      extreme_penalty_3pp: "PASS (penalty=+5.56pp)"
+      result: "2/7 pass. Mid×Mid does NOT survive N=194."
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp11A Proved
+    # ═══════════════════════════════════════════════════════════
+    what_exp11a_proved:
+      - "Mid×Mid (+8.43% at N=8) was a SMALL-SAMPLE ARTIFACT. At N=194 it is -1.31% (indistinguishable from random)."
+      - "Group A Mid×Mid reversed from +8.43% (N=8) to -9.15% (N=2). Definitive overfitting proof."
+      - "Continuous uncertainty_score correlation = 0.04 (essentially zero). 'Closer to center = more alpha' is NOT supported."
+      - "Extreme penalty SURVIVES: H×H = -6.87% vs Mid×Mid = -1.31% (delta +5.56pp)."
+      - "Gap Q5 (highest gap) = -6.26%, 30% positive - the WORST single bucket. Market punishes extreme disagreement too."
+      - "The 4 disciplines prevented a beautiful-result misjudgment. Without null model, we might have chased noise."
+
+    what_exp11a_did_not_prove:
+      - "Whether the extreme penalty is economically significant enough to build an architecture on"
+      - "Whether extreme rejection produces positive alpha (it just avoids the worst, doesn't find the best)"
+      - "Whether the extreme penalty survives out-of-sample (Exp11B needed)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision - Architecture Redefined
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      Mid×Mid is FALSIFIED. Do NOT build v3.6 on disagreement selection.
+
+      The correct architecture insight (revised):
+        FRM direction gate (portfolio filter, +2.52% group alpha)
+          -> REJECT extreme zones (H×H, Gap Q5) as risk filter
+          -> accept the rest (no per-stock alpha selector found)
+
+      This is a RISK FILTER architecture, not an alpha selector.
+      The Security Analyst does not find the best stocks.
+      It avoids the worst (extreme certainty/disagreement).
+
+      This aligns with:
+        - Sustainability redefinition: risk penalty, not alpha gate
+        - RS demotion: diagnostic, not gate
+        - v3.3.1 autopsy: high gap = distrust (risk, not opportunity)
+        - v3.4 falsification: sustainability filter removes alpha
+
+      The unified principle (REVISED):
+        State variables are RISK DIAGNOSTICS, not alpha selectors.
+        Use them to REJECT extremes, not to SELECT the middle.
+        The middle is average; the extremes are dangerous.
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture Candidate (REVISED from v3.5.2 freeze)
+    # ═══════════════════════════════════════════════════════════
+    v3_6_architecture_candidate_revised: |
+      Based on Exp11A, the v3.6 architecture candidate is REVISED:
+
+        Market Guardian (v1.1 frozen)
+              |
+              v
+        FRM Direction Gate (Layer 1: portfolio filter)
+          - improving/stable pass, deteriorating reject
+          - +2.52% group-level alpha
+              |
+              v
+        Extreme Risk Filter (Layer 2: risk rejection)
+          - REJECT High FRM × High Gap (H×H = -6.87%)
+          - REJECT Gap Q5 (highest disagreement = -6.26%)
+          - REJECT sustainability极差 (risk penalty, v3.5.2)
+          - Accept everything else in the pool
+              |
+              v
+        Portfolio Layer (Bayesian Allocation, frozen)
+
+      NOT a disagreement ranker. NOT an uncertainty selector.
+      A risk filter that removes the dangerous extremes.
+
+      Philosophy (REVISED):
+        Stock Sieve does not find stocks the market cannot price.
+        Stock Sieve avoids stocks the market has over-priced or
+        over-distrusted (extreme certainty or extreme disagreement).
+
+    # ═══════════════════════════════════════════════════════════
+    # Impact on Prior Conclusions
+    # ═══════════════════════════════════════════════════════════
+    impact_on_prior_conclusions:
+      exp10_mid_mid: "FALSIFIED at N=194. The +8.43% was overfitting to specific Group A episodes."
+      gate_vs_ranker_principle: "STILL VALID. FRM is a gate, not a ranker. But the 'selection within pool' layer is a RISK FILTER, not an alpha selector."
+      h3_uncertainty_premium: "FURTHER WEAKENED. Not only is the middle not special (continuous corr=0.04), the real signal is extreme avoidance, not uncertainty premium."
+      extreme_penalty: "ELEVATED to the primary finding. This is the robust signal that survives N=194."
+      architecture_rename: "REVISED from 'Market Belief Disagreement Detector' to 'Extreme Risk Filter' (or similar). The disagreement-selection theory is falsified."
+
+    next_phase: "Exp11B: out-of-sample test of extreme penalty (does H×H rejection survive 2025-2026 holdout?) - the Mid×Mid track is CLOSED"

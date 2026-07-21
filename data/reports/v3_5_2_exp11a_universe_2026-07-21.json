@@ -1,0 +1,160 @@
+{
+  "commit": "6-S.17.8",
+  "experiment": "exp11a_universe_expansion",
+  "date": "2026-07-21",
+  "n_total": 194,
+  "discipline1_rank_vs_continuous": {
+    "q3xq3": {
+      "label": "Q3 FRM × Q3 Gap",
+      "n": 6,
+      "alpha_pct": -1.3132125325353627,
+      "median_pct": -0.3603948773166707,
+      "positive_rate_pct": 50.0,
+      "std_pct": 6.41522169431067
+    },
+    "us_quintiles": {
+      "Q1": {
+        "label": "Q1",
+        "n": 38,
+        "alpha_pct": -2.875642775806599,
+        "median_pct": -2.5562745018348454,
+        "positive_rate_pct": 42.10526315789474,
+        "std_pct": 13.967920327149086
+      },
+      "Q2": {
+        "label": "Q2",
+        "n": 38,
+        "alpha_pct": -0.013971499931186756,
+        "median_pct": -1.9871759392131298,
+        "positive_rate_pct": 42.10526315789474,
+        "std_pct": 10.910436717958953
+      },
+      "Q3": {
+        "label": "Q3",
+        "n": 38,
+        "alpha_pct": -1.5696678274468496,
+        "median_pct": -2.7612235302675616,
+        "positive_rate_pct": 36.8421052631579,
+        "std_pct": 10.055160448961633
+      },
+      "Q4": {
+        "label": "Q4",
+        "n": 38,
+        "alpha_pct": -1.6943510055825994,
+        "median_pct": -5.408382825252348,
+        "positive_rate_pct": 42.10526315789474,
+        "std_pct": 17.242643126169288
+      },
+      "Q5": {
+        "label": "Q5",
+        "n": 40,
+        "alpha_pct": -2.2723821055990516,
+        "median_pct": -1.690933559028658,
+        "positive_rate_pct": 37.5,
+        "std_pct": 10.351179009548835
+      }
+    },
+    "correlation": 0.04189984427715712,
+    "q3xq3_alpha": -1.3132125325353627
+  },
+  "discipline2_null_model": {
+    "bootstrap_mean": -1.5367395923989002,
+    "bootstrap_std": 5.187615399917416,
+    "p95": 7.405565632329645,
+    "p99": 11.851332904014974,
+    "target_alpha": -1.3132125325353627,
+    "percentile_rank": 53.0,
+    "significant_95": false,
+    "significant_99": false
+  },
+  "discipline3_group_split": {
+    "Group A (no RS)": {
+      "n_total": 60,
+      "n_mid_mid": 2,
+      "alpha_pct": -9.147318391698361,
+      "positive_rate_pct": 0.0
+    },
+    "Group C (RS-filtered)": {
+      "n_total": 134,
+      "n_mid_mid": 4,
+      "alpha_pct": 2.6038403970461363,
+      "positive_rate_pct": 75.0
+    },
+    "Combined": {
+      "n_total": 194,
+      "n_mid_mid": 6,
+      "alpha_pct": -1.3132125325353627,
+      "positive_rate_pct": 50.0
+    },
+    "FRM direction only (all)": {
+      "label": "FRM direction only (all)",
+      "n": 194,
+      "alpha_pct": -1.581858895133272,
+      "median_pct": -2.2976779663371993,
+      "positive_rate_pct": 40.72164948453608,
+      "std_pct": 12.815967767737938
+    },
+    "FRM Q3 only (all gap)": {
+      "label": "FRM Q3 only (all gap)",
+      "n": 38,
+      "alpha_pct": -1.5327226086169223,
+      "median_pct": -0.3613192166811028,
+      "positive_rate_pct": 44.73684210526316,
+      "std_pct": 14.751589889860043
+    },
+    "Gap Q3 only (all frm)": {
+      "label": "Gap Q3 only (all frm)",
+      "n": 38,
+      "alpha_pct": -1.005678311892368,
+      "median_pct": -0.45207290171699316,
+      "positive_rate_pct": 44.73684210526316,
+      "std_pct": 11.153520980748635
+    },
+    "FRM Q3 × Gap Q3 (Mid×Mid)": {
+      "label": "FRM Q3 × Gap Q3 (Mid×Mid)",
+      "n": 6,
+      "alpha_pct": -1.3132125325353627,
+      "median_pct": -0.3603948773166707,
+      "positive_rate_pct": 50.0,
+      "std_pct": 6.41522169431067
+    },
+    "FRM Q5 (highest)": {
+      "label": "FRM Q5 (highest)",
+      "n": 42,
+      "alpha_pct": -2.5960953952551216,
+      "median_pct": -3.2478648003186743,
+      "positive_rate_pct": 38.095238095238095,
+      "std_pct": 14.579611149724286
+    },
+    "Gap Q5 (highest)": {
+      "label": "Gap Q5 (highest)",
+      "n": 40,
+      "alpha_pct": -6.255239062580722,
+      "median_pct": -4.728781872867394,
+      "positive_rate_pct": 30.0,
+      "std_pct": 10.954094585435726
+    },
+    "intersection_delta_frm": 0.2195100760815596,
+    "intersection_delta_gap": -0.30753422064299474
+  },
+  "discipline4_extreme_penalty": {
+    "mid_mid_alpha": -1.3132125325353627,
+    "hh_alpha": -6.8721713283967185,
+    "penalty_pp": 5.558958795861356
+  },
+  "overall_alpha_pct": -1.581858895133272,
+  "checks": {
+    "mid_mid_positive": false,
+    "mid_mid_n_30": false,
+    "positive_rate_55": false,
+    "spread_3pp": false,
+    "both_groups_positive": false,
+    "null_significant": false,
+    "continuous_positive": true,
+    "extreme_penalty": true
+  },
+  "n_pass": 2,
+  "n_total_checks": 8,
+  "verdict": "FAIL (2/8 pass) - Mid×Mid does NOT survive N=194",
+  "recommendation": "Mid×Mid was sample-specific. Do NOT build v3.6 on it. Explore other intersections."
+}

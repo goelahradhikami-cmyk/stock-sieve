@@ -64,20 +64,24 @@ G4 按 risk tier 拆分，避免把选股层错误混入 timing 层评价：
 - G4-B: 3 个选股 leak，最严重 2025-08-13（alpha -12.36%，只选 1 只股票未分散）
 - Def B: 18 个前向窗口 leak（CSI300 后续 20 日 < -3%），集中在 2022-07 假反弹
 
-### Layer 2: Security Analyst（未验证）
+### Layer 2: Security Analyst（v2 重建完成，CONDITIONAL）
 
 | 项目 | 值 |
 |------|-----|
-| **状态** | 等待 Security Analyst Reconstruction v2 |
-| **已知问题** | doctrine shuffle 失败（无增量 alpha）；G4-B 3/133 选股 leak；2025-08-13 只选 1 只股票 |
-| **下一步方向** | (1) anomaly 真实性验证（relative strength / sector confirmation / earnings revision）<br>(2) recovery beta 分离（stock recovery - market recovery）<br>(3) 组合分散规则（min 5 只 / single position ≤ 25%） |
+| **状态** | v2 重建完成（6-S.12），residual_alpha 改善但仍为负，CONDITIONAL |
+| **评级** | ★★☆☆☆（从 ★☆☆☆☆ 提升） |
+| **v2 组件** | FRM Score (6-S.12.2) + Sector Confirmation (6-S.12.3) + Recovery Beta Decomposition (6-S.12.1) |
+| **v2 结果** | residual_alpha: V1 -5.71% -> V2 -5.01%（+0.70pp，仍负）；FRM 方向: V1 61% deteriorating -> V2 67% improving（✅ 方向纠正） |
+| **核心结论** | V2 纠正了选股方向但未产生正 true selection alpha。**anomaly 检测本身可能是瓶颈** |
+| **下一步** | Security Analyst v3：重新设计候选股生成逻辑（不是评分层） |
 
-### Layer 3: Portfolio Construction（未验证）
+### Layer 3: Portfolio Construction（诊断中）
 
 | 项目 | 值 |
 |------|-----|
-| **状态** | Bayesian Allocation 已冻结但未实战验证 |
-| **已知问题** | 缺少 min-position / max-concentration 规则 |
+| **状态** | shadow_portfolio_construction 表已建立（6-S.12.4），独立追踪组合层失败 |
+| **已知问题** | 4/8 BUY episodes FAIL 分散门槛；2025-08-13 FAIL_MIN_POSITIONS+FAIL_CONCENTRATION+FAIL_SECTOR |
+| **隔离原则** | 组合层失败与选股层失败独立归因，不互相背锅 |
 
 ### Shadow Trading 系统（6-S.10.x 系列）
 
@@ -88,20 +92,35 @@ G4 按 risk tier 拆分，避免把选股层错误混入 timing 层评价：
 | 6-S.10.2 | Shadow Episode Recorder | `scripts/shadow_recorder.py` |
 | 6-S.11.2 | Regime Transfer 验证 | （对话分析，已持久化到 freeze YAML + 验证报告） |
 | 6-S.11.3 | Bootstrap Validation + v1.1 冻结 | `scripts/run_bootstrap_validation.py`, `data/reports/market_guardian_validation_2026-07-21.md` |
+| 6-S.12.1 | Recovery Beta Decomposition | `migrations/shadow_trading_schema_v2.sql`, `scripts/backfill_candidate_attribution.py` |
+| 6-S.12.2 | Fundamental Recovery Layer (FRM) | `src/thesis/fundamental_recovery.py`, `scripts/backfill_frm_scores.py` |
+| 6-S.12.3 | Sector Confirmation Layer | `src/thesis/sector_confirmation.py` |
+| 6-S.12.4 | Portfolio Construction Validation | `scripts/evaluate_portfolio_construction.py` |
+| 6-S.12.5 | Security Analyst v2 Replay | `scripts/run_security_analyst_v2_replay.py`, `data/reports/security_analyst_v2_replay_2026-07-21.md` |
 
-**数据库：** `data/shadow_trading.db`（5 张表：shadow_episode / shadow_candidates / shadow_outcome / shadow_counterfactual / shadow_metrics）
+**数据库：** `data/shadow_trading.db`（7 张表：shadow_episode / shadow_candidates / shadow_outcome / shadow_counterfactual / shadow_metrics / shadow_portfolio_construction / schema_version）
+
+**6-S.12 Security Analyst Reconstruction v2 关键发现：**
+
+| 指标 | V1 (doctrine) | V2 (三层评分) | 判定 |
+|------|---------------|---------------|------|
+| residual_alpha mean | -5.71% | -5.01% | 改善 +0.70pp，但仍为负 |
+| FRM direction | 61% deteriorating | 67% improving | ✅ 方向纠正 |
+| stock_return mean | +4.30% | +4.50% | 略有改善 |
+| portfolio diversification | 4/8 FAIL | 独立追踪 | 已隔离归因 |
+
+**核心结论**：V2 纠正了选股方向（从偏好恶化股转为偏好改善股），但 residual_alpha 仍为负。**anomaly 检测本身可能是瓶颈，不只是评分层**。下一阶段需要 Security Analyst v3：重新设计候选股生成逻辑。
 
 **下一步路线：**
 ```
-Market Guardian v1.1 FROZEN ✅ (当前)
+Market Guardian v1.1 FROZEN ✅
     ↓
-Security Analyst Reconstruction v2 (下一阶段重点)
+Security Analyst v2 (CONDITIONAL) ✅ - 方向纠正，residual_alpha 仍负
+    ↓
+Security Analyst v3 (下一阶段) - 重新设计 anomaly 检测
     ↓
 Evolution v4 (Selection 重建后启用)
 ```
-
-> Evolution v4 原本以 shadow_trading_30_episodes 为门槛，现已远超（1204 episodes）。
-> v1.1 重新以 Security Analyst Reconstruction 为门槛，因为继续优化 Market Guardian 的边际收益远低于重建选股层。
 
 ---
 
@@ -415,10 +434,10 @@ python -m pytest tests/ -v
 | 竞技场 | 基于真实历史数据 |
 | **Investment Brain** | **v1.1-frozen-defensive-core (2026-07-21)** |
 | **Market Guardian (Layer 1)** | **✅ FROZEN v1.1 - 1204 episodes, 5/5 gates PASS** |
-| **Security Analyst (Layer 2)** | ⚠️ 未验证 - 等待 Reconstruction v2 |
-| **Portfolio Construction (Layer 3)** | ⚠️ 未验证 |
-| **Evolution v4** | 🔒 disabled - gated on Security Analyst Reconstruction |
-| **Shadow Trading** | 1204 episodes (2021-08-11 ~ 2026-07-10), BUY 150 / BLOCK 1054 |
+| **Security Analyst (Layer 2)** | ⚠️ v2 CONDITIONAL - residual_alpha -5.01%（改善但仍负），方向纠正 |
+| **Portfolio Construction (Layer 3)** | ⚠️ 诊断中 - shadow_portfolio_construction 表追踪，4/8 FAIL |
+| **Evolution v4** | 🔒 disabled - gated on Security Analyst v3 |
+| **Shadow Trading** | 1204 episodes, schema v2.0（含 Recovery Beta 归因 + FRM + 组合验证） |
 
 ---
 

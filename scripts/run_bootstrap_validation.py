@@ -466,6 +466,33 @@ class BootstrapValidator:
                       f"mkt={r['market_return_t20']:+.4%}  "
                       f"alpha={r['alpha_vs_hs300']:+.4%}", flush=True)
 
+        # ---- G4-B-Residual: True Selection Alpha (6-S.12.1) ----
+        # The alpha_vs_hs300 above mixes market beta + sector beta + stock
+        # alpha. 6-S.12.1 backfilled residual_alpha = stock - market - sector
+        # for candidates since 2024-06. This sub-section reports whether the
+        # selection layer produces TRUE stock-picking alpha (residual > 0)
+        # or merely rides market/sector beta (residual <= 0).
+        # This is the core diagnostic for Security Analyst Reconstruction v2.
+        residual_stats = self._compute_residual_alpha_diagnostic(recovery_eps)
+        print(f"  G4-B-Residual True Selection Alpha (6-S.12.1, diagnostic):",
+              flush=True)
+        print(f"    BUY recovery episodes with residual_alpha: "
+              f"{residual_stats['n_episodes']}", flush=True)
+        print(f"    (limited to 2024-06+ due to industry_daily_returns coverage)",
+              flush=True)
+        if residual_stats["n_episodes"] > 0:
+            print(f"    residual_alpha mean:   {residual_stats['mean']:+.4%}",
+                  flush=True)
+            print(f"    residual_alpha median: {residual_stats['median']:+.4%}",
+                  flush=True)
+            print(f"    true selection wins (residual>0): "
+                  f"{residual_stats['n_positive']}/{residual_stats['n_episodes']} "
+                  f"({residual_stats['positive_rate']:.1%})", flush=True)
+            implication = ("Security Analyst has TRUE stock-picking alpha"
+                           if residual_stats["positive_rate"] > 0.5
+                           else "Security Analyst alpha is mostly market/sector beta, not stock-picking")
+            print(f"    IMPLICATION: {implication}", flush=True)
+
         # ---- Def B: forward market window (stricter timing check) ----
         b_results = self._forward_window_false_recovery(recovery_eps)
         b_total_fr = b_results["total_fr"]
@@ -539,9 +566,59 @@ class BootstrapValidator:
                                     key=lambda x: x["alpha_vs_hs300"])
                 ],
             },
+            "g4b_residual": residual_stats,
             "def_b": b_results,
             "passed": passed,
         }
+
+    def _compute_residual_alpha_diagnostic(self,
+                                            recovery_eps: list[sqlite3.Row]) -> dict:
+        """G4-B-Residual: true selection alpha after stripping market + sector beta.
+
+        For each BUY episode during recovery, computes the mean residual_alpha
+        of its selected candidates (stock_return - market_return - sector_return).
+        This is the 6-S.12.1 attribution metric that answers: 'does the selection
+        layer produce true stock-picking alpha, or just ride market/sector beta?'
+
+        Only candidates with non-NULL residual_alpha are counted (post-2024-06
+        where industry_daily_returns data is available).
+        """
+        stats = {
+            "n_episodes": 0,
+            "mean": 0.0,
+            "median": 0.0,
+            "n_positive": 0,
+            "positive_rate": 0.0,
+            "episode_details": [],
+        }
+        episode_residuals = []
+        for ep in recovery_eps:
+            if ep["decision"] != "BUY":
+                continue
+            rows = self.conn.execute(
+                "SELECT residual_alpha FROM shadow_candidates "
+                "WHERE episode_id = ? AND selected = 1 "
+                "AND residual_alpha IS NOT NULL",
+                (ep["episode_id"],),
+            ).fetchall()
+            if not rows:
+                continue
+            ep_mean = float(np.mean([r["residual_alpha"] for r in rows]))
+            episode_residuals.append(ep_mean)
+            stats["episode_details"].append({
+                "date": ep["trade_date"],
+                "state": ep["market_state"],
+                "residual_alpha": ep_mean,
+            })
+        if not episode_residuals:
+            return stats
+        arr = np.array(episode_residuals)
+        stats["n_episodes"] = len(arr)
+        stats["mean"] = float(np.mean(arr))
+        stats["median"] = float(np.median(arr))
+        stats["n_positive"] = int(np.sum(arr > 0))
+        stats["positive_rate"] = stats["n_positive"] / stats["n_episodes"]
+        return stats
 
     def _forward_window_false_recovery(self, recovery_eps: list[sqlite3.Row]) -> dict:
         """Def B: forward 20-trading-day CSI300 return for each recovery episode.
@@ -954,6 +1031,33 @@ class BootstrapValidator:
                              f"{d['alpha']:+.4%} |")
             if len(sec3["g4b_selection"]["leak_dates"]) > 15:
                 lines.append(f"| ... | ({len(sec3['g4b_selection']['leak_dates'])-15} more) | | | |")
+        lines.append("")
+        lines.append("### G4-B-Residual: True Selection Alpha (6-S.12.1, diagnostic)")
+        lines.append("The alpha_vs_hs300 above mixes market beta + sector beta "
+                     "+ stock alpha. 6-S.12.1 backfilled residual_alpha = "
+                     "stock_return - market_return - sector_return for "
+                     "candidates since 2024-06 (industry_daily_returns coverage "
+                     "limitation). This reports whether the selection layer "
+                     "produces TRUE stock-picking alpha (residual > 0) or "
+                     "merely rides market/sector beta.")
+        res = sec3["g4b_residual"]
+        lines.append("```")
+        lines.append(f"BUY recovery episodes with residual_alpha: {res['n_episodes']}")
+        if res["n_episodes"] > 0:
+            lines.append(f"  (limited to 2024-06+ due to industry data coverage)")
+            lines.append(f"residual_alpha mean:   {res['mean']:+.4%}")
+            lines.append(f"residual_alpha median: {res['median']:+.4%}")
+            lines.append(f"true selection wins (residual>0): "
+                         f"{res['n_positive']}/{res['n_episodes']} "
+                         f"({res['positive_rate']:.1%})")
+            implication = ("Security Analyst has TRUE stock-picking alpha"
+                           if res["positive_rate"] > 0.5
+                           else "Security Analyst alpha is mostly market/sector "
+                                "beta, not stock-picking -> Reconstruction v2 needed")
+            lines.append(f"IMPLICATION: {implication}")
+        else:
+            lines.append("  (no episodes with residual_alpha data)")
+        lines.append("```")
         lines.append("")
         lines.append("### Def B (Forward Window, CSI300 20d < "
                      f"{FWD_WINDOW_LOSS:.0%})")

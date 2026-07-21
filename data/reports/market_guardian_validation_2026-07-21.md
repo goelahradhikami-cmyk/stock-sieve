@@ -120,6 +120,17 @@ Selection leak backlog (for Security Analyst Reconstruction):
 | 2025-06-20 | EARLY_RECOVERY | +0.0554% | +5.5090% | -5.4535% |
 | 2024-07-08 | EARLY_RECOVERY | -2.2248% | -1.7179% | -0.5069% |
 
+### G4-B-Residual: True Selection Alpha (6-S.12.1, diagnostic)
+The alpha_vs_hs300 above mixes market beta + sector beta + stock alpha. 6-S.12.1 backfilled residual_alpha = stock_return - market_return - sector_return for candidates since 2024-06 (industry_daily_returns coverage limitation). This reports whether the selection layer produces TRUE stock-picking alpha (residual > 0) or merely rides market/sector beta.
+```
+BUY recovery episodes with residual_alpha: 3
+  (limited to 2024-06+ due to industry data coverage)
+residual_alpha mean:   -6.6712%
+residual_alpha median: -10.0168%
+true selection wins (residual>0): 1/3 (33.3%)
+IMPLICATION: Security Analyst alpha is mostly market/sector beta, not stock-picking -> Reconstruction v2 needed
+```
+
 ### Def B (Forward Window, CSI300 20d < -3%)
 Stricter forward-looking check: false recovery = CSI300 fell >3% over next 20 trading days. This overlaps with G4-A1 but uses a forward window rather than the realised 20-day return.
 ```

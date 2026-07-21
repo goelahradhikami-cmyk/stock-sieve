@@ -227,20 +227,86 @@ investment_brain_layers:
     key_finding: "Timing Intelligence is independently valuable"
 
   layer_2_security_analyst:
-    status: "UNVERIFIED - awaiting Security Analyst Reconstruction v2"
-    rating: "★☆☆☆☆"
+    status: "DIAGNOSTIC_ONLY - v2 reconstruction complete, NOT frozen (residual_alpha negative)"
+    production: false
+    rating: "★★☆☆☆"
     responsibility: "Stock selection layer ('what to buy')"
+    v2_reconstruction:
+      commit: "6-S.12"
+      date: "2026-07-21"
+      tag: "security-analyst-v2-diagnostic"
+      freeze_status: "NOT FROZEN - diagnostic baseline only (residual_alpha target not met)"
+      components:
+        - "6-S.12.1: Recovery Beta Decomposition (market_beta + sector_beta + residual_alpha)"
+        - "6-S.12.2: Fundamental Recovery Layer (FRM Score, earnings_yoy revision proxy)"
+        - "6-S.12.3: Sector Confirmation Layer (relative strength vs sector)"
+        - "6-S.12.4: Portfolio Construction Validation (shadow_portfolio_construction table)"
+        - "6-S.12.5: v2 replay comparison vs v1"
+      v2_results:
+        residual_alpha_v1: "-5.71% mean (18.2% positive)"
+        residual_alpha_v2: "-5.01% mean (16.7% positive)"
+        improvement: "+0.70pp (marginal, still negative)"
+        frm_direction_v1: "61% deteriorating stocks selected"
+        frm_direction_v2: "67% improving stocks selected"
+        interpretation: "V2 corrected the direction (improving vs deteriorating) but residual_alpha remains negative. The anomaly detection itself may be the binding constraint, not the scoring layer."
+      validation_targets:
+        buy_alpha_target: ">+2%"
+        buy_alpha_v2: "+4.50% (improved from +4.30%, but mostly market beta)"
+        residual_alpha_target: ">0"
+        residual_alpha_v2: "-5.01% (NOT MET)"
+      verdict: "CONDITIONAL - V2 improves direction but does not produce positive true selection alpha. Anomaly detection redesign (v3) may be needed."
     known_issues:
-      - "Doctrine shuffle showed no incremental alpha"
+      - "Doctrine shuffle showed no incremental alpha (6-S.9)"
       - "G4-B: 3/133 selection leaks (alpha<0) during recovery BUYs"
-      - "2025-08-13 selected only 1 stock (diversification failure)"
-    next_step: "Rebuild selection logic: anomaly validation, recovery beta separation, diversification rules"
+      - "2025-08-13 selected only 1 stock (diversification failure, now tracked in shadow_portfolio_construction)"
+      - "V2 residual_alpha still negative (-5.01%) - anomaly detection itself may be flawed"
+      - "V1 systematically selected deteriorating stocks (61%); V2 corrected to 67% improving but alpha still negative"
+    next_step: "Security Analyst v3: redesign Candidate Generator (not scoring layer). See v3_roadmap below."
+
+    v3_roadmap:
+      commit: "6-S.13 (planned)"
+      diagnosis: |
+        v2 proved the problem is candidate generation, not scoring.
+        MarketAnomalyDetector's implicit assumption is:
+          drawdown + cheap + fundamentals not broken = mispriced opportunity
+        But in recovery markets this often fails because many stocks are
+        'deservedly cheap' (earnings deterioration + industry decline +
+        capital outflow), not mispriced. V2's FRM improved direction
+        (61% deteriorating -> 67% improving) but residual_alpha stayed
+        negative (-5.01%), confirming the candidate pool itself lacks alpha.
+      architecture: "Three-stage funnel (replaces single anomaly score)"
+      stage_1_recovery_eligibility_gate:
+        purpose: "Does the stock have the right to participate in recovery?"
+        gates:
+          - "Earnings acceleration > 0 (earnings_yoy improving, not just high)"
+          - "FRM direction = improving (v2 proved this filters deteriorating stocks)"
+          - "Kill criteria (frozen, retained from v1)"
+      stage_2_relative_strength_confirmation:
+        purpose: "Is the stock actually leading, not just riding sector beta?"
+        filters:
+          - "Relative strength = stock_return - sector_return > 0"
+          - "Sector strength = sector_return - market_return (sector leading market)"
+          - "Replaces drawdown as primary filter (drawdown finds cheap, RS finds strong)"
+      stage_3_mispricing_detection:
+        purpose: "Is the stock cheap AFTER passing recovery + strength gates?"
+        filters:
+          - "Valuation gap (retained from anomaly detector, but as last gate not first)"
+          - "Divergence score (business_strength - market_pessimism)"
+      phased_targets:
+        v3_1: "FRM improving rate > 85% (from v2's 67%)"
+        v3_2: "residual_alpha > -2% (from v2's -5.01%)"
+        v3_3: "residual_alpha > 0 (true selection alpha)"
+      principle: "Do NOT let Security Analyst break Market Guardian. Three intelligence layers stay permanently separated: Market / Security / Portfolio."
 
   layer_3_portfolio_construction:
-    status: "UNVERIFIED"
-    rating: "☆☆☆☆☆"
+    status: "DIAGNOSTIC ACTIVE - shadow_portfolio_construction table populated"
+    rating: "★☆☆☆☆"
     responsibility: "Portfolio layer ('how much to bet')"
-    note: "Bayesian Allocation frozen but not battle-tested; min-position / max-concentration rules missing"
+    note: "Bayesian Allocation frozen; shadow_portfolio_construction table (6-S.12.4) tracks concentration failures independently. 4/8 BUY episodes with selected stocks FAIL diversification gates."
+    v2_findings:
+      - "4/8 BUY episodes FAIL diversification (min_positions<5, concentration>25%, or sector>40%)"
+      - "2025-08-13: FAIL_MIN_POSITIONS+FAIL_CONCENTRATION+FAIL_SECTOR (1 stock, 100% weight)"
+      - "Portfolio layer failures isolated from selection layer failures via independent table"
 
 # Key architectural insight (v1.1): Timing Intelligence != Selection Intelligence.
 # Market Guardian proved the former can produce value independently.
@@ -384,3 +450,22 @@ freeze_history:
       - "G4-B: 3/133 selection leaks (alpha<0), deferred to Security Analyst Reconstruction v2"
     parameters_changed: "none (only validation metadata updated)"
     next_phase: "Security Analyst Reconstruction v2 (Evolution v4 remains disabled)"
+
+  v2_0_security_analyst_reconstruction:
+    reconstruction_date: "2026-07-21"
+    commit: "6-S.12"
+    scope: "Security Analyst (Layer 2) reconstruction - Market Guardian unchanged"
+    components:
+      - "6-S.12.1: Recovery Beta Decomposition (1474 candidates, market+sector+residual)"
+      - "6-S.12.2: Fundamental Recovery Layer (FRM Score, 1474 candidates scored)"
+      - "6-S.12.3: Sector Confirmation Layer (relative strength vs sector)"
+      - "6-S.12.4: Portfolio Construction Validation (shadow_portfolio_construction table)"
+      - "6-S.12.5: v2 replay comparison"
+    key_findings:
+      - "V1 systematically selected deteriorating stocks (61% of selections had declining earnings_yoy)"
+      - "V2 corrected direction to 67% improving, but residual_alpha still negative (-5.01%)"
+      - "The 'alpha' in V1 was mostly market/sector beta, not stock-picking (G4-B-Residual diagnostic)"
+      - "4/8 BUY episodes with selections FAIL portfolio diversification gates"
+      - "Anomaly detection itself may be the binding constraint, not the scoring layer"
+    verdict: "CONDITIONAL - V2 improves selection direction but does not produce positive true selection alpha"
+    next_phase: "Security Analyst v3: redesign anomaly detection (candidate generation), not just scoring"

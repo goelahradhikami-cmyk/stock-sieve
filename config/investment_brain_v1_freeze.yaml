@@ -5190,3 +5190,225 @@ freeze_history:
         Step 4: Continue BUY backfill for BUY-side calibration
 
     next_phase: "OOS validation: split 111 episodes into train (2021-2024) / test (2025-2026), verify confidence calibration holds out-of-sample. If PASS -> Stability -> Exposure Controller design."
+
+  v4_0_confidence_meta_signal_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.19.6"
+    tag: "stock-sieve-v4.0-confidence-meta-signal"
+    scope: "Confidence as meta-signal + Rule 8 + Q4>Q5 saturation + PANIC override + Exp0E drift test + architecture update"
+    freeze_status: "DESIGN FROZEN (confidence redefined as meta-signal, not prediction; 3 new risks identified)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Confidence Redefined (the paradigm shift)
+    # ═══════════════════════════════════════════════════════════
+    confidence_redefinition: |
+      6-S.19.5 proved Guardian confidence IS calibrated (+33pp, N=111).
+      This changes confidence from a 'decoration score' to a META-SIGNAL:
+
+        Object level:  predict the market (Guardian BUY/BLOCK signal)
+        Meta level:    predict whether the prediction is reliable (confidence)
+
+      This is NOT 'I think the market will rise, so buy X%'.
+      It IS: 'I think my judgment is X% reliable, so take X% risk'.
+
+      The difference between a trading system and an investment management
+      system. Trading systems: Signal -> Position.
+      Investment systems: Signal -> Confidence -> Risk Budget -> Position.
+
+      Stock Sieve's core asset (if OOS passes) will NOT be:
+        'predicting returns'
+      It WILL be:
+        'predicting its own reliability'
+
+      This is closer to top asset management institutions than any alpha
+      factor could be.
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Risks (identified, NOT yet resolved)
+    # ═══════════════════════════════════════════════════════════
+    three_risks:
+      risk_1_temporal_leakage:
+        description: "confidence might use future information, inflating calibration"
+        test: "verify all confidence inputs have timestamp <= decision timestamp"
+        frozen_as: "Constitution Rule 8 (below)"
+        status: "UNRESOLVED - must verify before OOS"
+
+      risk_2_q4_gt_q5_saturation:
+        description: "Q4 (86.4%) > Q5 (73.9%) - possible extreme confidence saturation"
+        interpretation: |
+          DO NOT 'fix' this by adjusting the model. PRESERVE and INVESTIGATE.
+          This may reveal 'Extreme Confidence Trap':
+            confidence 55-60% = optimal (Q4, 86.4% win)
+            confidence >80% = saturation (Q5, 73.9% win)
+
+          Possible causes:
+            - crowding recovery (everyone sees the same signal)
+            - market overheating (consensus trap)
+            - overconfidence at extremes
+
+          This is ANOTHER inverted-U (confidence -> reliability), consistent
+          with the v3 chain finding: 'extremes are dangerous, middle is best'.
+          But this time it's not alpha - it's META-reliability.
+        frozen_as: "High Confidence Saturation Effect (DISCOVERY, preserve Q4>Q5)"
+        action: "monitor at larger N, do NOT tune away"
+
+      risk_3_panic_over_blocking:
+        description: "Guardian BLOCK correct only 38.6% in PANIC (market recovers 61.4%)"
+        interpretation: |
+          Guardian's biggest problem is NOT 'not knowing recovery'.
+          It IS 'panic-induced over-conservatism':
+            price drops -> risk indicators worsen -> Guardian blocks
+            -> market starts recovering -> Guardian missed the bottom
+
+          Classic risk-model failure: dying at the lowest point.
+          (2008, 2020, 2022 - many risk models failed at the bottom)
+        frozen_as: "PANIC Failure Mode (DISCOVERY)"
+        architectural_implication: |
+          Exposure Controller CANNOT simply do:
+            confidence low -> reduce position
+          It MUST add regime override:
+            PANIC: + recovery allowance (increase exposure despite low conf)
+            STABILIZING: normal
+            CONFIRMED: full
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 8 (frozen)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_8:
+      name: "Temporal Purity"
+      rule: |
+        Any confidence feature MUST have timestamp <= decision timestamp.
+        No future information (subsequent prices, earnings revisions,
+        later market states) may enter confidence computation.
+
+      validator: |
+        For each episode, audit confidence inputs:
+          signal_timestamp = episode trade_date
+          for each input feature in confidence computation:
+            assert feature.timestamp <= signal_timestamp
+          if any violation -> REJECT episode from calibration analysis
+
+      full_constitution_rules:
+        rule_1: "Prohibited belief? -> REJECT"
+        rule_2: "State as ranking? -> REJECT"
+        rule_3: "Stock factor? -> REJECT"
+        rule_4: "Allowed scope? -> check"
+        rule_5: "Complexity > budget? -> REJECT"
+        rule_6: "Explanation before stability? -> REJECT"
+        rule_7: "Research without complete ledger? -> REJECT"
+        rule_8: "NEW: Temporal purity violation? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp0E - Calibration Drift Test (frozen design)
+    # ═══════════════════════════════════════════════════════════
+    exp0e_calibration_drift:
+      purpose: "Financial markets' biggest enemy is not error - it's capability decay"
+      method: |
+        Rolling yearly calibration: for each year (2021, 2022, 2023, 2024,
+        2025, 2026), compute confidence bucket -> actual win rate.
+        Observe: does high confidence ALWAYS produce high win rate?
+        Or: 2021 effective, 2025 failed?
+      question: "Is confidence calibration STABLE across time, or does it decay?"
+      success: "High confidence (Q4-Q5) win rate > Low confidence (Q1-Q2) in EVERY year"
+      failure: "Calibration decays over time. Confidence was a period-specific artifact."
+      why_critical: |
+        If calibration is stable across years, confidence is a REAL ASSET.
+        If it decays, it was a period-specific pattern (like Mid×Mid).
+        This is the difference between a durable edge and a lucky streak.
+      priority: "P0 for OOS validation - must run alongside standard OOS split"
+
+    # ═══════════════════════════════════════════════════════════
+    # Regime Risk Modifier Design (frozen for Exposure Controller)
+    # ═══════════════════════════════════════════════════════════
+    regime_risk_modifier: |
+      Exposure Controller cannot use confidence alone. Needs regime override:
+
+        Base Risk Budget = f(confidence)
+        Adjusted Risk Budget = Base + Regime Modifier
+
+        PANIC:    + recovery allowance (Guardian over-blocks; allow early position)
+                  modifier: +0.15 (or override BLOCK -> small position)
+        STABILIZING: normal (Guardian best here, 69.2% block accuracy)
+                  modifier: 0.0
+        EARLY_RECOVERY: normal
+                  modifier: 0.0
+        CONFIRMED_RECOVERY: full (Guardian best at BUY here)
+                  modifier: +0.05 (slight boost)
+        EUPHORIA:  - caution (extreme = risk, per v3 chain)
+                  modifier: -0.10
+
+      This is NOT stock selection. It is exposure policy conditioned on
+      Guardian's known failure modes. The PANIC override is the most
+      important: it prevents the classic 'risk model dies at the bottom'.
+
+    # ═══════════════════════════════════════════════════════════
+    # Updated Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    updated_architecture: |
+      Investment Brain
+          v
+      Market Guardian (timing, v1.1 frozen)
+          v
+      Confidence Calibration (meta-signal: predict own reliability)
+          v
+      Regime Risk Modifier (PANIC override + state adjustments)
+          v
+      Exposure Controller (confidence + regime -> position size)
+          v
+      Bayesian Portfolio (frozen allocation)
+          v
+      ETF / Basket / Equity Exposure
+
+      NOTE: No Security Analyst. No stock picker. No alpha factor.
+      This empty space is the proven boundary (6-S.18.0).
+
+      The system manages PREDICTOR UNCERTAINTY, not predictions.
+      Confidence is a META-SIGNAL, not a prediction.
+
+    # ═══════════════════════════════════════════════════════════
+    # Stock Sieve Status Re-rating (frozen)
+    # ═══════════════════════════════════════════════════════════
+    status_re_rating:
+      market_guardian:
+        rating: "★★★★★"
+        status: "Timing signal CONFIRMED (v1.1, 1204 episodes, P<=0=0.00%)"
+        evidence_level: "STABILITY"
+
+      confidence_calibration:
+        rating: "★★★★☆"
+        status: "Replication achieved (N=111, +33pp). Needs OOS."
+        evidence_level: "REPLICATION"
+        next: "OOS + drift test (Exp0E) -> Stability"
+
+      buy_alpha:
+        rating: "★★☆☆☆"
+        status: "Discovery only (N=8, +1.10% alpha, 39.5% share)"
+        evidence_level: "DISCOVERY"
+
+      regime_map:
+        rating: "★☆☆☆☆"
+        status: "Not started (fallback to market_state used in autopsy)"
+        evidence_level: "NONE"
+
+      exposure_controller:
+        rating: "★★★☆☆"
+        status: "Architecture justified (confidence calibration validated). Implementation pending OOS."
+        evidence_level: "DESIGN"
+
+      stock_selection:
+        rating: "☆☆☆☆☆"
+        status: "PERMANENTLY RETIRED (6-S.18.0, complete falsification chain)"
+        evidence_level: "FALSIFIED"
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_fixing_q4_gt_q5: "MUST NOT tune away the Q4>Q5 saturation effect. Preserve and monitor."
+      no_confidence_without_temporal_purity: "MUST NOT use confidence without Rule 8 temporal purity verification"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_architecture_before_oos: "MUST NOT build Exposure Controller before OOS + drift test pass"
+      no_guardian_modification: "MUST NOT modify Guardian (v1.1 frozen)"
+      no_evolution_without_8_rules: "MUST NOT run Evolution v4 without 8-rule Constitution Validator"
+
+    next_phase: "OOS validation + Exp0E drift test: verify confidence calibration holds in 2025-2026 holdout AND is stable across all years. If both PASS -> Stability -> Exposure Controller implementation begins."

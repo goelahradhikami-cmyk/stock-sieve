@@ -1,0 +1,95 @@
+{
+  "commit": "6-S.17.5",
+  "experiment": "exp9_attribution_regression",
+  "date": "2026-07-21",
+  "n": 59,
+  "n_uncertainty_zone": 15,
+  "thresholds": {
+    "gap_t1": -0.008848924625778739,
+    "gap_t2": 0.21889373846548038,
+    "sus_t1": 0.09702746799394128,
+    "sus_t2": 0.27659566782007217
+  },
+  "model_0_baseline": {
+    "n": 59,
+    "r2": 0.002036616466975172,
+    "adj_r2": -0.07188659712806378,
+    "betas": {
+      "intercept": 2.606182979281781,
+      "frm_direction": 0.36984423475131883,
+      "market_cap": -1.6350767032058084,
+      "volatility": -0.9841186242744446
+    },
+    "t_stats": {
+      "intercept": 0.7883928037323923,
+      "frm_direction": 0.12452459400247426,
+      "market_cap": -0.22791435578094565,
+      "volatility": -0.16209187633653657
+    },
+    "se": {
+      "intercept": 3.30569097909525,
+      "frm_direction": 2.9700497135848534,
+      "market_cap": 7.174083868491912,
+      "volatility": 6.071363022729214
+    }
+  },
+  "model_1_plus_uncertainty": {
+    "n": 59,
+    "r2": 0.0425843823223816,
+    "adj_r2": -0.04773784576041251,
+    "betas": {
+      "intercept": 2.01280423297074,
+      "frm_direction": 0.24285940756428448,
+      "uncertainty_zone": 4.1621256931348,
+      "market_cap": -0.9327218182489263,
+      "volatility": -2.4480485466052073
+    },
+    "t_stats": {
+      "intercept": 0.6115799762484209,
+      "frm_direction": 0.08268681052784346,
+      "uncertainty_zone": 1.512272626555366,
+      "market_cap": -0.13124383087092206,
+      "volatility": -0.40269773100198347
+    },
+    "se": {
+      "intercept": 3.2911545687250374,
+      "frm_direction": 2.937099714137667,
+      "uncertainty_zone": 2.7522323819450683,
+      "market_cap": 7.1067859880305955,
+      "volatility": 6.079121778297652
+    }
+  },
+  "model_2_plus_crowding": {
+    "n": 59,
+    "r2": 0.047452653879434314,
+    "adj_r2": -0.062456655288323226,
+    "betas": {
+      "intercept": 1.2367916993128985,
+      "frm_direction": 0.4828487723851145,
+      "uncertainty_zone": 4.191397017090344,
+      "crowding_score": 4.929242340176301,
+      "market_cap": -1.2101828077440349,
+      "volatility": -5.9782456175635685
+    },
+    "t_stats": {
+      "intercept": 0.34037539220350227,
+      "frm_direction": 0.1613331622432354,
+      "uncertainty_zone": 1.5122802723663586,
+      "crowding_score": 0.5204536359532084,
+      "market_cap": -0.16866449229836897,
+      "volatility": -0.6543492611224124
+    },
+    "se": {
+      "intercept": 3.6336107945589977,
+      "frm_direction": 2.992867465506832,
+      "uncertainty_zone": 2.7715742205191933,
+      "crowding_score": 9.471049868156683,
+      "market_cap": 7.1750893816062415,
+      "volatility": 9.136169279551135
+    }
+  },
+  "delta_r2_uncertainty": 0.040547765855406426,
+  "delta_r2_crowding": 0.004868271557052717,
+  "verdict": "INCONCLUSIVE: neither mechanism significant at 10% level",
+  "recommendation": "Extend N (currently small). Do NOT guess. FRM stays frozen black-box."
+}

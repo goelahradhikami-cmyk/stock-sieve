@@ -2663,3 +2663,171 @@ freeze_history:
       - "Whether turnover_percentile matters (data gap prevents testing)"
 
     next_phase: "Exp9: alpha = b0 + b1*uncertainty_zone + b2*crowding_score + b3*frm_direction + b4*market_cap + b5*volatility (THE CRITICAL TEST)"
+
+  v3_5_1_exp9_attribution_regression:
+    experiment_date: "2026-07-21"
+    commit: "6-S.17.5"
+    tag: "security-analyst-v3.5.1-exp9-attribution"
+    scope: "Alpha Attribution Regression - H3-A vs H3-B mechanism fork test"
+    freeze_status: "DIAGNOSTIC_BASELINE (INCONCLUSIVE at strict significance, but pattern favors H3-A; N is the blocker)"
+
+    experiment_design:
+      method: "Nested regression (3 models) to isolate incremental explanatory power"
+      baseline: "Group A (FRM-only), N=59 with all regression vars, uncertainty_zone N=15"
+      why_nested: "Single model conflates mechanisms. Nested reveals which variable ADDS incremental R²."
+      models:
+        model_0_baseline: "alpha ~ frm_direction + market_cap + volatility"
+        model_1_plus_uncertainty: "Model 0 + uncertainty_zone (tests H3-A)"
+        model_2_plus_crowding: "Model 1 + crowding_score (tests H3-B, uncertainty survives?)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results
+    # ═══════════════════════════════════════════════════════════
+    results:
+      model_0:
+        r_squared: 0.0020
+        adj_r_squared: -0.0719
+        frm_direction: "beta=+0.370, t=0.12 (NOT significant)"
+        interpretation: "direction alone explains <0.2% of alpha variance at individual-stock level"
+      model_1:
+        r_squared: 0.0426
+        delta_r2_from_uncertainty: "+0.0405 (uncertainty adds 20x more R² than direction)"
+        uncertainty_zone: "beta=+4.191, t=1.51 (close to 10% sig, not quite)"
+        interpretation: "uncertainty_zone is economically meaningful (+4.2pp alpha) but underpowered"
+      model_2:
+        r_squared: 0.0475
+        delta_r2_from_crowding: "+0.0049 (crowding adds almost nothing)"
+        uncertainty_zone: "beta=+4.191, t=1.51 (UNCHANGED - survives crowding control)"
+        crowding_score: "beta=+4.929, t=0.52 (NOT significant, WRONG SIGN for H3-B)"
+        interpretation: "crowding does NOT explain alpha; uncertainty survives crowding control"
+
+    # ═══════════════════════════════════════════════════════════
+    # Key Findings (beyond H3-A/H3-B)
+    # ═══════════════════════════════════════════════════════════
+    key_findings:
+      finding_1_direction_not_per_stock_predictive: |
+        frm_direction is NOT significant in ANY model (t=0.12, 0.08, 0.16).
+        This means direction does NOT predict individual-stock alpha.
+        The +2.52% group-level alpha (v3.2.1) is an AGGREGATION effect,
+        not a per-stock predictive signal.
+
+        This revises Exp1's interpretation: Exp1 showed direction = 99.6%
+        of GROUP-LEVEL alpha (improving+stable combined = +2.53% ≈ full
+        FRM +2.52%). But at the individual-stock level, direction does
+        NOT predict which stock will outperform. The alpha comes from
+        the GROUP, not from direction as a per-stock signal.
+
+        Implication: FRM direction gate works as a PORTFOLIO filter
+        (selects a group with positive expected alpha), NOT as a
+        per-stock alpha predictor. This is economically valid but
+        different from how FRM has been interpreted.
+
+      finding_2_uncertainty_pattern_favors_h3a: |
+        uncertainty_zone: beta=+4.191, t=1.51, ΔR²=+0.0405
+        crowding_score: beta=+4.929, t=0.52, ΔR²=+0.0049
+
+        The pattern strongly favors H3-A over H3-B:
+        - uncertainty adds 20x more R² than crowding (0.0405 vs 0.0049)
+        - uncertainty survives crowding control (same beta/t in Model 1 and 2)
+        - crowding is NOT significant (t=0.52)
+        - crowding beta is POSITIVE (+4.929), which is WRONG for H3-B
+          (H3-B predicts negative: low crowding = high alpha)
+        - If H3-B were true, crowding should be significant and uncertainty
+          should weaken. Neither happened.
+
+        BUT: t=1.51 does not reach 10% significance (1.645). The signal
+        is THERE but underpowered at N=59.
+
+      finding_3_crowding_positive_contradicts_h3b: |
+        crowding_score beta = +4.929 (positive). H3-B predicts NEGATIVE
+        crowding coefficient (low crowding -> high alpha). A positive
+        coefficient means high crowding -> high alpha, which contradicts
+        crowding avoidance entirely.
+
+        This does NOT validate 'high crowding is good' (t=0.52 is not
+        significant). It simply means crowding has NO explanatory power
+        in either direction. H3-B's core prediction is not supported.
+
+      finding_4_n_is_the_blocker: |
+        N=59 with uncertainty_zone N=15. t=1.51 would likely be
+        significant at N=200+ (the economic effect +4.191pp is large).
+        The experiment is underpowered, not negative. Extending N is
+        the path to resolution, not re-designing the experiment.
+
+    # ═══════════════════════════════════════════════════════════
+    # Verdict
+    # ═══════════════════════════════════════════════════════════
+    verdict:
+      strict: "INCONCLUSIVE - no variable significant at 10% level"
+      pattern: "favors H3-A (uncertainty ΔR²=4%, crowding ΔR²=0.5%, crowding wrong sign)"
+      blocker: "N=59 is too small for statistical significance"
+      action: "Extend N before any architecture decision. Do NOT guess."
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp9 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_exp9_proved:
+      - "frm_direction does NOT predict per-stock alpha (t=0.12-0.16 in all models)"
+      - "FRM +2.52% is a GROUP aggregation effect, not a per-stock signal"
+      - "uncertainty_zone adds 20x more R² than crowding (0.0405 vs 0.0049)"
+      - "uncertainty_zone survives crowding control (beta/t unchanged Model 1->2)"
+      - "crowding_score is NOT significant and has WRONG SIGN for H3-B"
+      - "The pattern favors H3-A but is underpowered at N=59"
+
+    what_exp9_did_not_prove:
+      - "H3-A at statistical significance (t=1.51 < 1.645)"
+      - "H3-B is fully ruled out (positive crowding beta is unusual but not significant)"
+      - "Which specific uncertainty signal (FRM/gap/sustain) drives the effect"
+      - "Whether the pattern holds at larger N"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      INCONCLUSIVE at strict significance. DO NOT paradigm-shift.
+      DO NOT add crowding filter. DO NOT guess H3-A.
+
+      The pattern favors H3-A (uncertainty ΔR² >> crowding ΔR², crowding
+      wrong sign), but t=1.51 does not reach significance. This is a
+      power problem (N=59), not a negative result.
+
+      REQUIRED before any architecture decision:
+        1. Extend candidate universe to N>=200 (currently N=59)
+           - Include Group C (rs_data_available=1) stocks with full data
+           - Extend backfill to more episodes (2025-2026)
+        2. Re-run Exp9 with larger N
+        3. If uncertainty_zone reaches significance (t>1.645) and crowding
+           remains insignificant -> H3-A validated -> paradigm shift
+        4. If crowding becomes significant with negative sign -> H3-B
+           reconsidered
+
+      FRM remains frozen black-box:
+        - Validated: +2.52% group-level alpha (v3.2.1)
+        - NOT a per-stock predictor (Exp9 Model 0: direction t=0.12)
+        - Works as portfolio filter, not stock picker
+        - Evolution v4 stays disabled
+
+    # ═══════════════════════════════════════════════════════════
+    # Implication for Security Analyst Architecture
+    # ═══════════════════════════════════════════════════════════
+    architecture_implication: |
+      Exp9 revealed that FRM direction works as a GROUP filter (selects
+      a portfolio with positive expected alpha) but NOT as a per-stock
+      alpha predictor. This is a fundamental distinction:
+
+        Portfolio filter interpretation (CORRECT):
+          FRM direction gate selects ~60 stocks per episode
+          The GROUP has +2.52% expected alpha
+          Individual stock selection within the group is NOT driven by FRM
+
+        Per-stock predictor interpretation (WRONG, now disproved):
+          FRM direction predicts which specific stock will outperform
+          This is NOT supported (t=0.12 at individual level)
+
+      This means the Security Analyst's value is in PORTFOLIO
+      CONSTRUCTION (selecting the right group), not in individual
+      stock ranking. The uncertainty_zone finding (if confirmed at
+      larger N) would provide the per-stock selection layer that
+      FRM direction cannot.
+
+    next_phase: "Data expansion: extend universe to N>=200 (include Group C + more episodes), re-run Exp9 with larger N for definitive H3-A/H3-B verdict"

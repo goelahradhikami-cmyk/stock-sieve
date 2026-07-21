@@ -2993,3 +2993,273 @@ freeze_history:
       next_action: "Extend N to >=200, re-test Mid×Mid stability, then decide on v3.6 paradigm shift"
 
     next_phase: "Data expansion to N>=200 (include Group C + more episodes), re-test Mid FRM × Mid Gap stability at larger N before v3.6 architecture decision"
+
+  v3_5_2_phase2_validation_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.17.7"
+    tag: "security-analyst-v3.5.2-phase2-validation"
+    scope: "Phase 2 Validation - turn N=8 story into N=200 statistical fact"
+    freeze_status: "DESIGN FROZEN (validation contract before any v3.6 architecture decision)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Why v3.5.2 (not v3.6)
+    # ═══════════════════════════════════════════════════════════
+    design_rationale: |
+      Exp10 found Mid FRM × Mid Gap = +8.43% (N=8, 75% positive), the
+      strongest signal in the entire Stock Sieve chain. But N=8 is a
+      STORY, not a STATISTICAL FACT. An institutional researcher would
+      ask: is this a real alpha cell, or did a few episodes happen to
+      land here?
+
+      DO NOT be tempted by +8.43% to freeze the architecture. The real
+      breakthrough of Exp10 is not the specific Mid×Mid result, but the
+      DISCOVERY that all previous failures shared one error: treating
+      state variables as ranking variables. That insight is frozen
+      regardless of whether Mid×Mid survives at larger N.
+
+      v3.5.2 is the validation phase: extend N, test stability across
+      time and market regimes, and only THEN decide on v3.6. No
+      architecture freeze on N=8.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Real Breakthrough (frozen regardless of Mid×Mid survival)
+    # ═══════════════════════════════════════════════════════════
+    real_breakthrough: |
+      Exp10's value is NOT 'Mid×Mid is the answer'. It is the unified
+      explanation of WHY all previous single-factor approaches failed:
+
+        RS:     RS_high -> BUY (ranking)           FAILED (v3.2.2)
+        EGE:    gap_high -> BUY (ranking)          FAILED (v3.3)
+        Sustain: quality_high -> BUY (ranking)     FAILED (v3.4)
+        FRM:    score_high -> BUY (ranking)        FAILED (Exp1)
+
+      All made the SAME error: treating a STATE variable as a RANKING
+      variable. State variables describe the market's cognitive state,
+      not which stock will outperform.
+
+      The correct architecture (frozen principle):
+        State variables -> GATES (define candidate universe)
+        Intersection of moderate states -> SELECTION (where market
+        cannot form consensus = mispricing zone)
+
+      This principle is frozen REGARDLESS of whether Mid×Mid survives
+      at N=200. Even if Mid×Mid fails, the Gate-vs-Ranker distinction
+      remains the correct framework.
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture Rename (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture_rename: |
+      v3.6 should NOT be called 'Uncertainty Asymmetry Detector' (too
+      factor-like). The correct name reflects the cognitive architecture:
+
+        OLD name: Recovery Quality Detector
+        v3.5 name: Uncertainty Asymmetry Detector
+        v3.6 name: Market Belief Disagreement Detector
+
+      The architecture is NOT:
+        Factor -> Score -> Stock (factor model)
+
+      The architecture IS:
+        Market State -> Candidate Universe -> Investor Disagreement
+        -> Mispricing Zone -> Position (cognitive architecture)
+
+      One-line philosophy (frozen):
+        Stock Sieve does not find the 'best' stocks. It finds stocks
+        where the market cannot reach consensus.
+
+    # ═══════════════════════════════════════════════════════════
+    # Sample Unit Clarification (critical)
+    # ═══════════════════════════════════════════════════════════
+    sample_unit: |
+      The sample unit is NOT 'stocks'. It is 'recovery events':
+        stock x earnings-announcement x decision-date
+
+      Example: Moutai 2024Q1 earnings, CATL 2023Q3 earnings, etc.
+      N=200 means 200 recovery events, not 200 stocks. The same stock
+      can appear multiple times at different earnings events.
+
+      Current inventory (verified):
+        Group A (FRM-only): 60 events (2023-2026)
+        Group C (FRM+RS):   134 events (2024-2026)
+        Combined:           194 events (close to 200 target)
+
+      Caveat: Group A and Group C have DIFFERENT baselines (Group C
+      passed RS gate, Group A did not). Combining them changes the
+      baseline. Phase 2 must handle this carefully (see Exp11A design).
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Validation Experiments (frozen)
+    # ═══════════════════════════════════════════════════════════
+    experiments:
+      exp11a_universe_expansion:
+        purpose: "Re-verify Mid FRM × Mid Gap at N>=200"
+        method: |
+          Extend to combined Group A + Group C (N=194). For each event,
+          compute FRM score bucket + Gap tercile. Re-run the 3×3 matrix.
+          IMPORTANT: Group C passed RS gate, so its baseline is different.
+          Must report Group A only, Group C only, and Combined separately
+          to detect whether the Mid×Mid pattern is Group-specific or
+          universal.
+        success_criteria:
+          alpha: "> 0 (positive in combined)"
+          positive_rate: "> 55%"
+          n_mid_mid: ">= 30 (statistical power)"
+          spread_vs_baseline: "> 3pp (Mid×Mid - overall mean)"
+          group_consistency: "Mid×Mid positive in BOTH Group A and Group C"
+        failure_implication: |
+          If Mid×Mid fails at N=200: the N=8 result was sample-specific.
+          Do NOT build v3.6 on it. Fall back to the Gate-vs-Ranker
+          principle (still frozen) and explore other intersections.
+        priority: "P0"
+
+      exp11b_time_split_validation:
+        purpose: "Out-of-sample test - does Mid×Mid survive train/test split?"
+        method: |
+          Train: 2023-2024 events (N~97)
+          Test:  2025-2026 events (N~97)
+          Compute Mid×Mid alpha in EACH period separately.
+          The 2025-2026 period is OUT-OF-SAMPLE (not used in any prior
+          experiment's discovery). If Mid×Mid only works in 2023-2024,
+          it is in-sample overfitting.
+        success_criteria:
+          train_alpha: "> 0"
+          test_alpha: "> 0 (MUST be positive out-of-sample)"
+          test_n: ">= 15 (minimum for out-of-sample cell)"
+        failure_implication: |
+          If Mid×Mid is positive in train but negative/zero in test:
+          REGIME-SPECIFIC overfitting. Do NOT operationalize. The
+          pattern does not generalize.
+        priority: "P1"
+
+      exp11c_market_regime_validation:
+        purpose: "Does Mid×Mid work across market states (not just one regime)?"
+        method: |
+          Split by market_state (from Market Guardian):
+            STABILIZING (N=60), EARLY_RECOVERY (N=77), CONFIRMED_RECOVERY (N=57)
+          Compute Mid×Mid alpha in EACH regime.
+          Market Guardian is frozen (v1.1), so regimes are stable.
+        success_criteria:
+          positive_in_at_least_2_regimes: "Mid×Mid alpha > 0 in >= 2 of 3 regimes"
+          n_per_regime: ">= 5 (minimum cell size per regime)"
+        failure_implication: |
+          If Mid×Mid only works in one regime (e.g. only STABILIZING):
+          REGIME-CONDITIONAL. Could still be operationalized but only
+          when Market Guardian signals that regime. Not universal.
+        priority: "P2"
+
+    # ═══════════════════════════════════════════════════════════
+    # Sustainability Role Redefinition (frozen)
+    # ═══════════════════════════════════════════════════════════
+    sustainability_role_redefinition: |
+      v3.4 proved sustainability filter REMOVES alpha (pass < fail).
+      Exp10B confirmed: within Mid×Mid, Sustain FAIL (+15.81%) beats
+      Sustain PASS (+5.96%).
+
+      BUT: this does NOT mean 'quality is useless'. It means quality
+      is NOT an alpha generator. It may still be a RISK CONTROLLER.
+
+      Redefined role (frozen):
+        OLD (v3.4): sustainability_pass = alpha gate (REJECTED)
+        NEW (v3.5.2): sustainability = risk penalty (NOT deleted)
+
+      Future use: instead of 'Sustain high ->加分', use 'Sustain极差 ->降仓'.
+      The role shifts from Alpha generator to Risk controller.
+      This is NOT implemented in v3.5.2 (no architecture changes), but
+      is frozen as the correct interpretation for v3.6 consideration.
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v3_5_2_a_mid_mid_survives_n200:
+        test: "Mid×Mid alpha > 0 at N>=200 with N_mid_mid >= 30"
+        required: "alpha > 0 AND positive_rate > 55% AND spread > 3pp"
+        failure: "Mid×Mid was sample-specific. Do NOT build v3.6 on it."
+      v3_5_2_b_out_of_sample:
+        test: "Mid×Mid alpha > 0 in 2025-2026 test period"
+        required: "test_alpha > 0 AND test_n >= 15"
+        failure: "Regime-specific overfitting. Do NOT operationalize."
+      v3_5_2_c_regime_stable:
+        test: "Mid×Mid alpha > 0 in >= 2 of 3 market regimes"
+        required: "positive in STABILIZING AND/OR EARLY_RECOVERY AND/OR CONFIRMED_RECOVERY"
+        failure: "Regime-conditional only. Requires Market Guardian gating if operationalized."
+
+    # ═══════════════════════════════════════════════════════════
+    # Decision Tree
+    # ═══════════════════════════════════════════════════════════
+    decision_tree:
+      all_three_pass:
+        action: "v3.6 Architecture Freeze - Market Belief Disagreement Detector"
+        architecture: "FRM direction gate -> Mid FRM × Mid Gap ranker -> Portfolio"
+        implication: "Paradigm shift confirmed. Stock Sieve becomes a cognitive architecture."
+      exp11a_fails:
+        action: "Mid×Mid was sample-specific. Do NOT build v3.6 on it."
+        fallback: "Gate-vs-Ranker principle still frozen. Explore other intersections (e.g. FRM × EA)."
+      exp11b_fails:
+        action: "Regime-specific overfitting. Do NOT operationalize."
+        fallback: "Accept Mid×Mid as regime-conditional. Requires further research before v3.6."
+      exp11c_fails:
+        action: "Single-regime signal. May operationalize with Market Guardian gating."
+        fallback: "v3.6 = regime-conditional Mid×Mid (only active in the working regime)."
+      all_fail:
+        action: "Mid×Mid is not robust. FRM stays frozen black-box."
+        fallback: "Accept FRM as validated-but-unexplained (+2.52% group alpha). Evolution v4 stays disabled."
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_v3_6_before_validation: "MUST NOT freeze v3.6 architecture before Exp11A/B/C all pass"
+      no_architecture_on_n8: "MUST NOT freeze architecture on N=8 (Exp10 Mid×Mid). N>=30 required."
+      no_sustainability_as_alpha_gate: "MUST NOT re-add sustainability as alpha gate (v3.4 disproved, Exp10B confirmed)"
+      no_rs_gate: "MUST NOT re-add RS as gate (v3.2.2 disproved)"
+      no_evolution: "Evolution v4 remains disabled until v3.6 validated"
+      no_new_factors: "MUST NOT add new factors until Mid×Mid is validated or rejected"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+      no_portfolio_layer_changes: "MUST NOT modify Bayesian Allocation or Portfolio Layer"
+
+    # ═══════════════════════════════════════════════════════════
+    # Current Stock Sieve Gene (frozen snapshot)
+    # ═══════════════════════════════════════════════════════════
+    current_gene: |
+      Security Analyst v3.5.1 Core Discovery:
+
+      FRM direction:     Universe Gate (portfolio filter, +2.52% group alpha)
+      FRM score:         State uncertainty indicator (NOT quality, Exp1)
+      Gap:               Market disagreement indicator
+      Selection rule:    Mid-state intersection (Mid×Mid = +8.43%, N=8)
+      Rejected:          Extreme certainty zones (H×H = +0.34%)
+
+      Sustainability:    DEMOTED from alpha gate to risk penalty (v3.4 + Exp10B)
+      Crowding:          Not significant (Exp9)
+      RS:                Not a gate, possible crowding diagnostic (v3.2.2)
+
+      One-line philosophy:
+        Stock Sieve does not find the 'best' stocks.
+        It finds stocks where the market cannot reach consensus.
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Feasibility (verified)
+    # ═══════════════════════════════════════════════════════════
+    data_feasibility:
+      combined_n: "194 (Group A 60 + Group C 134)"
+      time_split: "2023-2024 (N~97) vs 2025-2026 (N~97) - balanced"
+      regime_split: "STABILIZING 60, EARLY_RECOVERY 77, CONFIRMED_RECOVERY 57 - all sufficient"
+      gap_computable: "EGE engine works for all 194 (same source as Exp8/9/10)"
+      frm_score_available: "194/194 (100%)"
+      group_c_caveat: "Group C passed RS gate, different baseline. Must report separately."
+
+    # ═══════════════════════════════════════════════════════════
+    # No-Touch Boundary (frozen)
+    # ═══════════════════════════════════════════════════════════
+    no_touch_boundary:
+      market_guardian: "StateTransitionEngine + RecoveryConfidence + AnomalyDetector (v1.1 frozen)"
+      kill_criteria: "4 hard vetoes (frozen)"
+      doctrine_underwriter: "explanation_only mode, evolution disabled"
+      bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen)"
+      stage_1_frm_gate: "hard reject on deteriorating direction (v3.1 validated) - READ-ONLY"
+      portfolio_layer: "Bayesian Allocation + Doctrine (frozen)"
+
+    next_phase: "Exp11A: universe expansion to N=194 (Group A + Group C separate + combined), re-verify Mid FRM × Mid Gap 3×3 matrix"

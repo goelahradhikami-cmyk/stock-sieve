@@ -20,9 +20,10 @@ import yaml
 from src.agents.committee_agent import CommitteeAgent
 from src.agents.portfolio_agent import PortfolioAgent, PortfolioState
 from src.agents.research_agent import ResearchAgent
+from src.audit.reconciliation import ReconciliationBuilder
 from src.data.db import close_all
 from src.data.evaluation_db import EvaluationDB
-from src.data.financials import FinancialDataProvider
+from src.data.financial_provider import get_financial_provider
 from src.data.index_provider import IndexDataProvider
 from src.data.local_provider import LocalDataProvider
 from src.data.market_brain import MarketBrain
@@ -198,6 +199,7 @@ def daily_run(sample_size: int = 0):
     db.migrate_v2_1()
     db.migrate_committee_decisions_v2_1_1()
     db.migrate_v2_3()
+    db.migrate_v2_5_reconciliation()
 
     # ── Seed founder genomes if needed ──────────────────
     _seed_founders(db)
@@ -226,7 +228,7 @@ def daily_run(sample_size: int = 0):
     provider = DataProvider()
     mkt = MarketDataProvider()
     local = LocalDataProvider()   # offline K-line straight from local TDX .day
-    fin = FinancialDataProvider()
+    fin = get_financial_provider()
     fe = FactorEngine()
     genomes = load_active_agents(db)
     print(f"   Active agents (evolution lineage): {len(genomes)}")
@@ -301,6 +303,7 @@ def daily_run(sample_size: int = 0):
 
         for g in genomes:  # All active agents from evolution lineage
             try:
+                rid = None  # set by insert_research_decision; used by reconciliation finally
                 agent = ResearchAgent(g["yaml"])
                 sa = agent.analyze(market_snap, stock_snap, factors)
                 if not sa or sa.alpha_score < 4:
@@ -332,6 +335,14 @@ def daily_run(sample_size: int = 0):
                         entry_price=snap.price or 100, entry_date=today.isoformat(),
                         decision_hash=dh, input_hash=ih,
                     )
+                    # Commit 6-L: stamp engine_version + doctrine_id for v1/v2 traceability
+                    if agent.engine_version == "v2_identity_driven" and agent.doctrine:
+                        _conn = db.connect()
+                        _conn.execute(
+                            "UPDATE research_decisions SET engine_version=?, doctrine_id=? WHERE id=?",
+                            (agent.engine_version, agent.doctrine.doctrine_id, rid),
+                        )
+                        _conn.commit(); _conn.close()
                 except sqlite3.IntegrityError:
                     # Idempotent: decision_hash already exists (re-run same day), skip gracefully
                     continue
@@ -420,12 +431,45 @@ def daily_run(sample_size: int = 0):
 
             except Exception as e:
                 logger.warning("daily_run: per-agent analysis failed for %s/%s: %s", code, g.get("name", "?"), e)
-                continue
+            finally:
+                # 同步轨对账（B-F）：每个落库的 research_decision 一行，覆盖
+                # validator BLOCK / 委员会 REJECT 全漏斗。失败仅 warning，绝不阻塞主管道。
+                if rid is not None:
+                    _rec_conn = None
+                    try:
+                        _rec_conn = db.connect()
+                        _rb = ReconciliationBuilder(_rec_conn)
+                        _rb.upsert(_rb.build_for_decision(rid))
+                    except Exception as _e:
+                        logger.warning("daily_run: reconciliation upsert failed for rid=%s: %s", rid, _e)
+                    finally:
+                        if _rec_conn is not None:
+                            _rec_conn.close()
 
     # ── 4. Evaluation backfill ──────────────────────────
     print(f"\n4. T+N Evaluation ({total_decisions} new decisions)...")
     evaluator = BatchEvaluationRunner()
     pending = evaluator.run_pending()
+
+    # ── 4b. 异步轨对账（G-H）：T+N 评估写完后回填扣成本净 alpha / 进化可见性 ──
+    # 取本次 run_pending 覆盖的 research_decision_id（按 evaluated_at=今天）。
+    try:
+        from datetime import date as _date
+        _rec_conn = db.connect()
+        _rids = _rec_conn.execute(
+            "SELECT DISTINCT research_decision_id FROM evaluation_results "
+            "WHERE date(evaluated_at) = ?",
+            (_date.today().isoformat(),),
+        ).fetchall()
+        _rb = ReconciliationBuilder(_rec_conn)
+        for (_rid,) in _rids:
+            try:
+                _rb.upsert(_rb.build_for_decision(_rid))
+            except Exception as _e:
+                logger.warning("daily_run: reconciliation eval upsert failed for rid=%s: %s", _rid, _e)
+        _rec_conn.close()
+    except Exception as e:
+        logger.warning("daily_run: reconciliation eval backfill failed: %s", e)
 
     # ── 5. Post-Mortem ──────────────────────────────────
     print("\n5. Post-Mortem...")
@@ -459,7 +503,12 @@ def daily_run(sample_size: int = 0):
                 pending_mutations=mutations if mutations else None
             )
             suffix = f" (seeded {len(mutations)} post-mortem mutations)" if mutations else ""
-            print(f"   🧬 Evolution: {evo_result.get('new_agents', [])} new, {evo_result.get('eliminated', [])} eliminated{suffix}")
+            status = evo_result.get("status", "ok")
+            cold = evo_result.get("cold_start", [])
+            warmup_note = f", {len(cold)} in cold-start grace" if cold else ""
+            if status == "warmup":
+                warmup_note = f", warmup (no elimination, {len(cold)} cold-start)" if cold else ", warmup"
+            print(f"   🧬 Evolution: {evo_result.get('new_agents', [])} new, {evo_result.get('eliminated', [])} eliminated{suffix}{warmup_note}")
         else:
             print(f"   🛑 Evolution paused (governance: {ks.current_state() if hasattr(ks, 'current_state') else 'N/A'})")
     except Exception as e:

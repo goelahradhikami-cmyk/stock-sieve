@@ -26,7 +26,7 @@ from src.agents.portfolio_agent import PortfolioAgent, PortfolioState
 from src.agents.research_agent import ResearchAgent
 from src.data.db import close_all
 from src.data.evaluation_db import EvaluationDB
-from src.data.financials import FinancialDataProvider
+from src.data.financial_provider import get_financial_provider
 from src.data.market_brain import MarketBrain
 from src.data.provider import DataProvider
 from src.execution.simulator import ExecutionSimulator
@@ -54,7 +54,11 @@ def get_universe() -> list[str]:
         from src.data.universe_filter import UniverseFilter
         master = SecurityMaster()
         df = master.get_active_universe()
-        f = UniverseFilter()
+        # NOTE: match daily_run's universe params. security_master has
+        # avg_amount_20d / list_days == 0 for every row (never populated), so
+        # the default UniverseFilter(min_avg_amount_20d=5000) would reject the
+        # entire universe and leave tradable_universe empty/garbage.
+        f = UniverseFilter(min_avg_amount_20d=0, use_dynamic_liquidity=False)
         clean = f.apply(df)
         return clean["code"].tolist()
     except Exception as e:
@@ -96,7 +100,7 @@ def run_single_stock(code: str):
     db.migrate_v2_3()
 
     provider = DataProvider()
-    fin = FinancialDataProvider()
+    fin = get_financial_provider()
 
     # ── 1. Fetch data ────────────────────────────────────
     print(f"\n1. Fetching data for {code}...")

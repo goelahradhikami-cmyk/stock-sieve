@@ -300,13 +300,27 @@ class ThesisValidator:
         return flags
 
     def _parse_json(self, value):
-        """Safely parse JSON string or return as-is."""
+        """Safely parse JSON string or return as-is.
+
+        Tries ``json.loads`` first (proper JSON). If that fails, falls back
+        to ``ast.literal_eval`` - many rows in ``research_decisions`` store
+        Python ``str(dict)`` repr (single-quoted) rather than real JSON
+        (see ``evaluation_crud.py`` which uses ``str(factor_snapshot)``),
+        so ``json.loads`` silently returns the raw string and downstream
+        loops iterate character-by-character. The fallback parses the repr
+        into a real object.
+        """
         if value is None:
             return None
         if isinstance(value, str):
             try:
                 return json.loads(value)
             except (json.JSONDecodeError, TypeError):
+                pass
+            try:
+                import ast
+                return ast.literal_eval(value)
+            except (ValueError, SyntaxError):
                 return value
         return value
 

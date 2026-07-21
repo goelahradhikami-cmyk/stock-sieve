@@ -1,18 +1,15 @@
-# personality_genome — dividend_aristocrat
-schema: "stock-sieve.io/personality-genome"
-schema_version: "3.2.0"
-contract_version: "1.1"
-role: "research_agent"
-
+schema: stock-sieve.io/personality-genome
+schema_version: 3.2.0
+contract_version: '1.1'
+role: research_agent
 identity:
-  agent_id: "dividend_aristocrat_v1"
-  strategy_genus: "dividend"
-  strategy_species: "income"
+  agent_id: dividend_aristocrat_v1
+  strategy_genus: dividend
+  strategy_species: income
   generation: 1
   parent_agent_id: null
-  birth_date: "2026-07-14"
-  status: "active"
-
+  birth_date: '2026-07-14'
+  status: active
 investment_identity:
   dimensions:
     valuation: 75
@@ -23,50 +20,96 @@ investment_identity:
     contrarian: 55
     patience: 85
     concentration: 50
-  archetype: "红利贵族 — 稳定的现金流是最诚实的回报"
-
+  archetype: 红利贵族 — 稳定的现金流是最诚实的回报
 doctrine:
   belief_parameters:
     dividend_signal:
-      description: "持续稳定的分红是公司质量和治理的信号"
-      belief_strength: 0.90
+      description: 持续稳定的分红是公司质量和治理的信号
+      belief_strength: 0.9
     income_compounding:
-      description: "股息再投资的复利效应被严重低估"
+      description: 股息再投资的复利效应被严重低估
       belief_strength: 0.85
   alpha_source:
-    - "高且可持续的股息率"
-    - "股息增长趋势"
-    - "低波动带来的复利优势"
-  time_horizon: "3-5年"
-
+  - 高且可持续的股息率
+  - 股息增长趋势
+  - 低波动带来的复利优势
+  time_horizon: 3-5年
 factor_model:
-  quality: {weight: 0.25, sub_factors: [{name: roe, weight: 0.4}, {name: roic, weight: 0.3}, {name: fcf_yield, weight: 0.3}]}
+  quality:
+    weight: 0.25
+    sub_factors:
+    - name: roe
+      weight: 0.4
+    - name: roic
+      weight: 0.3
+    - name: fcf_yield
+      weight: 0.3
+    derived: true
   value:
     weight: 0.35
     sub_factors:
-      - {name: dividend_yield, weight: 0.45}
-      - {name: pe_ttm, weight: 0.25}
-      - {name: pb, weight: 0.15}
-      - {name: fcf_yield, weight: 0.15}
-  growth: {weight: 0.15, sub_factors: [{name: earnings_growth_3y, weight: 0.6}, {name: margin_trend, weight: 0.4}]}
-  momentum: {weight: 0.05, sub_factors: [{name: momentum_12m, weight: 0.5}, {name: momentum_6m, weight: 0.5}]}
-  risk: {weight: 0.15, sub_factors: [{name: beta, weight: 0.4}, {name: volatility_1m, weight: 0.3}, {name: debt_to_equity, weight: 0.3}]}
-  sentiment: {weight: 0.05, sub_factors: [{name: holder_change_pct, weight: 1.0}]}
-
+    - name: dividend_yield
+      weight: 0.45
+    - name: pe_ttm
+      weight: 0.25
+    - name: pb
+      weight: 0.15
+    - name: fcf_yield
+      weight: 0.15
+    derived: true
+  growth:
+    weight: 0.15
+    sub_factors:
+    - name: earnings_growth_3y
+      weight: 0.6
+    - name: margin_trend
+      weight: 0.4
+    derived: true
+  momentum:
+    weight: 0.05
+    sub_factors:
+    - name: momentum_12m
+      weight: 0.5
+    - name: momentum_6m
+      weight: 0.5
+    derived: true
+  risk:
+    weight: 0.15
+    sub_factors:
+    - name: beta
+      weight: 0.4
+    - name: volatility_1m
+      weight: 0.3
+    - name: debt_to_equity
+      weight: 0.3
+    derived: true
+  sentiment:
+    weight: 0.05
+    sub_factors:
+    - name: holder_change_pct
+      weight: 1.0
+    derived: true
 thesis_engine:
   pattern_weights:
     dividend_compound: 0.95
-    quality_compound: 0.60
-    deep_value: 0.50
+    quality_compound: 0.6
+    deep_value: 0.5
     turnaround_opportunity: 0.15
     growth_at_reasonable_price: 0.05
     momentum_breakout: 0.0
-
 decision_graph:
-  entry_gate: "dividend_yield > 0.03 AND beta < 1.2"
-  sizing_rule: "confidence_driven"
-  risk_check: "debt_to_equity < 1.5 AND volatility_1m < 0.30"
-
+  entry_gate: dividend_yield > 0.03 AND beta < 1.2
+  sizing_rule: confidence_driven
+  risk_check: debt_to_equity < 1.5 AND volatility_1m < 0.30
 evolution:
-  mutation_allowed: [factor_weight, thesis_scoring, decision_graph.entry_gate]
-  mutation_forbidden: [doctrine, investment_identity, strategy_genus]
+  mutation_allowed:
+  - factor_weight
+  - thesis_scoring
+  - decision_graph.entry_gate
+  mutation_forbidden:
+  - doctrine
+  - investment_identity
+  - strategy_genus
+research_engine_version: v2_identity_driven
+doctrine_seed:
+  preferred: dividend_income_compounder

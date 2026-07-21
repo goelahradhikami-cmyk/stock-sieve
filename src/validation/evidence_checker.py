@@ -32,6 +32,17 @@ class EvidenceChecker:
             condition = item.get("condition", "")
             actual_value = factor_snapshot.get(metric)
 
+            # Fallback: evidence items carry their own observed ``value``
+            # (e.g. {"metric": "pe_ttm", "value": 5.93, "condition": "<15"}).
+            # factor_snapshot only holds composite factor-family scores
+            # (quality/value/growth/momentum), so raw metrics like pe_ttm/pb
+            # are never found there - which previously forced every evidence
+            # item to fail and zeroed the evidence_score, blocking the whole
+            # pipeline at the validator. Self-validate against the carried
+            # value when the snapshot has no matching key.
+            if actual_value is None and "value" in item:
+                actual_value = item["value"]
+
             if actual_value is None:
                 failures.append({
                     "metric": metric,

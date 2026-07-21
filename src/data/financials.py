@@ -56,6 +56,19 @@ class FinancialDataProvider:
                 PRIMARY KEY (code, date)
             );
         """)
+        # Commit 6-L.6: persist PE/PB/mcap so we don't re-fetch from Tencent
+        # on every call (was the #1 bottleneck for 5000-stock backfill).
+        for col, col_type in [
+            ("pe_ttm", "REAL"),
+            ("pb", "REAL"),
+            ("mcap", "REAL"),        # 亿元
+            ("float_mcap", "REAL"),  # 亿元
+            ("turnover_pct", "REAL"),
+        ]:
+            try:
+                self.db.execute(f"ALTER TABLE finance_snapshots ADD COLUMN {col} {col_type}")
+            except Exception:
+                pass  # idempotent - column may already exist
         self.db.commit()
 
     def fetch_latest(self, code: str) -> dict:
@@ -113,30 +126,47 @@ class FinancialDataProvider:
         # trust_env=False bypasses the system proxy — qt.gtimg.cn is otherwise
         # blocked behind a corporate proxy, which used to leave PE/PB/mcap None
         # and collapse the whole value family to a neutral 50.
-        pe_ttm = pb = mcap = None
-        try:
-            import requests
-            c = str(code).zfill(6)
-            if c.startswith(("60", "68")):
-                prefix = "sh"
-            elif c.startswith(("00", "30")):
-                prefix = "sz"
-            elif c.startswith(("4", "8", "9")):
-                prefix = "bj"
-            else:
-                prefix = "sh"
-            s = requests.Session()
-            s.trust_env = False
-            url = f"https://qt.gtimg.cn/q={prefix}{c}"
-            resp = s.get(url, timeout=8)
-            resp.encoding = "gbk"
-            fields = resp.text.split("~")
-            if len(fields) > 46:
-                pe_ttm = float(fields[39]) if fields[39] else None
-                pb = float(fields[46]) if fields[46] else None
-                mcap = float(fields[45]) if fields[45] else None  # 亿元
-        except Exception as e:
-            logger.warning("financials: Tencent quote fetch failed for %s: %s", code, e)
+        pe_ttm = pb = mcap = float_mcap = turnover_pct = None
+        cached_market = self._load_cached_market(code)
+        if cached_market:
+            pe_ttm = cached_market.get("pe_ttm")
+            pb = cached_market.get("pb")
+            mcap = cached_market.get("mcap")
+            float_mcap = cached_market.get("float_mcap")
+            turnover_pct = cached_market.get("turnover_pct")
+
+        if pe_ttm is None:
+            # Not cached - fetch from Tencent (trust_env=False bypasses proxy)
+            try:
+                import requests
+                c = str(code).zfill(6)
+                if c.startswith(("60", "68")):
+                    prefix = "sh"
+                elif c.startswith(("00", "30")):
+                    prefix = "sz"
+                elif c.startswith(("4", "8", "9")):
+                    prefix = "bj"
+                else:
+                    prefix = "sh"
+                s = requests.Session()
+                s.trust_env = False
+                url = f"https://qt.gtimg.cn/q={prefix}{c}"
+                resp = s.get(url, timeout=8)
+                resp.encoding = "gbk"
+                fields = resp.text.split("~")
+                if len(fields) > 46:
+                    pe_ttm = float(fields[39]) if fields[39] else None
+                    pb = float(fields[46]) if fields[46] else None
+                    mcap = float(fields[45]) if fields[45] else None  # 亿元
+                    if len(fields) > 44:
+                        float_mcap = float(fields[44]) if fields[44] else None  # 流通市值亿元
+                    if len(fields) > 38:
+                        turnover_pct = float(fields[38]) if fields[38] else None
+                # Persist to cache so next call doesn't re-fetch
+                if pe_ttm is not None or mcap is not None:
+                    self._save_market_data(code, raw.get("_date", ""), pe_ttm, pb, mcap, float_mcap, turnover_pct)
+            except Exception as e:
+                logger.warning("financials: Tencent quote fetch failed for %s: %s", code, e)
 
         net_profit = raw.get("net_profit") or 0
         revenue = raw.get("revenue") or 0
@@ -192,6 +222,40 @@ class FinancialDataProvider:
 
     # ── Internal helpers ──────────────────────────────────
 
+    def _load_cached_market(self, code: str) -> dict:
+        """Load cached PE/PB/mcap for a code (Commit 6-L.6 persistence)."""
+        try:
+            cur = self.db.execute(
+                "SELECT pe_ttm, pb, mcap, float_mcap, turnover_pct "
+                "FROM finance_snapshots WHERE code=? "
+                "AND pe_ttm IS NOT NULL ORDER BY date DESC LIMIT 1",
+                (code,)
+            )
+            row = cur.fetchone()
+            if not row:
+                return {}
+            return {
+                "pe_ttm": row[0], "pb": row[1], "mcap": row[2],
+                "float_mcap": row[3], "turnover_pct": row[4],
+            }
+        except Exception:
+            return {}
+
+    def _save_market_data(self, code: str, date_str: str,
+                          pe_ttm, pb, mcap, float_mcap, turnover_pct) -> None:
+        """Persist PE/PB/mcap into the latest finance_snapshots row."""
+        try:
+            self.db.execute("""
+                UPDATE finance_snapshots
+                SET pe_ttm=?, pb=?, mcap=?, float_mcap=?, turnover_pct=?
+                WHERE code=? AND date=(
+                    SELECT date FROM finance_snapshots WHERE code=?
+                    ORDER BY date DESC LIMIT 1)
+            """, (pe_ttm, pb, mcap, float_mcap, turnover_pct, code, code))
+            self.db.commit()
+        except Exception as e:
+            logger.debug("financials: save_market_data failed for %s: %s", code, e)
+
     def _load_cached(self, code: str) -> dict:
         """Load cached financial snapshot."""
         try:
@@ -214,8 +278,17 @@ class FinancialDataProvider:
             return {}
 
     def _save(self, code: str, data: dict):
+        """Insert/replace a financial snapshot row.
+
+        Uses explicit column names (not positional VALUES) so that the
+        6-L.6 market-data columns (pe_ttm/pb/mcap/float_mcap/turnover_pct)
+        are left NULL here and filled separately by _save_market_data.
+        """
         self.db.execute("""
             INSERT OR REPLACE INTO finance_snapshots
+            (code, date, net_profit, revenue, operating_profit,
+             equity, total_assets, current_liabilities, long_term_liabilities,
+             bvps, float_shares, total_shares, shareholders)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             code, data.get("_date", ""),

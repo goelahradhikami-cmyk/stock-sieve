@@ -130,6 +130,19 @@ class BatchEvaluationRunner:
                           eval_date: date, entry_date: date):
         code = str(row['security_id']).split('.')[0]
         entry_price = row.get('entry_price') or 100
+        rid = int(row['id'])
+
+        # Link to the portfolio decision that actually traded this research
+        # decision. evaluation_results.portfolio_decision_id was declared in
+        # the schema but never populated, which broke the eval->portfolio
+        # link (flagged as eval_portfolio_link_broken=1 for all 200 historical
+        # rows). Take the most recent portfolio_decisions row for this rid.
+        pd_row = self.db.execute(
+            "SELECT id FROM portfolio_decisions WHERE research_decision_id=? "
+            "ORDER BY decision_date DESC, id DESC LIMIT 1",
+            (rid,),
+        ).fetchone()
+        portfolio_decision_id = pd_row[0] if pd_row else None
 
         # Forward metrics
         stock_return, max_dd, volatility = self._get_forward_metrics(
@@ -138,9 +151,9 @@ class BatchEvaluationRunner:
         if stock_return is None:
             self.db.execute("""
                 INSERT OR REPLACE INTO evaluation_results
-                (research_decision_id, horizon_days, eval_date, status)
-                VALUES (?,?,?,'insufficient_data')
-            """, (int(row['id']), horizon, eval_date.isoformat()))
+                (research_decision_id, portfolio_decision_id, horizon_days, eval_date, status)
+                VALUES (?,?,?,?,?)
+            """, (rid, portfolio_decision_id, horizon, eval_date.isoformat(), 'insufficient_data'))
             return
 
         # Benchmark return
@@ -164,7 +177,7 @@ class BatchEvaluationRunner:
 
         self.db.execute("""
             INSERT OR REPLACE INTO evaluation_results
-            (research_decision_id, horizon_days, eval_date,
+            (research_decision_id, portfolio_decision_id, horizon_days, eval_date,
              stock_return, market_return, sector_return,
              alpha_vs_market, alpha_vs_sector,
              max_drawdown_during, max_profit_during,
@@ -173,9 +186,9 @@ class BatchEvaluationRunner:
              predicted_confidence, confidence_error,
              entry_status, is_profitable, alpha_positive,
              verdict, status)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
-            int(row['id']), horizon, eval_date.isoformat(),
+            rid, portfolio_decision_id, horizon, eval_date.isoformat(),
             stock_return, bench_return, bench_return,
             alpha_vs_market, alpha_vs_sector,
             max_dd, max(0, float(stock_return)),

@@ -198,6 +198,82 @@ def cmd_status(args):
     print("  CLI:            python -m src.cli --help")
 
 
+def cmd_reconcile(args):
+    """Atomic decision reconciliation — stitch the 6 decision tables."""
+    from src.audit.reconciliation import ReconciliationBuilder
+    from src.data.evaluation_db import EvaluationDB
+
+    db = EvaluationDB()
+    db.init_db()
+    db.migrate_v2_1()
+    db.migrate_committee_decisions_v2_1_1()
+    db.migrate_v2_3()
+    db.migrate_v2_5_reconciliation()
+
+    if args.decision is not None:
+        row = ReconciliationBuilder.get_decision(db.db_path, args.decision)
+        if row is None:
+            print(f"❌ No reconciliation row for research_decision_id={args.decision}")
+            return
+        print(f"🔍 Reconciliation — research_decision_id={args.decision}")
+        print("=" * 56)
+        for k in (
+            "research_decision_id", "agent_id", "security_id", "entry_date",
+            "has_signal_snapshot", "has_committee", "committee_verdict",
+            "has_portfolio", "portfolio_action", "has_execution",
+            "exec_fill_price", "exec_quantity", "has_eval",
+            "eval_horizon_days", "eval_alpha_vs_market", "eval_alpha_error",
+            "net_alpha_after_cost", "cost_drag_pct", "pipeline_stage_reached",
+            "three_price_mismatch_flag", "eval_portfolio_link_broken",
+            "counted_in_fitness", "fitness_invisible_reason",
+            "signal_snapshot_missing_reason", "committee_missing_reason",
+            "portfolio_missing_reason", "execution_missing_reason",
+            "eval_missing_reason", "reconciliation_version",
+        ):
+            print(f"  {k:32s}: {row.get(k)}")
+        flags = row.get("anomaly_flags")
+        if isinstance(flags, str):
+            try:
+                flags = __import__("json").loads(flags)
+            except (ValueError, TypeError):
+                pass
+        print(f"  {'anomaly_flags':32s}: {flags}")
+        return
+
+    if args.funnel:
+        funnel = ReconciliationBuilder.get_funnel(db.db_path)
+        print("📊 Decision Reconciliation Funnel")
+        print("=" * 56)
+        print(f"  Total reconciliation rows : {funnel['total']}")
+        print("  ── per-stage independent counts (non-nested) ──")
+        for stage, label in [
+            ("research", "Research"),
+            ("signal_snapshot", "Signal Snapshot"),
+            ("committee", "Committee"),
+            ("portfolio", "Portfolio"),
+            ("execution", "Execution"),
+            ("evaluation", "T+N Evaluation"),
+        ]:
+            print(f"    {label:18s}: {funnel['stages'].get(stage, 0)}")
+        print("  ── pipeline_stage_reached distribution ──")
+        for stage in sorted(funnel["stage_distribution"].keys()):
+            print(f"    stage {stage}: {funnel['stage_distribution'][stage]}")
+        return
+
+    if args.range:
+        if ":" not in args.range:
+            print("❌ --range expects 'START:END' (e.g. 2026-01-01:2026-07-17)")
+            return
+        start, end = args.range.split(":", 1)
+        n = ReconciliationBuilder.reconcile_range(db.db_path, start.strip(), end.strip())
+        print(f"✅ Reconciled {n} decisions in range {start}..{end}")
+        return
+
+    # default: full rebuild
+    n = ReconciliationBuilder.reconcile_all(db.db_path)
+    print(f"✅ Reconciled all {n} research decisions")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="stock-sieve",
@@ -243,6 +319,12 @@ def main():
     # status
     sub.add_parser("status", help="Show system status")
 
+    # reconcile
+    rc = sub.add_parser("reconcile", help="Atomic decision reconciliation (6 tables → 1 row/decision)")
+    rc.add_argument("--range", help="Date range 'START:END' (e.g. 2026-01-01:2026-07-17)")
+    rc.add_argument("--decision", type=int, help="Inspect one research_decision_id")
+    rc.add_argument("--funnel", action="store_true", help="Print funnel overview")
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -259,6 +341,8 @@ def main():
         cmd_export(args)
     elif args.command == "status":
         cmd_status(args)
+    elif args.command == "reconcile":
+        cmd_reconcile(args)
     else:
         parser.print_help()
 

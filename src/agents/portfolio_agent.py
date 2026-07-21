@@ -93,9 +93,13 @@ class PortfolioAgent:
     # ── Conviction → base position mapping (§3.2) ──────────
 
     BASE_POSITION_MAP = [
-        (0, 5,   0.0,  "no_trade"),
-        (5, 7,   0.03, "pilot_position"),
-        (7, 8.5, 0.06, "standard_position"),
+        (0, 4,   0.0,   "no_trade"),
+        # 4-5: cleared research alpha>=4 gate AND committee APPROVE, but
+        # signal is weak - give a micro pilot so the pipeline can still
+        # reach execution instead of dead-ending at zero weight.
+        (4, 5,   0.015, "micro_pilot"),
+        (5, 7,   0.03,  "pilot_position"),
+        (7, 8.5, 0.06,  "standard_position"),
         (8.5, 10, 0.10, "conviction_position"),
     ]
 
@@ -245,7 +249,10 @@ class PortfolioAgent:
         trace = {}
 
         # ── Step 1: Base position from conviction ──────────
-        base_weight = self._conviction_to_base(analysis.confidence)
+        # Pass alpha_score so _conviction_to_base can fall back to it when
+        # the research agent's confidence scale clusters low (see method doc).
+        base_weight = self._conviction_to_base(analysis.confidence,
+                                                analysis.alpha_score)
         trace["base_weight"] = base_weight
 
         # ── Step 2: Kelly adjustment ──────────────────────
@@ -325,10 +332,24 @@ class PortfolioAgent:
             position_engine_trace=trace,
         )
 
-    def _conviction_to_base(self, confidence: float) -> float:
-        """Map confidence to base position weight (§3.2)."""
+    def _conviction_to_base(self, confidence: float,
+                             alpha_score: float = None) -> float:
+        """Map confidence to base position weight (§3.2).
+
+        Uses an *effective conviction* = max(confidence, alpha_score) so that
+        a low research-agent confidence does not single-handedly zero out
+        the position when the alpha signal (factor-validated and committee-
+        approved) is healthy. The research agent's confidence scale is known
+        to cluster low (≈2.0) while alpha_score clusters around 4-7; without
+        this fallback, every committee-APPROVE decision lands in the
+        ``no_trade`` bucket and the pipeline never reaches execution - which
+        is exactly the portfolio->execution gap that left 0 trades on disk.
+        """
+        eff = confidence
+        if alpha_score is not None:
+            eff = max(confidence, alpha_score)
         for lo, hi, weight, _ in self.BASE_POSITION_MAP:
-            if lo <= confidence < hi or (hi == 10 and confidence == 10):
+            if lo <= eff < hi or (hi == 10 and eff == 10):
                 return weight
         return 0.0
 

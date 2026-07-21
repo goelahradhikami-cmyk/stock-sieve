@@ -1,18 +1,15 @@
-# personality_genome — contrarian
-schema: "stock-sieve.io/personality-genome"
-schema_version: "3.2.0"
-contract_version: "1.1"
-role: "research_agent"
-
+schema: stock-sieve.io/personality-genome
+schema_version: 3.2.0
+contract_version: '1.1'
+role: research_agent
 identity:
-  agent_id: "contrarian_v1"
-  strategy_genus: "contrarian"
-  strategy_species: "mean_reversion"
+  agent_id: contrarian_v1
+  strategy_genus: contrarian
+  strategy_species: mean_reversion
   generation: 1
   parent_agent_id: null
-  birth_date: "2026-07-14"
-  status: "active"
-
+  birth_date: '2026-07-14'
+  status: active
 investment_identity:
   dimensions:
     valuation: 85
@@ -23,55 +20,96 @@ investment_identity:
     contrarian: 95
     patience: 85
     concentration: 65
-  archetype: "逆向投资者 — 在市场恐惧时贪婪"
-
+  archetype: 逆向投资者 — 在市场恐惧时贪婪
 doctrine:
   belief_parameters:
     mean_reversion:
-      description: "极端估值和情绪终将回归均值"
+      description: 极端估值和情绪终将回归均值
       belief_strength: 0.95
     market_psychology:
-      description: "市场情绪是反向指标"
+      description: 市场情绪是反向指标
       belief_strength: 0.85
   alpha_source:
-    - "过度悲观导致的超卖"
-    - "52周低点附近的优质企业"
-    - "行业周期底部的反转"
-  time_horizon: "6-18月"
-
+  - 过度悲观导致的超卖
+  - 52周低点附近的优质企业
+  - 行业周期底部的反转
+  time_horizon: 6-18月
 factor_model:
-  quality: {weight: 0.20, sub_factors: [{name: roe, weight: 0.5}, {name: gross_margin, weight: 0.5}]}
+  quality:
+    weight: 0.2
+    sub_factors:
+    - name: roe
+      weight: 0.5
+    - name: gross_margin
+      weight: 0.5
+    derived: true
   value:
     weight: 0.35
     sub_factors:
-      - {name: pb, weight: 0.35}
-      - {name: pe_ttm, weight: 0.25}
-      - {name: ev_ebitda, weight: 0.20}
-      - {name: dividend_yield, weight: 0.20}
-  growth: {weight: 0.10, sub_factors: [{name: margin_trend, weight: 0.6}, {name: earnings_growth_3y, weight: 0.4}]}
+    - name: pb
+      weight: 0.35
+    - name: pe_ttm
+      weight: 0.25
+    - name: ev_ebitda
+      weight: 0.2
+    - name: dividend_yield
+      weight: 0.2
+    derived: true
+  growth:
+    weight: 0.1
+    sub_factors:
+    - name: margin_trend
+      weight: 0.6
+    - name: earnings_growth_3y
+      weight: 0.4
+    derived: true
   momentum:
     weight: 0.15
     sub_factors:
-      - {name: momentum_1m, weight: 0.50}
-      - {name: momentum_6m, weight: 0.30}
-      - {name: momentum_12m, weight: 0.20}
-  risk: {weight: 0.15, sub_factors: [{name: max_drawdown_1y, weight: 0.5}, {name: debt_to_equity, weight: 0.3}, {name: interest_coverage, weight: 0.2}]}
-  sentiment: {weight: 0.05, sub_factors: [{name: holder_change_pct, weight: 1.0}]}
-
+    - name: momentum_1m
+      weight: 0.5
+    - name: momentum_6m
+      weight: 0.3
+    - name: momentum_12m
+      weight: 0.2
+    derived: true
+  risk:
+    weight: 0.15
+    sub_factors:
+    - name: max_drawdown_1y
+      weight: 0.5
+    - name: debt_to_equity
+      weight: 0.3
+    - name: interest_coverage
+      weight: 0.2
+    derived: true
+  sentiment:
+    weight: 0.05
+    sub_factors:
+    - name: holder_change_pct
+      weight: 1.0
+    derived: true
 thesis_engine:
   pattern_weights:
-    turnaround_opportunity: 0.90
-    deep_value: 0.80
-    dividend_compound: 0.40
+    turnaround_opportunity: 0.9
+    deep_value: 0.8
+    dividend_compound: 0.4
     quality_compound: 0.25
-    growth_at_reasonable_price: 0.10
+    growth_at_reasonable_price: 0.1
     momentum_breakout: 0.05
-
 decision_graph:
-  entry_gate: "value_score > 60 AND momentum_6m < 0.0"
-  sizing_rule: "confidence_driven"
-  risk_check: "debt_to_equity < 2.0 AND interest_coverage > 2"
-
+  entry_gate: value_score > 60 AND momentum_6m < 0.0
+  sizing_rule: confidence_driven
+  risk_check: debt_to_equity < 2.0 AND interest_coverage > 2
 evolution:
-  mutation_allowed: [factor_weight, thesis_scoring, decision_graph.entry_gate]
-  mutation_forbidden: [doctrine, investment_identity, strategy_genus]
+  mutation_allowed:
+  - factor_weight
+  - thesis_scoring
+  - decision_graph.entry_gate
+  mutation_forbidden:
+  - doctrine
+  - investment_identity
+  - strategy_genus
+research_engine_version: v2_identity_driven
+doctrine_seed:
+  preferred: deep_contrarian

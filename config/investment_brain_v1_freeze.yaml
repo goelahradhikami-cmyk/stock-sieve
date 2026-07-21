@@ -1,0 +1,386 @@
+# Investment Brain v1.1 Frozen Defensive Core - Freeze Manifest
+# Commit 6-S.11.3 (upgraded from 6-S.10.0 on 2026-07-21)
+#
+# v1.0 -> v1.1 upgrade: Market Guardian passed 6-S.11.2 Regime Transfer
+# and 6-S.11.3 Bootstrap Validation (1204 episodes, 10000-iteration
+# bootstrap, P(defensive_alpha<=0)=0.00%). See data/reports/
+# market_guardian_validation_2026-07-21.md for the full evidence chain.
+#
+# This file is the immutable record of what Evolution v4 will optimize.
+# Any parameter change requires a new version number + re-validation.
+
+version: "1.1-frozen-defensive-core"
+freeze_date: "2026-07-21"
+
+# ═════════════════════════════════════════════════════════
+# Frozen Parameters
+# ═════════════════════════════════════════════════════════
+
+parameters:
+  # Market Guardian (State Transition Engine)
+  state_machine:
+    states: [PANIC, STABILIZING, EARLY_RECOVERY, CONFIRMED_RECOVERY, EUPHORIA]
+    upgrade_confirmation_days: 3
+    downgrade: immediate
+
+  # Recovery Confidence Overlay
+  confidence:
+    weights:
+      vol_repair: 0.50
+      trend_confirm: 0.40
+      breadth_recovery: 0.10
+    bands:
+      blocked: "<55"
+      small: "55-65"
+      normal: "65-75"
+      full: ">75"
+    anomaly_permission_threshold: 55
+
+  # Anomaly Detector
+  anomaly:
+    price_drawdown_threshold: -0.15
+    roe_range: [0.02, 0.50]
+    margin_change_filter: [-0.50, 0.50]
+    divergence_threshold: 0.15
+    pessimism_floor: 0.40
+    strength_floor: 0.40
+
+  # Kill Criteria (hard vetoes)
+  kill:
+    quality_deterioration: "ROE<0.05 AND margin<-0.05 AND debt>2.0"
+    value_trap: "PE_compression>0.9 AND margin<-0.03"
+    falling_knife: "drawdown<-0.30 AND margin<-0.10 AND debt>2.5"
+    cashflow_divergence: "ROE>0.10 AND cashflow_trend<-0.30"
+
+  # Bayesian Allocation (frozen weights, not evolved)
+  bayesian:
+    prior_alpha: 2.0
+    prior_beta: 2.0
+    softmax_temperature: 10.0
+    time_decay_half_life_days: 365
+
+# ═════════════════════════════════════════════════════════
+# Doctrine Status
+# ═════════════════════════════════════════════════════════
+
+doctrine:
+  mode: explanation_only
+  # Doctrine does NOT participate in stock selection.
+  # It generates thesis explanations for audit trail.
+  # Test 4 (Shuffle) showed doctrine has no incremental alpha.
+  roles:
+    quality_compounder: "Has the business deteriorated?"
+    contrarian: "Is the market excessively pessimistic?"
+    value_purist: "Is the price truly cheap?"
+  evolution: disabled
+
+# ═══════════════════════════════════════════════════════════
+# Validation Results (v1.1 - 1204 episodes, 2021-08-11 to 2026-07-10)
+# ═══════════════════════════════════════════════════════════
+
+validation:
+  # 6-S.11.2 Regime Transfer - cross-period stability
+  # Reproducible via scripts/run_bootstrap_validation.py Section 0.
+  regime_transfer:
+    train_period: "2021-08-11 to 2024-12-31"
+    test_period: "2025-01-01 to 2026-07-10"
+    train_episodes: 832
+    test_episodes: 372
+    train_block_accuracy: "94.9%"
+    test_block_accuracy: "94.4%"
+    delta: "-0.6%"
+    train_real_miss_rate: "5.1%"
+    test_real_miss_rate: "5.6%"
+    state_stability:
+      STABILIZING: "train 98% -> test 98%"
+      EARLY_RECOVERY: "train 97% -> test 97%"
+      PANIC: "train 78% -> test 71%"
+      CONFIRMED_RECOVERY: "train 93% -> test 100%"
+    verdict: "PASS (cross-period stable, not overfit)"
+
+  # 6-S.11.3 Bootstrap Validation - statistical immunity
+  # Reproducible via scripts/run_bootstrap_validation.py Section 1.
+  bootstrap:
+    episodes: 1204                # total evaluated
+    block_episodes_with_cf: 1054  # N for bootstrap
+    n_iter: 10000
+    alpha_median: "+0.1957%"      # mean defensive_alpha, bootstrap median
+    alpha_5th_percentile: "+0.1403%"
+    alpha_95th_percentile: "+0.2591%"
+    p_alpha_negative: "0.00%"     # P(mean defensive_alpha <= 0)
+    gate: "p_alpha_negative < 5%"
+    verdict: "PASS (defensive alpha statistically significant)"
+
+  # Tail risk protection - catastrophic avoidance
+  # Reproducible via scripts/run_bootstrap_validation.py Section 2.
+  tail_risk:
+    threshold: "counterfactual < -10%"
+    total_large_loss_events: 4
+    avoided: 4
+    avoidance_rate: "100.00%"
+    cumulative_avoided_loss: "+49.95%"
+    tail_dates: ["2022-03-31", "2024-01-03", "2024-12-13", "2026-04-29"]
+    verdict: "PASS (all catastrophic basket-level losses avoided)"
+
+  # False Recovery Immunity - G4 split by risk tier
+  # Reproducible via scripts/run_bootstrap_validation.py Section 3.
+  # The split isolates Market Guardian's timing responsibility from
+  # Security Analyst's selection responsibility, and separates
+  # catastrophic timing failures from normal recovery-path noise.
+  false_recovery_immunity:
+    recovery_state_episodes: 515
+
+    # G4-A1: Catastrophic timing (freeze gate). Market Guardian never
+    # permitted BUY ahead of a material market decline (>3%).
+    g4_a1_catastrophic_timing:
+      threshold: "market_return <= -3%"
+      catastrophic_false_recovery: 8
+      blocked_correctly: 8
+      buy_leak: 0
+      immunity_rate: "100.00%"
+      gate: "catastrophic_leak = 0"
+      verdict: "PASS"
+
+    # G4-A2: Minor timing noise (diagnostic, not gated). Normal
+    # recovery-path volatility; the recovery direction was correct
+    # but the path had a small drawdown. Forcing blocks here would
+    # create an over-conservative model that misses real recoveries.
+    g4_a2_minor_timing_noise:
+      threshold: "-3% < market_return < 0"
+      minor_false_recovery: 14
+      blocked_correctly: 11
+      buy_leak: 3
+      immunity_rate: "78.57%"
+      leak_dates: ["2023-01-13", "2023-01-20", "2024-07-08"]
+      verdict: "PASS_WITH_NOTE (normal recovery volatility, no tail risk impact)"
+
+    # G4-B: Selection integrity (diagnostic, not gated). Among BUY
+    # episodes during recovery, did the basket beat the market?
+    # Failures here belong to Security Analyst Reconstruction.
+    g4_b_selection_integrity:
+      buy_recovery_episodes_with_alpha: 133
+      selection_leaks: 3          # alpha < 0
+      selection_wins: 130         # alpha >= 0
+      leak_rate: "2.3%"
+      verdict: "DIAGNOSTIC (selection failures, not timing; deferred to Security Analyst Reconstruction v2)"
+
+    # Def B: forward window check (stricter, diagnostic)
+    def_b_forward_window:
+      threshold: "CSI300 20d forward return < -3%"
+      false_recovery: 100
+      blocked: 82
+      buy_leak: 18
+      immunity_rate: "82.00%"
+      verdict: "DIAGNOSTIC (stricter forward-looking check; G4-A1 is the freeze gate)"
+
+  # Yearly stability - no single-year collapse
+  # Reproducible via scripts/run_bootstrap_validation.py Section 4.
+  yearly_stability:
+    "2021": "100.0% (92 episodes)"
+    "2022": "89.1% (221 episodes)"
+    "2023": "98.2% (228 episodes)"
+    "2024": "95.2% (229 episodes)"
+    "2025": "94.3% (175 episodes)"
+    "2026": "94.5% (109 episodes)"
+    min_yearly_accuracy: "89.14% (2022)"
+    gate: "all years >= 85%"
+    verdict: "PASS"
+
+  overall_verdict: "FROZEN v1.1 (all 5 freeze gates passed)"
+
+# ═════════════════════════════════════════════════════════
+# Proven Capabilities
+# ═════════════════════════════════════════════════════════
+
+proven_capabilities:
+  # Layer 1: Market Guardian (v1.1 FROZEN)
+  - "Market timing (BUY/BLOCK) - Block Accuracy 94.78% across 1204 episodes"
+  - "Cross-period stability - Train 94.9% / Test 94.4%, delta -0.6% (6-S.11.2)"
+  - "Statistical significance - P(defensive_alpha<=0)=0.00%, 10000-iter bootstrap (6-S.11.3)"
+  - "Catastrophic timing avoidance - 0 leak in 8 catastrophic false-recovery events (G4-A1)"
+  - "Tail risk protection - 4/4 large-loss events (cf<-10%) avoided, +49.95% cumulative (G3)"
+  - "Yearly stability - all years >= 89% (min 2022), no single-year collapse (G5)"
+  - "False recovery detection (100% catastrophic blocked in replay)"
+  - "Market state awareness (5-state machine with transitions)"
+  - "Confidence-based position sizing (4 bands)"
+  - "Thesis ledger with outcome tracking"
+  - "Belief audit (4-layer immune system)"
+
+unproven_capabilities:
+  # Layer 2: Security Analyst - deferred to Reconstruction v2
+  - "Stock selection alpha (doctrine shuffle failed; G4-B shows 3/133 selection leaks = 2.3%)"
+  - "Recovery beta separation (stock vs market recovery not isolated)"
+  # Layer 3: Portfolio Construction - unverified
+  - "Portfolio diversification (2025-08-13 BUY selected only 1 stock; min 5 / max 25% single position needed)"
+
+# ═════════════════════════════════════════════════════════
+# Investment Brain Layered Architecture (v1.1)
+# ═════════════════════════════════════════════════════════
+
+investment_brain_layers:
+  layer_1_market_guardian:
+    status: "FROZEN v1.1 (2026-07-21)"
+    rating: "★★★★★"
+    validation: "6-S.11.2 Regime Transfer PASS + 6-S.11.3 Bootstrap PASS"
+    responsibility: "Market-layer risk defence (BUY/BLOCK decision)"
+    code: "src/thesis/state_transition.py, src/thesis/confidence_overlay.py"
+    key_finding: "Timing Intelligence is independently valuable"
+
+  layer_2_security_analyst:
+    status: "UNVERIFIED - awaiting Security Analyst Reconstruction v2"
+    rating: "★☆☆☆☆"
+    responsibility: "Stock selection layer ('what to buy')"
+    known_issues:
+      - "Doctrine shuffle showed no incremental alpha"
+      - "G4-B: 3/133 selection leaks (alpha<0) during recovery BUYs"
+      - "2025-08-13 selected only 1 stock (diversification failure)"
+    next_step: "Rebuild selection logic: anomaly validation, recovery beta separation, diversification rules"
+
+  layer_3_portfolio_construction:
+    status: "UNVERIFIED"
+    rating: "☆☆☆☆☆"
+    responsibility: "Portfolio layer ('how much to bet')"
+    note: "Bayesian Allocation frozen but not battle-tested; min-position / max-concentration rules missing"
+
+# Key architectural insight (v1.1): Timing Intelligence != Selection Intelligence.
+# Market Guardian proved the former can produce value independently.
+# The selection layer is now the binding constraint on system alpha.
+
+# ═════════════════════════════════════════════════════════
+# Evolution v4 Constraints
+# ═════════════════════════════════════════════════════════
+
+evolution_v4:
+  status: disabled
+  enabled_after: "security_analyst_reconstruction_v2"
+  # Evolution v4 was originally gated on shadow_trading_30_episodes.
+  # That target is now far exceeded (1204 episodes). v1.1 re-gates
+  # Evolution v4 on the Security Analyst reconstruction, because
+  # optimising Market Guardian further has diminishing returns while
+  # the selection layer remains the binding constraint.
+  
+  # What Evolution CAN optimize
+  search_space:
+    - "confidence weights (vol/trend/breadth)"
+    - "confidence threshold"
+    - "anomaly detection parameters"
+    - "state transition rules"
+    - "kill criteria thresholds"
+  
+  # What Evolution CANNOT touch
+  frozen:
+    - "doctrine underwriting logic"
+    - "belief audit framework"
+    - "thesis ledger schema"
+    - "investment memory 4-state model"
+  
+  # Fitness function (NOT raw return)
+  fitness:
+    target: "risk_adjusted_decision_quality"
+    components:
+      alpha: 0.40
+      downside_protection: 0.30
+      false_recovery_avoidance: 0.20
+      opportunity_capture: 0.10
+
+# ═════════════════════════════════════════════════════════
+# Shadow Trading Protocol
+# ═════════════════════════════════════════════════════════
+
+shadow_trading:
+  status: "FROZEN v1.1 (episode accumulation goal achieved)"
+  goal: "episode_accumulation (not return validation)"
+  min_episodes: 30
+  achieved_episodes: 1204
+  achieved_date_range: "2021-08-11 to 2026-07-10"
+  min_market_coverage:
+    bull: 5
+    bear: 10
+    sideway: 10
+    recovery: 5
+
+  # Prohibited during shadow trading
+  prohibited:
+    - "parameter tuning"
+    - "human intervention in decisions"
+    - "evolution optimization"
+
+  # Episode = one Market Guardian directional decision
+  episode_definition: "state + confidence + decision + outcome"
+
+  # Counterfactual required for every BLOCK
+  counterfactual: true
+
+# ═════════════════════════════════════════════════════════
+# Data Assets (at time of freeze)
+# ═════════════════════════════════════════════════════════
+
+data_assets:
+  financial_history:
+    quarters: 33
+    range: "2018Q1 - 2026Q1"
+    vintage_aware: true
+    rows: 160358
+  
+  factor_snapshots:
+    dates: 106
+    stocks_per_date: 1000
+    total_rows: 108201
+  
+  regime_labels:
+    days: 1194
+    range: "2021-08-11 to 2026-07-17"
+    regimes: [sideway, bear, bull, high_volatility, crash]
+  
+  thesis_ledger:
+    total: 158
+    validated: 106
+    failed: 45
+  
+  investment_memory:
+    beliefs: 9
+    conditional: 8
+    hypothesis: 1
+    evolvable: 8
+
+  shadow_trading_db:
+    db: "data/shadow_trading.db"
+    episodes: 1204
+    date_range: "2021-08-11 to 2026-07-10"
+    buy_episodes: 150
+    block_episodes: 1054
+    block_accuracy: "94.78%"
+    validation_report: "data/reports/market_guardian_validation_2026-07-21.md"
+
+# ═════════════════════════════════════════════════════════
+# Freeze History
+# ═════════════════════════════════════════════════════════
+
+freeze_history:
+  v1_0_defensive_core:
+    freeze_date: "2026-07-21 (initial freeze)"
+    commit: "6-S.10.0"
+    validation_basis: "6-episode exploratory replay"
+    bootstrap_verdict: "CONDITIONAL (P<0 = 7.8%, CI crosses 0)"
+    regime_transfer_verdict: "INCONCLUSIVE (insufficient data)"
+    note: "Initial freeze with minimal data. Parameters locked, validation deferred to shadow trading."
+
+  v1_1_frozen_defensive_core:
+    freeze_date: "2026-07-21"
+    commit: "6-S.11.3"
+    validation_basis: "1204 episodes, 10000-iteration bootstrap, train/test split"
+    upgrade_triggers:
+      - "6-S.10.1/6-S.10.2: shadow_trading.db reached 1204 evaluated episodes"
+      - "6-S.11.2: Regime Transfer executed (Train 94.9% / Test 94.4%)"
+      - "6-S.11.3: Bootstrap P(defensive_alpha<=0) = 0.00%"
+    gates_passed:
+      - "G1 Regime Transfer (cross-period stable)"
+      - "G2 Bootstrap Significance (P<=0 = 0.00%)"
+      - "G3 Tail Risk (4/4 catastrophic events avoided, +49.95%)"
+      - "G4-A1 Catastrophic Timing (0 leak in 8 events)"
+      - "G5 Yearly Stability (min year 89.14%)"
+    diagnostic_notes:
+      - "G4-A2: 3 minor timing leaks (-0.75% to -1.73% market decline), normal recovery volatility"
+      - "G4-B: 3/133 selection leaks (alpha<0), deferred to Security Analyst Reconstruction v2"
+    parameters_changed: "none (only validation metadata updated)"
+    next_phase: "Security Analyst Reconstruction v2 (Evolution v4 remains disabled)"

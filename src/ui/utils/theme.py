@@ -403,7 +403,9 @@ def terminal_polar(**overrides) -> dict:
         legend=dict(
             font=dict(color=TEXT_PRIMARY, size=11),
             bgcolor="rgba(0,0,0,0)",
-            x=1.05, y=0.5,
+            orientation="h",
+            x=0.5, xanchor="center",
+            y=-0.06, yanchor="top",
         ),
         margin=dict(l=40, r=40, t=20, b=20),
         colorway=SERIES_COLORS,

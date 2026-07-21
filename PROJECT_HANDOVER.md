@@ -1,8 +1,107 @@
 # Stock Sieve 项目交接表
 
+> **最新交接：** [PROJECT_HANDOVER_2026-07-19.md](PROJECT_HANDOVER_2026-07-19.md) - UI 终端主题改造（设计评审 / P0 已入库 cda3940 / P1 在未跟踪新页面 / P2 backlog）
+> **v1.1 冻结增量（2026-07-21）：** Market Guardian v1.1 FROZEN，见下方「投资大脑（Investment Brain）」章节
+
 **版本：** v0.1.0  
 **日期：** 2026-07-15  
 **总规模：** 81 文件 · 14,525 行 · 45 测试  
+
+---
+
+## 〇、投资大脑（Investment Brain）- 三层架构
+
+> 2026-07-21 新增。这是 stock-sieve 在「AI 选股引擎」之上的核心架构升级。
+> 冻结清单：`config/investment_brain_v1_freeze.yaml`（v1.1-frozen-defensive-core）
+> 验证报告：`data/reports/market_guardian_validation_2026-07-21.md`
+
+### 三层定位
+
+```
+Layer 1: Market Guardian ★★★★★ [v1.1 FROZEN 2026-07-21]
+    ↓
+Layer 2: Security Analyst ★☆☆☆☆ [未验证 - 等待 Reconstruction v2]
+    ↓
+Layer 3: Portfolio Construction ☆☆☆☆☆ [未验证]
+```
+
+**关键架构认知（v1.1）：Timing Intelligence ≠ Selection Intelligence**
+
+Market Guardian 证明了「什么时候下注」可以独立产生价值。
+「下注什么」（Security Analyst）现在是系统的瓶颈，是下一阶段的重点。
+
+### Layer 1: Market Guardian（已冻结）
+
+| 项目 | 值 |
+|------|-----|
+| **版本** | v1.1-frozen-defensive-core |
+| **冻结日期** | 2026-07-21 |
+| **验证基础** | 1204 episodes（2021-08-11 ~ 2026-07-10），10000 次 bootstrap |
+| **职责** | 市场层风险防线（BUY/BLOCK 决策） |
+| **核心代码** | `src/thesis/state_transition.py`（5 状态机）、`src/thesis/confidence_overlay.py`（置信度覆盖） |
+| **决策记录** | `scripts/shadow_recorder.py` -> `data/shadow_trading.db` |
+| **评估** | `scripts/shadow_outcome_evaluator.py`（T+20 反事实收益） |
+
+**5 项冻结门槛（全 PASS）：**
+
+| Gate | 描述 | 结果 |
+|------|------|------|
+| G1 | Regime Transfer（6-S.11.2） | ✅ Train 94.9% -> Test 94.4%，delta -0.6% |
+| G2 | Bootstrap 显著性（6-S.11.3） | ✅ P(mean defensive_alpha ≤ 0) = 0.00% |
+| G3 | Tail Risk Protection | ✅ 4/4 灾难性事件（cf<-10%）全避开，累计避免 +49.95% |
+| G4-A1 | 灾难性 Timing（market ≤ -3%） | ✅ 8 个灾难性 false recovery，leak = 0 |
+| G5 | 年度稳定性 | ✅ 所有年份 ≥ 89.14%（最低 2022 年） |
+
+**G4 风险分层（重要方法论）：**
+
+G4 按 risk tier 拆分，避免把选股层错误混入 timing 层评价：
+- **G4-A1 灾难性 Timing**（冻结门槛）：market ≤ -3%，leak = 0 PASS
+- **G4-A2 轻微 Timing 噪声**（诊断）：-3% < market < 0，3 个 leak（正常 recovery 波动，不阻塞）
+- **G4-B 选股层**（诊断）：alpha < 0，3/133 = 2.3% leak，留给 Security Analyst Reconstruction v2
+
+**诊断指标（不阻塞冻结，留给下一阶段）：**
+- G4-A2: 3 个轻微 timing leak（-0.75% ~ -1.73% 小幅回调，非灾难性）
+- G4-B: 3 个选股 leak，最严重 2025-08-13（alpha -12.36%，只选 1 只股票未分散）
+- Def B: 18 个前向窗口 leak（CSI300 后续 20 日 < -3%），集中在 2022-07 假反弹
+
+### Layer 2: Security Analyst（未验证）
+
+| 项目 | 值 |
+|------|-----|
+| **状态** | 等待 Security Analyst Reconstruction v2 |
+| **已知问题** | doctrine shuffle 失败（无增量 alpha）；G4-B 3/133 选股 leak；2025-08-13 只选 1 只股票 |
+| **下一步方向** | (1) anomaly 真实性验证（relative strength / sector confirmation / earnings revision）<br>(2) recovery beta 分离（stock recovery - market recovery）<br>(3) 组合分散规则（min 5 只 / single position ≤ 25%） |
+
+### Layer 3: Portfolio Construction（未验证）
+
+| 项目 | 值 |
+|------|-----|
+| **状态** | Bayesian Allocation 已冻结但未实战验证 |
+| **已知问题** | 缺少 min-position / max-concentration 规则 |
+
+### Shadow Trading 系统（6-S.10.x 系列）
+
+| Commit | 内容 | 文件 |
+|--------|------|------|
+| 6-S.10.0 | Investment Brain v1.0 冻结 | `config/investment_brain_v1_freeze.yaml` |
+| 6-S.10.1 | Shadow Trading schema + 评估器 | `migrations/shadow_trading_schema_v1.sql`, `scripts/shadow_outcome_evaluator.py` |
+| 6-S.10.2 | Shadow Episode Recorder | `scripts/shadow_recorder.py` |
+| 6-S.11.2 | Regime Transfer 验证 | （对话分析，已持久化到 freeze YAML + 验证报告） |
+| 6-S.11.3 | Bootstrap Validation + v1.1 冻结 | `scripts/run_bootstrap_validation.py`, `data/reports/market_guardian_validation_2026-07-21.md` |
+
+**数据库：** `data/shadow_trading.db`（5 张表：shadow_episode / shadow_candidates / shadow_outcome / shadow_counterfactual / shadow_metrics）
+
+**下一步路线：**
+```
+Market Guardian v1.1 FROZEN ✅ (当前)
+    ↓
+Security Analyst Reconstruction v2 (下一阶段重点)
+    ↓
+Evolution v4 (Selection 重建后启用)
+```
+
+> Evolution v4 原本以 shadow_trading_30_episodes 为门槛，现已远超（1204 episodes）。
+> v1.1 重新以 Security Analyst Reconstruction 为门槛，因为继续优化 Market Guardian 的边际收益远低于重建选股层。
 
 ---
 
@@ -314,6 +413,12 @@ python -m pytest tests/ -v
 | 网络依赖 | 无(离线可用) |
 | 进化周期 | 已跑6周期, 产生3子代 |
 | 竞技场 | 基于真实历史数据 |
+| **Investment Brain** | **v1.1-frozen-defensive-core (2026-07-21)** |
+| **Market Guardian (Layer 1)** | **✅ FROZEN v1.1 - 1204 episodes, 5/5 gates PASS** |
+| **Security Analyst (Layer 2)** | ⚠️ 未验证 - 等待 Reconstruction v2 |
+| **Portfolio Construction (Layer 3)** | ⚠️ 未验证 |
+| **Evolution v4** | 🔒 disabled - gated on Security Analyst Reconstruction |
+| **Shadow Trading** | 1204 episodes (2021-08-11 ~ 2026-07-10), BUY 150 / BLOCK 1054 |
 
 ---
 

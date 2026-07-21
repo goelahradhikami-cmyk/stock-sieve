@@ -102,7 +102,21 @@ class ResearchAgent:
         self.name = name or self.genome.agent_id
         self.factor_engine = FactorEngine()
 
-        # Agent memory (simplified — in production, loaded from evaluation_db)
+        # Commit 6-L: v1/v2 dual-track. v2 derives factor_bias / thesis /
+        # confidence from identity via DoctrineEngine instead of reading
+        # hardcoded values from the YAML factor_model.
+        raw = self.genome.raw or {}
+        self.engine_version = raw.get("research_engine_version", "v1_legacy")
+        self.doctrine = None
+        if self.engine_version == "v2_identity_driven":
+            from src.agents.doctrine_engine import DoctrineEngine
+            doctrine_engine = DoctrineEngine()
+            doctrine_seed = raw.get("doctrine_seed", {}).get("preferred")
+            self.doctrine = doctrine_engine.classify(
+                self.genome.identity_vector, doctrine_seed=doctrine_seed,
+            )
+
+        # Agent memory (simplified - in production, loaded from evaluation_db)
         self.memory: dict = {
             "successful_patterns": [],
             "failure_patterns": [],
@@ -240,7 +254,18 @@ class ResearchAgent:
                 continue
 
             # Score this pattern (weighted by genome's thesis preferences)
-            genome_weight = self.genome.thesis_scoring.get(pattern_name, 0.5)
+            if self.engine_version == "v2_identity_driven" and self.doctrine:
+                # v2: thesis priority from DoctrineEngine. Higher in the list
+                # = higher weight (first = 1.0, decaying by position).
+                priority_list = self.doctrine.thesis_priority
+                if pattern_name in priority_list:
+                    rank = priority_list.index(pattern_name)
+                    genome_weight = max(0.1, 1.0 - rank * 0.15)
+                else:
+                    genome_weight = 0.1
+            else:
+                # v1: read from genome thesis_scoring (pattern_weights)
+                genome_weight = self.genome.thesis_scoring.get(pattern_name, 0.5)
             pattern_score = len(evidence) * genome_weight
 
             if pattern_score > best_score:
@@ -297,16 +322,29 @@ class ResearchAgent:
     def _compute_alpha(self, factors: CompositeResult) -> float:
         """Compute alpha_score (0-10) from factor composite scores.
 
-        Uses genome's factor_weights. Deterministic.
+        v1_legacy: reads factor_weights from the genome YAML (hardcoded).
+        v2_identity_driven: uses doctrine.factor_bias derived from identity
+            via DoctrineEngine, so identity truly drives stock scoring.
+        Deterministic: same input -> same output.
         """
-        w = self.genome.factor_weights
-
-        quality_w = w.get("quality_weight", 0.30)
-        value_w = w.get("value_weight", 0.30)
-        growth_w = w.get("growth_weight", 0.15)
-        momentum_w = w.get("momentum_weight", 0.10)
-        risk_w = w.get("risk_weight", 0.10)
-        sentiment_w = w.get("sentiment_weight", 0.05)
+        if self.engine_version == "v2_identity_driven" and self.doctrine:
+            # v2: weights come from DoctrineEngine (identity-driven)
+            w = self.doctrine.factor_bias
+            quality_w = w.get("quality", 0.30)
+            value_w = w.get("value", 0.30)
+            growth_w = w.get("growth", 0.15)
+            momentum_w = w.get("momentum", 0.10)
+            risk_w = w.get("risk", 0.10)
+            sentiment_w = w.get("sentiment", 0.05)
+        else:
+            # v1: weights from genome YAML factor_model
+            w = self.genome.factor_weights
+            quality_w = w.get("quality_weight", 0.30)
+            value_w = w.get("value_weight", 0.30)
+            growth_w = w.get("growth_weight", 0.15)
+            momentum_w = w.get("momentum_weight", 0.10)
+            risk_w = w.get("risk_weight", 0.10)
+            sentiment_w = w.get("sentiment_weight", 0.05)
 
         # Weighted composite, scaled to 0-10
         raw = (
@@ -324,18 +362,42 @@ class ResearchAgent:
                              factors: CompositeResult) -> float:
         """Compute confidence (0-10).
 
-        Based on thesis strength + factor consistency.
+        v1_legacy: fixed formula (5.0 + evidence*0.8 + consistency*0.5).
+        v2_identity_driven: uses doctrine.confidence_model - different
+            personalities require different evidence types. Value investors
+            look at ROE/margin/safety; momentum traders look at trend/volume.
         """
         if thesis is None:
             return 2.0
 
-        # Base: 5.0 (neutral)
+        if self.engine_version == "v2_identity_driven" and self.doctrine:
+            # v2: doctrine-driven confidence
+            cm = self.doctrine.confidence_model
+            confidence = cm.base  # personality-specific starting point
+
+            # Evidence weight: only count evidence matching this doctrine's
+            # primary metrics (value investor cares about roe/pb, not momentum_3m)
+            primary_set = set(cm.primary_metrics)
+            matched_evidence = 0
+            for ev in thesis.evidence:
+                metric = ev.get("metric", "")
+                if metric in primary_set:
+                    matched_evidence += 1
+            confidence += min(3.0, matched_evidence * cm.evidence_weight)
+
+            # Factor consistency: count families above 30
+            family_scores = [
+                factors.quality_score, factors.value_score,
+                factors.growth_score, factors.momentum_score,
+            ]
+            consistent_count = sum(1 for s in family_scores if s > 30)
+            confidence += consistent_count * cm.consistency_bonus
+
+            return min(10.0, max(0.0, confidence))
+
+        # v1: fixed formula (no genome dependency)
         confidence = 5.0
-
-        # Thesis evidence completeness
         confidence += min(3.0, len(thesis.evidence) * 0.8)
-
-        # Factor consistency: all families above 30 = higher confidence
         family_scores = [
             factors.quality_score, factors.value_score,
             factors.growth_score, factors.momentum_score,

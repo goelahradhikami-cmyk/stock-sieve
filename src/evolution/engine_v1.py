@@ -220,32 +220,69 @@ class EvolutionEngineV1:
         print(f"=== Evolution Cycle {self.cycle_id} (Dry-Run: {self.dry_run}) ===")
 
         # 3.1 Compute fitness for all active agents
+        # Cold-start handling: newly evolved/founded agents with insufficient
+        # T+N evaluations (sample_count < MIN_SAMPLES) cannot be scored yet.
+        # Instead of skipping the whole cycle — which keeps the evolution loop
+        # broken until enough history accrues — give them a neutral prior
+        # (fitness=0.5) and protect them from elimination/elite selection so
+        # they can build a track record. Only scoreless agents with real
+        # evaluations participate in selection.
         agents = self._get_active_agents()
-        fitness_list = []
+        fitness_list = []          # agents with real fitness (>= MIN_SAMPLES evals)
+        cold_start = []            # active agents still in grace period
         for aid in agents:
             f = self._calculate_fitness(aid)
             if f:
                 fitness_list.append(f)
+            else:
+                cs = AgentFitness(
+                    agent_id=aid, genome_hash=self._get_genome_hash(aid),
+                    strategy_genus=self._get_genus(aid),
+                    fitness=0.5, avg_alpha=0.0, win_rate=0.0,
+                    avg_drawdown=0.0, sample_count=0,
+                    identity_vector=self._get_identity(aid),
+                )
+                cold_start.append(cs)
+                self._log_event("COLD_START", agent_id=aid,
+                                description=f"Insufficient evaluations (<{self.MIN_SAMPLES}); grace period, neutral prior fitness")
 
-        if len(fitness_list) < 3:
-            print(f"  Insufficient agents ({len(fitness_list)}), skipping cycle")
-            self._log_event("CYCLE_SKIPPED", description=f"Only {len(fitness_list)} agents with sufficient data")
+        total_active = len(fitness_list) + len(cold_start)
+        if total_active < 3:
+            print(f"  Insufficient agents ({total_active}), skipping cycle")
+            self._log_event("CYCLE_SKIPPED", description=f"Only {total_active} active agents total")
             return {"cycle_id": self.cycle_id, "status": "skipped", "reason": "insufficient_agents"}
 
-        fitness_list.sort(key=lambda x: x.fitness, reverse=True)
+        # Cold-start agents join the population (preserving diversity & size)
+        # but are never selected as elites or eliminated — protected passengers
+        # until they accumulate enough evaluations.
+        population = fitness_list + cold_start
+        population.sort(key=lambda x: x.fitness, reverse=True)
 
-        # 3.2 Selection
-        n = len(fitness_list)
-        elite_n = max(1, int(n * self.ELITE_FRACTION))
-        bottom_n = max(1, int(n * self.BOTTOM_FRACTION))
+        # 3.2 Selection — only scored agents are eligible for elite/bottom.
+        if len(fitness_list) >= 3:
+            n = len(fitness_list)
+            elite_n = max(1, int(n * self.ELITE_FRACTION))
+            bottom_n = max(1, int(n * self.BOTTOM_FRACTION))
+            scored_sorted = sorted(fitness_list, key=lambda x: x.fitness, reverse=True)
+            elites = scored_sorted[:elite_n]
+            bottom = scored_sorted[-bottom_n:]
+        else:
+            # Warmup: too few scored agents to prune meaningfully. Keep all
+            # scored agents as elite candidates; defer elimination until the
+            # track record grows. Crossover still runs if >=2 elites exist,
+            # so the evolution loop stays functional during cold start.
+            elites = sorted(fitness_list, key=lambda x: x.fitness, reverse=True)
+            bottom = []
+            self._log_event("WARMUP", description=(
+                f"{len(fitness_list)} scored agent(s) (<3); elimination deferred, "
+                f"{len(cold_start)} in cold-start grace"
+            ))
+            print(f"  Warmup: {len(fitness_list)} scored | {len(cold_start)} cold-start grace | no elimination")
 
-        elites = fitness_list[:elite_n]
-        bottom = fitness_list[-bottom_n:]
-
-        # Diversity exemption
+        # Diversity exemption (compared against the whole population)
         survivors = []
         for agent in bottom:
-            if self._is_diverse(agent, fitness_list):
+            if self._is_diverse(agent, population):
                 survivors.append(agent)
                 self._log_event("DIVERSITY_EXEMPTION", agent.agent_id,
                                 description=f"Preserved: unique identity (fitness={agent.fitness:.4f})")
@@ -296,9 +333,11 @@ class EvolutionEngineV1:
 
         return {
             "cycle_id": self.cycle_id,
+            "status": "warmup" if not bottom and cold_start else "ok",
             "eliminated": [a.agent_id for a in eliminated],
             "new_agents": [a['identity']['agent_id'] for a in activated],
             "elite_fitness": [f"{a.agent_id}={a.fitness:.4f}" for a in elites[:5]],
+            "cold_start": [a.agent_id for a in cold_start],
         }
 
     # ═══════════════════════════════════════════════════════

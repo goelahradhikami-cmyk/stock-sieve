@@ -42,6 +42,13 @@ class SandboxValidator:
         self.validation_months = validation_months
         self.min_trades = min_trades
         self.improvement_threshold = improvement_threshold
+        # Commit 6-L.7 fix: _real_backtest uses self.provider.get_daily_kline
+        # for forward returns. Without this, every _compute_forward_return
+        # call raised AttributeError (silently swallowed) and ALL children
+        # fell through to the synthetic-backtest fallback - so the real
+        # backtest path never actually ran.
+        from src.data.provider import MarketDataProvider
+        self.provider = MarketDataProvider()
         self._ensure_table()
 
     def _ensure_table(self):
@@ -228,7 +235,190 @@ class SandboxValidator:
         return [dict(zip(cols, r)) for r in rows] if cols else []
 
     def _generate_child_evaluations(self, child_id, parent_id, start_date, end_date, cycle_id):
-        """Generate simulated evaluation data by copying parent's records with perturbation."""
+        """Generate evaluation data for the child via REAL backtest.
+
+        Commit 6-L.6: replaces the old fake backtest (copy parent + random
+        perturbation) with a genuine backtest:
+          1. Build child's DoctrineEngine from its genome -> factor_bias
+          2. For each trade date in the validation window, score the universe
+             using factor_bias over stock_factor_snapshot (SQL join, fast)
+          3. Pick Top N stocks
+          4. Compute real forward returns from K-line
+          5. Write real research_decisions + evaluation_results
+
+        Falls back to the old synthetic method if stock_factor_snapshot has
+        no data for the window (so the pipeline still runs before snapshots
+        are built).
+        """
+        # Try real backtest first
+        count = self._real_backtest(child_id, child_id, start_date, end_date, cycle_id)
+        if count > 0:
+            print(f"    Sandbox: generated {count} REAL evaluations for {child_id}")
+            return
+
+        # Fallback: synthetic (old behavior) when no snapshot data exists yet
+        count = self._synthetic_backtest(child_id, parent_id, start_date, end_date, cycle_id)
+        if count > 0:
+            print(f"    Sandbox: generated {count} synthetic evaluations for {child_id} (no snapshot data)")
+
+    def _real_backtest(self, child_id, genome_or_id, start_date, end_date, cycle_id,
+                        top_n: int = 20, horizon: int = 20) -> int:
+        """Real backtest using stock_factor_snapshot + K-line forward returns.
+
+        Returns the number of evaluation records written. Returns 0 if no
+        snapshot data is available (caller falls back to synthetic).
+        """
+        # 1. Get the child's factor_bias from its genome via DoctrineEngine
+        try:
+            from src.agents.doctrine_engine import DoctrineEngine
+            engine = DoctrineEngine()
+
+            # Load the child genome
+            if isinstance(genome_or_id, str):
+                # It's an agent_id - load genome_yaml from DB
+                row = self.db.execute(
+                    "SELECT genome_yaml FROM agent_genome_snapshots WHERE agent_id=? ORDER BY id DESC LIMIT 1",
+                    (genome_or_id,)
+                ).fetchone()
+                if not row:
+                    return 0
+                import yaml
+                genome_data = yaml.safe_load(row[0]) or {}
+            else:
+                genome_data = genome_or_id
+
+            identity = genome_data.get("investment_identity", {}).get("dimensions", {})
+            if not identity:
+                # Try identity block (some genomes use top-level)
+                identity = genome_data.get("identity", {})
+            doctrine_seed = genome_data.get("doctrine_seed", {}).get("preferred")
+            doctrine = engine.classify(identity, doctrine_seed=doctrine_seed)
+            factor_bias = doctrine.factor_bias
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug("sandbox real_backtest doctrine failed: %s", e)
+            return 0
+
+        # 2. Find trade dates with snapshot data in the window
+        snapshot_dates = self.db.execute(
+            "SELECT DISTINCT trade_date FROM stock_factor_snapshot "
+            "WHERE trade_date BETWEEN ? AND ? ORDER BY trade_date",
+            (start_date.isoformat(), end_date.isoformat()),
+        ).fetchall()
+        if not snapshot_dates:
+            return 0  # no snapshot data - caller falls back
+
+        # Sample at most ~30 dates (enough for min_trades) spread across window
+        all_dates = [r[0] for r in snapshot_dates]
+        if len(all_dates) > 30:
+            step = len(all_dates) // 30
+            all_dates = all_dates[::step][:30]
+
+        # 3. For each date: score universe, pick top N, compute forward return
+        from src.data.index_provider import IndexDataProvider
+        idx_provider = IndexDataProvider()
+        count = 0
+
+        for trade_date in all_dates:
+            # Score universe using factor_bias (single SQL query over snapshot)
+            q = factor_bias.get("quality", 0)
+            v = factor_bias.get("value", 0)
+            g = factor_bias.get("growth", 0)
+            m = factor_bias.get("momentum", 0)
+            r = factor_bias.get("risk", 0)
+            s = factor_bias.get("sentiment", 0)
+
+            picks = self.db.execute("""
+                SELECT security_id,
+                       quality_score * ? + value_score * ? + growth_score * ?
+                       + momentum_score * ? + risk_score * ? + sentiment_score * ?
+                       AS alpha
+                FROM stock_factor_snapshot
+                WHERE trade_date=?
+                ORDER BY alpha DESC
+                LIMIT ?
+            """, (q, v, g, m, r, s, trade_date, top_n)).fetchall()
+
+            if not picks:
+                continue
+
+            # Eval date = trade_date + horizon trading days
+            from datetime import timedelta
+            eval_date_dt = date.fromisoformat(trade_date) + timedelta(days=horizon + 10)
+            if eval_date_dt > end_date:
+                eval_date_dt = end_date
+
+            # Compute forward returns for picked stocks
+            for (security_id, alpha_score) in picks:
+                stock_ret = self._compute_forward_return(security_id, trade_date, eval_date_dt.isoformat())
+                if stock_ret is None:
+                    continue
+
+                bench_ret = idx_provider.get_return('000300', trade_date, eval_date_dt.isoformat())
+                alpha_vs_market = stock_ret - bench_ret
+
+                rid = self.db.execute("""
+                    INSERT INTO research_decisions
+                    (agent_id, genome_hash, security_id, thesis_id, thesis_family,
+                     thesis_pattern, thesis_claim, thesis_evidence, thesis_invalidation,
+                     alpha_score, confidence, factor_snapshot, risk_assessment,
+                     decision_hash, input_hash, entry_price, entry_date, engine_version, doctrine_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (
+                    child_id, f'sandbox_{child_id}', security_id,
+                    f'sbox_{cycle_id}_{count}', 'hybrid', 'real_backtest',
+                    f'Sandbox real backtest pick (alpha={alpha_score:.1f})',
+                    '[]', '[]',
+                    min(10.0, alpha_score / 10.0), 5.0, '{}', '{}',
+                    f'sbox_{child_id}_{cycle_id}_{count}', f'sbox_ih_{child_id}_{count}',
+                    None, trade_date, 'v2_identity_driven', doctrine.doctrine_id,
+                )).lastrowid
+
+                self.db.execute("""
+                    INSERT INTO evaluation_results
+                    (research_decision_id, horizon_days, eval_date,
+                     stock_return, market_return, sector_return,
+                     alpha_vs_market, alpha_vs_sector,
+                     max_drawdown_during, max_profit_during,
+                     is_profitable, alpha_positive, verdict, status)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (
+                    rid, horizon, eval_date_dt.isoformat(),
+                    stock_ret, bench_ret, bench_ret,
+                    alpha_vs_market, alpha_vs_market,
+                    None, max(0, stock_ret),
+                    1 if stock_ret > 0 else 0,
+                    1 if alpha_vs_market > 0 else 0,
+                    'market_alpha_positive' if alpha_vs_market > 0 else 'market_alpha_negative',
+                    'completed',
+                ))
+                count += 1
+
+        self.db.commit()
+        return count
+
+    def _compute_forward_return(self, security_id: str, start_date: str, end_date: str):
+        """Compute real forward return from K-line."""
+        try:
+            code = security_id.split(".")[0] if "." in security_id else security_id
+            kline = self.provider.get_daily_kline(code, start_date, end_date)
+            if kline is None or kline.empty or len(kline) < 2:
+                return None
+            close_col = 'adj_close' if 'adj_close' in kline.columns else 'close'
+            prices = kline[close_col].values
+            start_price = float(prices[0])
+            end_price = float(prices[-1])
+            if start_price <= 0:
+                return None
+            return (end_price - start_price) / start_price
+        except Exception:
+            return None
+
+    def _synthetic_backtest(self, child_id, parent_id, start_date, end_date, cycle_id):
+        """Fallback: synthetic evaluations (old behavior, kept for when no snapshot exists).
+
+        TODO: remove once stock_factor_snapshot is fully backfilled.
+        """
         import random
         rows = self.db.execute("""
             SELECT er.* FROM evaluation_results er
@@ -239,7 +429,7 @@ class SandboxValidator:
         """, (parent_id,)).fetchall()
 
         if not rows:
-            return
+            return 0
 
         cols = [d[0] for d in self.db.execute("PRAGMA table_info(evaluation_results)").fetchall()]
         count = 0
@@ -258,7 +448,7 @@ class SandboxValidator:
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 child_id, f'sandbox_{child_id}', '600519', f'sbox_{count}',
-                'value', 'quality_compound', 'Sandbox simulation',
+                'value', 'quality_compound', 'Sandbox simulation (synthetic fallback)',
                 '[]', '[]', 5.0, 5.0, '{}', '{}',
                 f'sbox_{child_id}_{cycle_id}_{count}', f'sbox_ih_{child_id}_{count}', 1500, start_date.isoformat(),
             )).lastrowid
@@ -281,5 +471,4 @@ class SandboxValidator:
             count += 1
 
         self.db.commit()
-        if count > 0:
-            print(f"    Sandbox: generated {count} simulated evaluations for {child_id}")
+        return count

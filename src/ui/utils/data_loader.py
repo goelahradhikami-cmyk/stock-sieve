@@ -183,21 +183,27 @@ def _mock_committee_history() -> list[dict]:
 
 
 @st.cache_data(ttl=300)
-def load_decision_timeline(_db=None, stock_code: str = "", limit: int = 5) -> list[dict]:
-    """Load decision chain for a stock."""
+def load_decision_timeline(_db=None, stock_code: str = "", limit: int = 5,
+                           days: int | None = None) -> list[dict]:
+    """Load decision chain for a stock, optionally limited to the last N days."""
     if _db is None or not stock_code:
         return (_mock_decision_timeline(stock_code) if _is_demo_mode() else []) if stock_code else []
 
     try:
         conn = _db.connect()
-        rows = conn.execute("""
+        sql = """
             SELECT rd.*, er.verdict as eval_verdict, er.stock_return, er.alpha_vs_market
             FROM research_decisions rd
             LEFT JOIN evaluation_results er ON rd.id = er.research_decision_id
             WHERE rd.security_id = ?
-            ORDER BY rd.entry_date DESC
-            LIMIT ?
-        """, (stock_code, limit)).fetchall()
+        """
+        args: list = [stock_code]
+        if days:
+            sql += " AND rd.entry_date >= date('now', ?)"
+            args.append(f"-{int(days)} days")
+        sql += " ORDER BY rd.entry_date DESC LIMIT ?"
+        args.append(limit)
+        rows = conn.execute(sql, args).fetchall()
         conn.close()
 
         if rows:

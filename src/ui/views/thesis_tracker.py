@@ -52,7 +52,8 @@ def render():
         """, unsafe_allow_html=True)
 
     # ── Decision timeline ────────────────────────────────
-    decisions = load_decision_timeline(db, stock_code)
+    _days = {"全部": None, "近30天": 30, "近90天": 90, "近1年": 365}.get(time_range)
+    decisions = load_decision_timeline(db, stock_code, days=_days)
     decision_timeline(decisions, stock_name)
 
     # ── Summary stats ────────────────────────────────────

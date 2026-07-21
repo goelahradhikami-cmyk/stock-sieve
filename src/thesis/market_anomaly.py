@@ -47,6 +47,26 @@ logger = get_logger(__name__)
 
 
 @dataclass
+class V3CandidateFeatures:
+    """6-S.13: v3 Candidate Generator extension fields.
+
+    Advisory only - frozen modules (KillCriteria, DoctrineUnderwriter)
+    never read these. Populated by CandidateGenerator (6-S.13.2+) and
+    consumed by v3 replay for attribution.
+    """
+    recovery_score: Optional[float] = None        # Stage 1 composite 0-100
+    earnings_acceleration: Optional[float] = None  # earnings_yoy_current - previous
+    frm_direction: Optional[str] = None           # improving/stable/deteriorating
+    frm_score: Optional[float] = None             # FRM score 0-100 (reuses 6-S.12.2)
+    relative_strength: Optional[float] = None     # Stage 2: stock_return - sector_return
+    sector_strength: Optional[float] = None       # Stage 2: sector_return - market_return
+    rs_score: Optional[float] = None              # Stage 2 composite 0-100
+    liquidity_pass: Optional[bool] = None         # Stage 1 liquidity gate
+    candidate_stage: Optional[str] = None         # stage1_pass/stage2_pass/stage3_pass/rejected
+    rejection_reason: Optional[str] = None        # LOW_LIQUIDITY/DETERIORATING/WEAK_RS/NO_MISPRICING
+
+
+@dataclass
 class MispricingObject:
     """A structured investment thesis about a market mispricing.
 
@@ -78,6 +98,10 @@ class MispricingObject:
     thesis: str = ""                      # "市场将周期性下滑误判为结构性恶化"
     invalidation: str = ""                # "margin cannot recover within 2 quarters"
     confidence: float = 0.0               # 0-1
+
+    # Layer 5: v3 Candidate Generator features (6-S.13, advisory only)
+    # Frozen modules (KillCriteria, DoctrineUnderwriter) never read these.
+    v3_features: Optional[V3CandidateFeatures] = None
 
     def is_anomaly(self, threshold: float = 0.15) -> bool:
         """Is this a significant narrative divergence?

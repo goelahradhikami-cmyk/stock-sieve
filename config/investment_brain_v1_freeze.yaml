@@ -298,6 +298,134 @@ investment_brain_layers:
         v3_3: "residual_alpha > 0 (true selection alpha)"
       principle: "Do NOT let Security Analyst break Market Guardian. Three intelligence layers stay permanently separated: Market / Security / Portfolio."
 
+      # ═══════════════════════════════════════════════════════════
+      # 6-S.13.1 Design Freeze (2026-07-21)
+      # The following four contracts are FROZEN. Coding phases must not
+      # deviate. Any change requires a new design freeze + user approval.
+      # ═══════════════════════════════════════════════════════════
+      design_freeze:
+        freeze_date: "2026-07-21"
+        freeze_version: "6-S.13.1"
+
+        # --- Contract 1: Schema ---
+        schema:
+          mispricing_object_extension:
+            new_dataclass: "V3CandidateFeatures"
+            fields:
+              recovery_score: "Optional[float], Stage 1 composite 0-100"
+              earnings_acceleration: "Optional[float], earnings_yoy_current - previous"
+              frm_direction: "Optional[str], improving/stable/deteriorating"
+              frm_score: "Optional[float], FRM score 0-100 (reuses 6-S.12.2)"
+              relative_strength: "Optional[float], stock_return - sector_return"
+              sector_strength: "Optional[float], sector_return - market_return"
+              rs_score: "Optional[float], Stage 2 composite 0-100"
+              liquidity_pass: "Optional[bool], Stage 1 liquidity gate"
+              candidate_stage: "Optional[str], stage1_pass/stage2_pass/stage3_pass/rejected"
+              rejection_reason: "Optional[str], LOW_LIQUIDITY/DETERIORATING/WEAK_RS/NO_MISPRICING"
+            attachment: "MispricingObject.v3_features: Optional[V3CandidateFeatures] = None"
+            compatibility: "KillCriteria and DoctrineUnderwriter read core fields only, never v3_features"
+
+          new_table_shadow_funnel_log:
+            purpose: "Record every stock's fate through the three-stage funnel"
+            columns: "episode_id, trade_date, stock_code, stage1_*/stage2_*/stage3_* fields, final_pass, rejection_stage, rejection_reason"
+            note: "shadow_candidates only stores Stage 3 survivors; funnel_log captures the full picture"
+
+          new_table_security_candidate_universe_snapshot:
+            purpose: "Snapshot of the universe that entered Stage 1 per trade_date"
+            columns: "trade_date, security_id, source, liquidity_pass, eligible, reject_reason"
+
+          shadow_candidates_v3_fields:
+            v3_recovery_score: "REAL"
+            v3_rs_score: "REAL"
+            v3_candidate_stage: "TEXT"
+            v3_funnel_rank: "INTEGER"
+
+        # --- Contract 2: Scoring Contract ---
+        scoring_contract:
+          output_type: "list[MispricingObject] with v3_features populated"
+          stage_1_recovery_eligibility:
+            universe_source: "stock_factor_snapshot (FROZEN - not UniverseFilter)"
+            gates:
+              liquidity: "volume_ratio from factor_values_json > 0.3"
+              frm_hard_reject: "deteriorating"
+              frm_soft_pass: "improving"
+              frm_observe: "stable"
+            recovery_score_formula: "0.35*earnings_accel + 0.25*margin + 0.20*sector_strength + 0.20*relative_strength"
+            disabled_filters:
+              st_filter: "snapshot_missing_historical_ST_status"
+              listing_age: "historical_missing"
+              universe_filter: "avoid_historical_leakage_from_avg_amount_20d"
+
+          stage_2_relative_strength:
+            scorer: "SectorConfirmationScorer (6-S.12.3, reused)"
+            hard_gate: "rs_vs_sector > 0 (when data_available)"
+            soft_gate: "pre-2024-06 data unavailable -> skip hard gate, log"
+            four_quadrant:
+              strong_stock_strong_sector: "KEEP (best)"
+              strong_stock_weak_sector: "KEEP (stock alpha)"
+              weak_stock_strong_sector: "REJECT (WEAK_RS)"
+              weak_stock_weak_sector: "REJECT (WEAK_RS)"
+
+          stage_3_mispricing:
+            detector: "MarketAnomalyDetector._detect_anomaly (reused, not rewritten)"
+            role: "LAST gate, not first (reverses v1/v2 order)"
+            ranking: "divergence_score descending (retained from v1/v2)"
+
+          interface_compatibility:
+            kill_criteria: "UNCHANGED - KillCriteria.check(MispricingObject) reads core fields only"
+            doctrine_underwriter: "UNCHANGED - underwrite_all(MispricingObject) reads core fields only"
+            v3_features_rule: "advisory only; frozen modules cannot depend on them"
+
+        # --- Contract 3: Validation Metrics ---
+        validation_metrics:
+          phased_targets:
+            v3_1: "FRM improving rate > 85% (baseline v2: 67%)"
+            v3_2: "residual_alpha > -2% (baseline v2: -5.01%)"
+            v3_3: "residual_alpha > 0 (true selection alpha)"
+          replay_contract: "run_security_analyst_v3_replay.py compares v1 vs v2 vs v3"
+          replay_outputs:
+            - "v3 candidate pool size vs v1/v2 (funnel convergence rate)"
+            - "v3 FRM improving rate vs v2"
+            - "v3 residual_alpha vs v2"
+            - "shadow_funnel_log stats (per-stage drop rate + reason distribution)"
+            - "three-way comparison report data/reports/security_analyst_v3_replay_{date}.md"
+          data_constraints:
+            stock_factor_snapshot: "106 dates x ~1000 stocks (universe boundary)"
+            industry_daily_returns: "2024-06-04+ only (Stage 2 degrades to soft gate pre-2024-06)"
+            hs300_market_index_daily: "2021-05+ (market return, full coverage)"
+            akshare_financials: "33 quarters (FRM, vintage-aware, full coverage)"
+
+        # --- Contract 4: No-Touch Boundary ---
+        no_touch_boundary:
+          market_guardian:
+            state_transition: "FROZEN - src/thesis/state_transition.py unchanged"
+            confidence_overlay: "FROZEN - src/thesis/confidence_overlay.py unchanged"
+            freeze_yaml_parameters: "FROZEN - parameters section unchanged"
+          risk_boundary:
+            kill_criteria: "UNCHANGED - src/thesis/thesis_ledger.py KillCriteria unchanged"
+            doctrine_underwriter: "UNCHANGED - src/thesis/doctrine_underwriting.py unchanged"
+          allowed_changes:
+            - "src/thesis/market_anomaly.py: add V3CandidateFeatures + MispricingObject.v3_features"
+            - "src/thesis/candidate_generator.py: NEW"
+            - "scripts/shadow_recorder.py: line 97 replace detector.scan() with CandidateGenerator.generate()"
+            - "migrations/shadow_trading_schema_v3.sql: NEW"
+            - "scripts/run_security_analyst_v3_replay.py: NEW"
+          prohibited:
+            - "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+            - "MUST NOT modify KillCriteria.check() signature"
+            - "MUST NOT modify DoctrineUnderwriter.underwrite_all() signature"
+            - "MUST NOT change shadow_episode.decision (BUY/BLOCK remains Guardian's job)"
+            - "v3 does ranking/filtering ONLY, never permission"
+
+        # --- Implementation Phases ---
+        implementation_phases:
+          phase_1_6_S_13_1: "Design Freeze (this document) - no coding"
+          phase_2_6_S_13_2: "Recovery Eligibility Gate (Stage 1 + MispricingObject extension + migration v3)"
+          phase_3_6_S_13_3: "Relative Strength Stage (Stage 2 + batch SectorConfirmation)"
+          phase_4_6_S_13_4: "Mispricing Stage + orchestration (Stage 3 + replace shadow_recorder line 97)"
+          phase_5_6_S_13_5: "v3 Replay + validation (compare v1/v2/v3, verify v3.1 FRM>85%)"
+          phase_6: "Commit + tag if v3.1 passes, else report and adjust"
+
   layer_3_portfolio_construction:
     status: "DIAGNOSTIC ACTIVE - shadow_portfolio_construction table populated"
     rating: "★☆☆☆☆"
@@ -469,3 +597,56 @@ freeze_history:
       - "Anomaly detection itself may be the binding constraint, not the scoring layer"
     verdict: "CONDITIONAL - V2 improves selection direction but does not produce positive true selection alpha"
     next_phase: "Security Analyst v3: redesign anomaly detection (candidate generation), not just scoring"
+
+  v3_0_design_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.13.1"
+    scope: "Design freeze for Security Analyst v3 Candidate Generator Reconstruction"
+    freeze_status: "DESIGN FROZEN (4 contracts: schema, scoring, validation, no-touch boundary)"
+    production: false
+    four_contracts:
+      schema: "V3CandidateFeatures + shadow_funnel_log + shadow_candidates v3 fields + security_candidate_universe_snapshot"
+      scoring: "Three-stage funnel (Recovery Eligibility -> Relative Strength -> Mispricing), output MispricingObject, kill/uw unchanged"
+      validation: "v3.1 FRM>85% / v3.2 residual>-2% / v3.3 residual>0"
+      no_touch: "Market Guardian + KillCriteria + DoctrineUnderwriter frozen"
+    key_decisions:
+      universe_source: "stock_factor_snapshot (NOT UniverseFilter, to avoid historical leakage from avg_amount_20d)"
+      interface_compatibility: "MispricingObject + Optional v3_features (NOT new CandidateResult type, to avoid kill/uw signature changes)"
+    assumption_shift: |
+      v1/v2: drawdown + cheap + fundamentals not broken = mispriced opportunity
+      v3:    recovery eligibility + relative strength confirmation + THEN mispricing
+      Many stocks are 'deserved cheapness', not mispricing. Anomaly detection
+      moves from being the entrance gate to the last gate.
+    implementation_phases: 6 (design freeze -> stage 1 -> stage 2 -> stage 3 -> replay -> commit/adjust)
+    next_phase: "6-S.13.2 Recovery Eligibility Gate implementation"
+
+  v3_1_recovery_eligibility_pass:
+    validation_date: "2026-07-21"
+    commit: "6-S.13.5"
+    tag: "security-analyst-v3.1"
+    scope: "v3.1 Gate validation - Recovery Eligibility Gate improves candidate pool quality"
+    validation_basis: "150 BUY episodes replayed with v3 CandidateGenerator"
+    v3_1_result:
+      target: "FRM improving rate > 85%"
+      v1_baseline: "28.4% improving (58 deteriorating, 27 improving, 10 stable)"
+      v3_result: "88.0% improving (0 deteriorating, 44 improving, 6 stable)"
+      verdict: "PASS ✅ - Stage 1 FRM hard gate eliminated all deteriorating stocks"
+    funnel_convergence:
+      total_entries: 8549
+      stage1_dropped: 4343   # 50.8% (DETERIORATING 4330 + LOW_LIQUIDITY 13)
+      stage2_dropped: 1885   # 22.0% (WEAK_RS)
+      stage3_dropped: 22     # 0.3% (NO_MISPRICING)
+      final_pass: 2299       # 26.9%
+    key_finding: |
+      v3.1 proves the Recovery Eligibility Gate works. The Stage 1 FRM hard
+      gate (reject 'deteriorating') completely eliminated earnings-declining
+      stocks from the candidate pool. V1 systematically selected 61%
+      deteriorating stocks; V3 selects 0%. This is a fundamental architectural
+      improvement, not a marginal optimization.
+    frozen_components:
+      recovery_gate:
+        status: "VALIDATED - FRM hard reject on 'deteriorating' direction"
+        frm_threshold: "frozen (direction-based, not score-based)"
+        liquidity_threshold: "frozen (volume_ratio > 0.3)"
+    v3_2_status: "PENDING - requires attribution backfill for v3 new candidates (0 overlap with v1/v2 pool)"
+    next_phase: "6-S.13.6 v3 attribution backfill + v3.2 Gate validation (residual_alpha > -2%)"

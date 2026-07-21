@@ -1,0 +1,156 @@
+{
+  "commit": "6-S.17.1",
+  "phase": "1",
+  "experiment": "exp1_direction_vs_score",
+  "date": "2026-07-21",
+  "baseline": "v3.2.1 Group B (FRM-only): N=60, +2.52%, 58.3% positive",
+  "test1_direction_baseline": {
+    "improving_only": {
+      "label": "improving_only",
+      "n": 45,
+      "alpha_pct": 2.672322099897718,
+      "median_pct": 1.59112345534456,
+      "positive_rate_pct": 60.0,
+      "std_pct": 9.130351131151148,
+      "return_mean_pct": 2.0070310589018607
+    },
+    "stable_only": {
+      "label": "stable_only",
+      "n": 14,
+      "alpha_pct": 2.071205788211244,
+      "median_pct": 0.46321827563725415,
+      "positive_rate_pct": 50.0,
+      "std_pct": 7.772544433507539,
+      "return_mean_pct": 2.4213293721421296
+    },
+    "combined_imp_stable": {
+      "label": "combined_imp_stable",
+      "n": 59,
+      "alpha_pct": 2.5296843310229615,
+      "median_pct": 1.2234930520369822,
+      "positive_rate_pct": 57.6271186440678,
+      "std_pct": 8.830783669310948,
+      "return_mean_pct": 2.1053391332300597
+    },
+    "all_group_a": {
+      "label": "all_group_a",
+      "n": 60,
+      "alpha_pct": 2.516166453952875,
+      "median_pct": 1.407308253690771,
+      "positive_rate_pct": 58.333333333333336,
+      "std_pct": 8.75750016410474,
+      "return_mean_pct": 2.3213096057473694
+    }
+  },
+  "test2_conditional_score": {
+    "improving": {
+      "Q1": {
+        "n": 9,
+        "frm_score_range": [
+          47.0,
+          55.5
+        ],
+        "alpha_pct": 0.2295863064043014,
+        "positive_rate_pct": 55.55555555555556
+      },
+      "Q2": {
+        "n": 9,
+        "frm_score_range": [
+          57.0,
+          62.5
+        ],
+        "alpha_pct": 4.605811463531903,
+        "positive_rate_pct": 66.66666666666667
+      },
+      "Q3": {
+        "n": 9,
+        "frm_score_range": [
+          63.5,
+          68.0
+        ],
+        "alpha_pct": 6.939524888620974,
+        "positive_rate_pct": 77.77777777777777
+      },
+      "Q4": {
+        "n": 9,
+        "frm_score_range": [
+          68.0,
+          72.5
+        ],
+        "alpha_pct": 1.3667228674313854,
+        "positive_rate_pct": 55.55555555555556
+      },
+      "Q5": {
+        "n": 9,
+        "frm_score_range": [
+          74.5,
+          91.39999999999999
+        ],
+        "alpha_pct": 0.21996497350002345,
+        "positive_rate_pct": 44.44444444444444
+      },
+      "q5_minus_q1_pp": -0.00962133290427794,
+      "verdict": "H2 SIGNAL (Q5 ≈ Q1 - score adds no value)",
+      "h3_signal": true
+    },
+    "stable": {
+      "n": 14,
+      "skipped": true
+    }
+  },
+  "test3_regression": {
+    "n": 59,
+    "r2": 0.0061187047963313645,
+    "b0_intercept": 2.5191483179224887,
+    "b1_direction": 1.7062877495024857,
+    "b2_frm_score": -3.4359703856854074,
+    "b2_t_stat": -0.5454412886052211,
+    "b2_se": 6.299432143231625,
+    "verdict": "INCONCLUSIVE: b2 not clearly zero or significant"
+  },
+  "test4_temporal_stability": {
+    "2023": {
+      "n": 37,
+      "alpha_pct": 2.0843871473771247,
+      "positive_rate_pct": 56.75675675675676,
+      "improving_pct": 75.67567567567568,
+      "stable_pct": 21.62162162162162
+    },
+    "2024": {
+      "n": 21,
+      "alpha_pct": 4.1815022988025845,
+      "positive_rate_pct": 66.66666666666667,
+      "improving_pct": 71.42857142857143,
+      "stable_pct": 28.571428571428573
+    },
+    "2026": {
+      "n": 2,
+      "alpha_pct": -6.9819427453177045,
+      "positive_rate_pct": 0.0,
+      "improving_pct": 100.0,
+      "stable_pct": 0.0
+    },
+    "improving_2023": {
+      "n": 28,
+      "alpha_pct": 2.574593513972432,
+      "positive_rate_pct": 60.714285714285715
+    },
+    "improving_2024": {
+      "n": 15,
+      "alpha_pct": 4.141984106320307,
+      "positive_rate_pct": 66.66666666666667
+    },
+    "improving_2026": {
+      "n": 2,
+      "alpha_pct": -6.9819427453177045,
+      "positive_rate_pct": 0.0
+    },
+    "stability_spread_pp": 2.09711515142546,
+    "all_years_positive": true
+  },
+  "h2_signal_count": 1,
+  "h1_signal_count": 0,
+  "h3_signal_count": 1,
+  "verdict": "H3 SIGNAL - FRM score shows inverted-U (uncertainty proxy).",
+  "recommendation": "Route to H3 investigation. Score is not a quality signal but an uncertainty proxy. Combine with gap/sustainability inverted-U findings."
+}

@@ -4540,3 +4540,208 @@ freeze_history:
       be REPLICATED at N>=100 before being written to genome.
 
     next_phase: "Data infrastructure: backfill shadow_outcome for all 1204 episodes (BUY + BLOCK), then re-run Guardian Autopsy at N>=100 for conclusive Phase 0"
+
+  v4_0_data_readiness_contract:
+    freeze_date: "2026-07-21"
+    commit: "6-S.19.3"
+    tag: "stock-sieve-v4.0-data-readiness-contract"
+    scope: "Data Readiness Contract + Phase 0.1 status correction + v4.0 roadmap reorder"
+    freeze_status: "CONTRACT FROZEN (data gate before any Phase 0 conclusions or Phase 1 work)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 0.1 Status Correction (6-S.19.2 reframe)
+    # ═══════════════════════════════════════════════════════════
+    phase_0_1_reframe: |
+      6-S.19.2 is NOT "Phase 0 failed." It is:
+
+        Phase 0.1: Method validated, data infrastructure identified as
+                   bottleneck, NO architectural inference allowed.
+
+      This is a healthy "failure" - it proved the research process itself
+      is NOT captured by old success stories. The autopsy script is correct.
+      The data is the blocker. This is fundamentally different from
+      "Guardian might be failing."
+
+      The 39.5% alpha share is tagged:
+        value: 39.5%
+        evidence_level: DISCOVERY
+        sample_size: 8
+        status: UNUSABLE_FOR_ARCHITECTURE
+
+      Market research's most dangerous result is not an error - it is a
+      beautiful small-sample result. Mid×Mid taught us this (+8.43% at N=8
+      -> -1.31% at N=194). Guardian's 39.5% will NOT receive identity
+      until replicated at N>=100 (Constitution Rule 6).
+
+    # ═══════════════════════════════════════════════════════════
+    # Why Exp0D Changes the Research Direction (even at N=8)
+    # ═══════════════════════════════════════════════════════════
+    exp0d_directional_value: |
+      Exp0D cannot be written to genome (N=8), but it changes the
+      research direction. Before Exp0D, a dangerous assumption existed:
+        "Guardian might just capture beta rebound"
+
+      Exp0D provided the first counter-evidence:
+        portfolio return: +2.79%
+        beta contribution: +1.69%
+        residual alpha:   +1.10% (39.5% share)
+
+      IF this holds at N>=100 (e.g. portfolio +12%, beta +7%, alpha +5%),
+      then v4.0's positioning is confirmed:
+        NOT: market-up detector (beta rebound)
+        BUT: risk-adjusted recovery timing system (real alpha + beta)
+
+      This directional value is frozen as a HYPOTHESIS to test, not a
+      conclusion to act on.
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Readiness Contract (frozen gate)
+    # ═══════════════════════════════════════════════════════════
+    data_readiness_contract:
+      purpose: |
+        v4.0's biggest risk is not the model - it is discovering
+        "patterns" on incomplete data. This contract is a GATE: no
+        Phase 0 conclusions, no Phase 1 work, no architecture decisions
+        until data readiness is met.
+
+      minimum_requirements:
+        buy_episodes: ">= 100 (currently 8 non-zero)"
+        block_episodes: ">= 100 (for calibration comparison)"
+        outcome_coverage:
+          portfolio_return_t20: ">= 95% of episodes"
+          market_return_t20: ">= 95%"
+          alpha_vs_hs300: ">= 95%"
+          portfolio_max_drawdown: ">= 90% (currently 0%)"
+        market_features:
+          vol_20d: ">= 95%"
+          breadth: ">= 95%"
+          trend_ma60: ">= 95%"
+          recovery_prob: ">= 95%"
+          confidence: ">= 95%"
+        oos_split:
+          available: true
+          train_period: "2021-2024"
+          test_period: "2025-2026"
+          min_test_n: 30
+
+      gate_rule: |
+        If data readiness NOT met:
+          PROHIBITED: Regime Map conclusions
+          PROHIBITED: Confidence Calibration conclusions
+          PROHIBITED: Exposure Model design
+          PROHIBITED: Any architecture decision based on autopsy
+        If data readiness MET:
+          Re-run Guardian Autopsy at N>=100
+          Then Phase 0 conclusions become valid
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp0C Early Signal (preserved for N>=100 re-test)
+    # ═══════════════════════════════════════════════════════════
+    exp0c_early_signal: |
+      N=8 failure taxonomy is unreliable, but one direction is worth
+      preserving for re-testing at N>=100:
+
+        Failure episodes have LOWER confidence (69.5 vs 76.6).
+
+      This suggests Guardian may be SELF-AWARE - its own confidence
+      already encodes reliability information. If confirmed at N>=100,
+      the implication is profound:
+        NOT: improve the signal
+        BUT: use confidence as risk budget input
+
+      Example future architecture:
+        NOT: BUY (binary)
+        BUT: BUY, confidence=55%, max exposure=40%
+             BUY, confidence=85%, max exposure=80%
+
+      This aligns with v4.0 Exposure Controller design. But it is a
+      HYPOTHESIS, not a conclusion (N=4 failures).
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Roadmap Reordered (frozen)
+    # ═══════════════════════════════════════════════════════════
+    v4_0_roadmap_reordered:
+      rationale: |
+        Original 6-S.19.0 had: Phase 0 (autopsy) -> Phase 1 (FRM velocity)
+        -> Phase 2 (exposure). Revised: data first, then complete Phase 0
+        BEFORE Phase 1. Do NOT study FRM velocity until confidence
+        calibration is confirmed - if Guardian confidence is already
+        well-calibrated, the Exposure Engine value may exceed FRM
+        velocity value. Don't study a non-bottleneck.
+
+      step_0_data_backfill:
+        objective: "shadow_outcome from 8 -> 1204 episodes"
+        deliverables:
+          - "Backfill portfolio_return_t20 for all BUY + BLOCK episodes"
+          - "Backfill market_return_t20, alpha_vs_hs300"
+          - "Backfill portfolio_max_drawdown (currently 0%)"
+          - "Verify all market_features coverage >= 95%"
+        gate: "Data Readiness Contract minimum requirements met"
+
+      step_1_failure_taxonomy:
+        objective: "Re-run Exp0C at N>=100 - find when NOT to trust Guardian"
+        question: "What environments produce Guardian failures?"
+        gate: ">= 2 failure mode clusters with N >= 10 each"
+
+      step_2_confidence_calibration:
+        objective: "Re-run Exp0B at N>=100 - is confidence predictive?"
+        question: "Can confidence drive Exposure Controller?"
+        gate: "Q5 win rate > Q1 win rate by >= 10pp"
+        priority_note: "If confidence IS calibrated, Exposure Engine may be higher value than FRM velocity. Do NOT skip to Phase 1."
+
+      step_3_regime_map:
+        objective: "Re-run Exp0A at N>=100 - unsupervised regime discovery"
+        question: "Which market environments does Guardian work in?"
+        gate: ">= 3 regimes with win rate delta >= 15pp"
+
+      step_4_beta_attribution:
+        objective: "Re-run Exp0D at N>=100 - confirm real alpha"
+        question: "Is the 39.5% alpha share real or small-sample luck?"
+        gate: "alpha share > 20% at N>=100"
+        critical: "This confirms or denies v4.0's core positioning"
+
+      step_5_phase_1_frm_velocity:
+        objective: "ONLY after Steps 1-4 complete - FRM state vector"
+        condition: "Only if confidence calibration shows confidence is NOT sufficient for exposure management"
+        note: "If confidence IS well-calibrated, skip to Exposure Engine. FRM velocity may not be the bottleneck."
+
+      step_6_phase_2_exposure_engine:
+        objective: "Build Exposure Controller based on Steps 1-4 findings"
+        inputs: "Confidence calibration + Regime map + Failure taxonomy"
+        output: "Dynamic exposure: confidence -> risk budget -> equity %"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Deeper Shift (frozen observation)
+    # ═══════════════════════════════════════════════════════════
+    deeper_shift: |
+      From v3 to v4, Stock Sieve's biggest change is NOT the model.
+      It is the research philosophy:
+
+        v3: "Find a method that makes money."
+        v4: "Find when to trust our own method."
+
+      This is closer to real fund management. Excellent funds are NOT
+      those that always predict correctly. They are those that know:
+        when to bet 80%
+        when to bet 20%
+
+      6-S.19.2 is an immune node. It prevented beautiful N=8 results
+      from becoming architecture. The next step is NOT to optimize
+      Guardian. It is to complete the investment committee's historical
+      ledger: "For each past bet, if we had known the outcome, how much
+      trust would we have assigned?"
+
+      THAT is the data the Exposure Controller needs.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited (extends prior)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_architecture_on_n8: "MUST NOT make architecture decisions on N=8 autopsy (Rule 6)"
+      no_phase1_before_phase0_complete: "MUST NOT start FRM velocity (Phase 1) before Phase 0 re-run at N>=100"
+      no_pattern_discovery_on_incomplete_data: "MUST NOT discover patterns until Data Readiness Contract met"
+      no_guardian_optimization: "MUST NOT optimize Guardian - autopsy only, not tuning"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_validator: "MUST NOT run Evolution v4 without 6-rule Constitution Validator"
+
+    next_phase: "Step 0: shadow_outcome backfill (8 -> 1204 episodes), meet Data Readiness Contract, then re-run Guardian Autopsy at N>=100"

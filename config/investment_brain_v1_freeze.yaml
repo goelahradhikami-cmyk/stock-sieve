@@ -3595,3 +3595,227 @@ freeze_history:
       it prevented false beliefs from being written into the genome.
 
     next_phase: "v3.6 should focus on Market Guardian strengthening and FRM gate robustness, NOT Layer 2 selection. Layer 2 search is CONCLUDED."
+
+  belief_audit_final:
+    freeze_date: "2026-07-21"
+    commit: "6-S.18.0"
+    tag: "stock-sieve-belief-audit-final-constitution"
+    scope: "Final Belief Audit - Stock Sieve Investment Constitution"
+    freeze_status: "CONSTITUTION FROZEN (the immune-system verdict on the entire v2-v3.5 chain)"
+
+    # ═══════════════════════════════════════════════════════════
+    # What This Is
+    # ═══════════════════════════════════════════════════════════
+    purpose: |
+      This is the Stock Sieve Investment Constitution. It freezes the
+      conclusions of the entire v2-v3.5 Belief Audit chain as binding
+      architectural rules. These rules function as the Investment
+      Brain's immune system: they prevent disproved beliefs from being
+      written into the genome and propagated by Evolution v4.
+
+      This is not a failure report. It is a definitive negative result
+      that saves future work from chasing non-existent alpha in stock
+      selection. Many quantitative teams spend years without reaching
+      this conclusion. Stock Sieve reached it in one audit chain.
+
+    # ═══════════════════════════════════════════════════════════
+    # Rejected Beliefs (PROHIBITED from genome)
+    # ═══════════════════════════════════════════════════════════
+    rejected_beliefs:
+      cheapness_creates_alpha:
+        status: "DISPROVED (v2)"
+        evidence: "cheap + not broken ≠ mispriced; deserved cheapness"
+        prohibition: "MUST NOT use PE/PB/drawdown as primary alpha signal"
+      quality_creates_alpha:
+        status: "DISPROVED (v3.4 + Exp10B)"
+        evidence: "sustainability filter REMOVES alpha (pass < fail within Mid×Mid)"
+        prohibition: "MUST NOT use quality as alpha gate; may use as risk penalty only"
+      momentum_confirmation_creates_alpha:
+        status: "DISPROVED (v3.2.2)"
+        evidence: "RS gate DESTROYS alpha (filters out high-alpha stocks)"
+        prohibition: "MUST NOT re-add RS as a gate; RS-like measures are crowding diagnostics only"
+      earnings_gap_creates_alpha:
+        status: "DISPROVED (v3.3)"
+        evidence: "high gap = market distrust (not underreaction); monotonic assumption wrong"
+        prohibition: "MUST NOT use gap_score as monotonic high-gap gate"
+      disagreement_selection_creates_alpha:
+        status: "DISPROVED (v3.5.2 Exp11A)"
+        evidence: "Mid×Mid +8.43% (N=8) was small-sample artifact; -1.31% at N=194"
+        prohibition: "MUST NOT select for 'middle zone' as alpha source"
+      extreme_filter_improves_portfolio:
+        status: "DISPROVED (v3.5.2 Exp11B)"
+        evidence: "MEF 1/4 checks pass; random filter beats MEF on 2/3 metrics"
+        prohibition: "MUST NOT add extreme-rejection filter as portfolio improvement layer"
+      per_stock_selection_adds_value:
+        status: "DISPROVED (entire v3.5 chain)"
+        evidence: "ALL Layer 2 candidates failed (RS, EGE, sustainability, Mid×Mid, MEF)"
+        prohibition: "MUST NOT pursue further Layer 2 per-stock selection candidates"
+
+    # ═══════════════════════════════════════════════════════════
+    # Surviving Belief (the only validated alpha source)
+    # ═══════════════════════════════════════════════════════════
+    surviving_belief:
+      recovery_timing_creates_alpha:
+        status: "VALIDATED (v1.1, 1204 episodes, bootstrap P<=0 = 0.00%)"
+        evidence: "Market Guardian timing confirmed across regimes, years, catastrophic events"
+        implication: "Alpha is in WHEN to enter, not WHAT to select"
+
+      frm_direction_as_gate:
+        status: "MARGINAL but best available (v3.1, +2.52% at N=60)"
+        evidence: "FRM direction selects a pool with positive group-level alpha"
+        caveat: "Does NOT predict per-stock alpha (Exp9: direction t=0.12). Works as portfolio filter, not ranker."
+        implication: "FRM tells you WHEN the market is in recovery, not WHICH stock to buy"
+
+    # ═══════════════════════════════════════════════════════════
+    # Architectural Rules (binding)
+    # ═══════════════════════════════════════════════════════════
+    architectural_rules:
+      state_variables:
+        role: "GATE (define candidate universe / detect regime)"
+        examples: ["FRM direction", "Market Guardian state"]
+        rule: "State variables describe the market's cognitive state, NOT which stock will outperform"
+
+      ranking_variables:
+        role: "PROHIBITED until proven"
+        rule: "MUST NOT treat any state variable as a ranking variable. All attempts (RS, gap, sustainability, FRM score, Mid×Mid, MEF) have been disproved."
+
+      selection_vs_timing:
+        rule: "The system's alpha comes from TIMING (Market Guardian), not SELECTION. Architecture must reflect this."
+
+      layer2_search:
+        status: "CONCLUDED"
+        rule: "No further Layer 2 per-stock selection candidates will be pursued. All have been disproved."
+
+    # ═══════════════════════════════════════════════════════════
+    # System Identity (frozen)
+    # ═══════════════════════════════════════════════════════════
+    system_identity: |
+      Stock Sieve is a Recovery Regime Intelligence System.
+
+      NOT a stock selection engine.
+      NOT a factor model.
+      NOT a disagreement detector.
+
+      The system answers: "WHEN should we hold recovery asset exposure?"
+      NOT: "WHICH stocks should we buy?"
+
+      Architecture:
+        Market Guardian (timing) -> FRM Direction Gate (regime filter) -> Bayesian Portfolio
+
+      The value is in TIMING. Stock selection within the timing window
+      adds NO incremental alpha (exhaustively disproved).
+
+      FRM is weather, not destination rating. It tells you when the
+      market enters recovery, not which stock recovers best.
+
+    # ═══════════════════════════════════════════════════════════
+    # Why Layer 2 Always Fails (economic explanation)
+    # ═══════════════════════════════════════════════════════════
+    economic_explanation: |
+      In recovery episodes, what drives returns is:
+        beta exposure + risk-on timing
+      NOT:
+        company A being 10% better than company B
+
+      The market trades the "earnings cycle reversal" theme, not
+      "who recovers most beautifully." Within a recovery pool, stock
+      selection is noise because the dominant return driver is the
+      regime shift, not individual stock quality.
+
+      This is why every Layer 2 failed: they all tried to find
+      per-stock alpha within a regime-driven pool. The alpha was
+      never there - it was in the regime timing.
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Direction (frozen - NOT v3.6 selection)
+    # ═══════════════════════════════════════════════════════════
+    v4_0_direction: |
+      Next phase is NOT v3.6 stock selection. Next phase is:
+
+        v4.0 Market Guardian + Recovery Regime Portfolio Engine
+
+      Three research directions (priority order):
+
+      A. Market Guardian Deepening (HIGHEST PRIORITY)
+         - Why does it work? What makes timing effective?
+         - Guardian failure environments (bear rallies, liquidity crises,
+           policy rallies, AI theme bubbles)
+         - Build Guardian Regime Map
+         - The timing alpha is the core asset; understand and protect it.
+
+      B. FRM Direction Stabilization
+         - Is improving/stable too coarse?
+         - Research STATE TRANSITIONS (deteriorating -> stable -> improving)
+           rather than state values. Alpha may come from transitions.
+         - NOT stock ranking - regime transition detection.
+
+      C. Portfolio Allocation (largest opportunity)
+         - Since selection alpha ≈ 0, returns come from position management
+         - Exposure sizing, drawdown control, Kelly calibration
+         - Regime-based allocation (how much recovery exposure per state)
+         - This is where Stock Sieve's product form emerges.
+
+      PROHIBITED in v4.0:
+        - NO new stock selection factors
+        - NO new ranking models
+        - NO new selection personas
+        - These would re-enter the disproved pattern:
+          discover pattern -> small sample -> story -> ship -> fail
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Status
+    # ═══════════════════════════════════════════════════════════
+    evolution_v4_status: |
+      DISABLED. No validated selection alpha to evolve.
+
+      Evolution v4 would optimize something - but the audit proved there
+      is nothing to optimize in the selection layer. The only validated
+      alpha (timing) is in Market Guardian, which is FROZEN (v1.1).
+
+      Evolution may be reconsidered for:
+        - Guardian parameter tuning (after v4.0A research)
+        - Portfolio allocation optimization (after v4.0C research)
+      NEVER for:
+        - Stock selection factors (all disproved)
+        - Ranking variables (all disproved)
+
+    # ═══════════════════════════════════════════════════════════
+    # The Complete Falsification Chain (frozen record)
+    # ═══════════════════════════════════════════════════════════
+    complete_chain:
+      v2: "cheap ≠ mispriced"
+      v3.1: "FRM direction gate works as portfolio filter (+2.52% group alpha at N=60)"
+      v3.2.2: "RS gate DESTROYS alpha"
+      v3.3: "EGE monotonic gap assumption FALSIFIED"
+      v3.3.1: "gap inverted-U: market distrusts, not underreacts"
+      v3.4: "sustainability filter REMOVES alpha"
+      v3.5_Exp1: "FRM score is NOT quality (inverted-U, direction = 99.6% of group alpha)"
+      v3.5_Exp9: "FRM direction does NOT predict per-stock alpha (t=0.12)"
+      v3.5_Exp10: "Mid×Mid +8.43% (N=8) - promising but underpowered"
+      v3.5.2_Exp11A: "Mid×Mid FALSIFIED at N=194 (-1.31%, null model 53rd percentile)"
+      v3.5.2_Exp11B: "MEF FAILS (1/4 checks, random filter beats MEF)"
+      conclusion: "Layer 2 search CONCLUDED. Alpha is in TIMING, not SELECTION."
+
+    # ═══════════════════════════════════════════════════════════
+    # Why This Is a Success
+    # ═══════════════════════════════════════════════════════════
+    why_this_is_success: |
+      Many systems fail not because they lack alpha, but because they
+      don't know where their alpha is. Stock Sieve now knows:
+        - Alpha is in timing (Market Guardian)
+        - Alpha is NOT in stock selection (exhaustively disproved)
+
+      This is the most important outcome of the Belief Audit: the
+      system knows its own boundary. It will not waste engineering
+      resources chasing non-existent selection alpha.
+
+      The audit prevented false beliefs from being written into the
+      Investment Brain genome. Evolution v4 will not propagate biases
+      from disproved factors. This is the immune system working as
+      designed.
+
+      From "finding winners" to "judging when the market is worth
+      betting on" - this is a more mature and honest investment
+      philosophy.
+
+    next_phase: "v4.0 Market Guardian + Recovery Regime Portfolio Engine (NOT v3.6 selection). Focus: timing alpha conversion to stable compounding curve."

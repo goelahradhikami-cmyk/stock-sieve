@@ -1113,3 +1113,79 @@ freeze_history:
       - "EGE preserves FRM alpha (DISPROVED by Gate 2)"
 
     next_phase: "High Gap Autopsy - why does the market not react? Is it correct?"
+
+  v3_3_1_high_gap_autopsy:
+    autopsy_date: "2026-07-21"
+    commit: "6-S.15.4"
+    tag: "security-analyst-v3.3.1-high-gap-autopsy"
+    scope: "Why high gap fails - 4 analyses"
+    freeze_status: "DIAGNOSTIC_BASELINE (EGE second falsification, economic meaning redefined)"
+
+    analyses:
+      analysis1_extreme_value_pollution:
+        finding: "D10 excl top 1% = -9.00% (worse than D10 all = -8.62%)"
+        verdict: "RULED OUT - extreme values do NOT cause D10 failure"
+        implication: "D10 failure is systematic, not outlier-driven"
+
+      analysis2_inverted_u_shape:
+        quintiles:
+          Q1: "-4.51% (23.7% positive)"
+          Q2: "+1.52% (47.4%)"
+          Q3: "-1.01% (44.7%)"
+          Q4: "+2.04% (55.3%)"
+          Q5: "-6.26% (30.0%)"
+        verdict: "SUPPORTED - inverted-U, sweet spot in Q2-Q4"
+        optimal_zone: "gap +0.14 to +0.65 (Q4, residual +2.04%)"
+
+      analysis3_frm_gap_2d_matrix:
+        best_cell: "weak FRM + high gap = +2.01% (62% positive, N=16)"
+        worst_cell: "strong FRM + high gap = -5.29% (24%, N=33)"
+        verdict: "FRM strong + gap high is DISASTER (market disbelieves)"
+        implication: "Strong FRM does not always help; extreme improvement + no price reaction = market skepticism"
+
+      analysis4_earnings_quality:
+        high_gap_real_vs_suspect: "10 real, 5 suspect (of 15 checked)"
+        low_gap_real_vs_suspect: "10 real, 4 suspect (of 15 checked)"
+        verdict: "RULED OUT - high gap is NOT accounting fraud"
+        implication: "Market's non-reaction is not about fake earnings; it's about sustainability belief"
+
+    key_diagnostic_conclusion: |
+      EGE's second falsification. The original hypothesis 'market underreacts
+      to earnings improvement' is WRONG in its monotonic form. The real
+      economic meaning of gap is:
+
+        High gap = market DISTRUSTS the earnings improvement (not ignores it)
+        Moderate gap = market is uncertain = opportunity zone
+        Low gap = market has already priced in (or earnings barely changed)
+
+      This is NOT 'market underreaction' but 'market disagreement about
+      sustainability'. The next engine must separate:
+        1. Gap (disagreement level)
+        2. Sustainability (is the improvement real and durable?)
+
+    frozen_diagnostic_rules:
+      extreme_gap_is_risk: "gap > Q5 threshold (+0.67) = risk signal, not opportunity"
+      moderate_gap_is_opportunity: "gap in Q2-Q4 range = alpha zone"
+      frm_strong_plus_gap_high: "DISASTER combination (market disbelieves strong improvement)"
+
+    what_v3_3_proved:
+      - "EGE captures market disagreement (Gate 3: RS inversion PASS)"
+      - "Gap is non-monotonic: inverted-U with sweet spot in Q2-Q4"
+      - "High gap = market distrust, not market ignorance"
+      - "FRM strong + gap high is the worst combination"
+      - "Earnings quality (revenue alignment) does NOT explain high-gap failure"
+
+    what_v3_3_did_not_solve:
+      - "How to identify SUSTAINABLE earnings improvement"
+      - "Why market disbelieves some improvements but not others"
+      - "Whether moderate gap + sustainability filter produces positive alpha"
+
+    v3_4_direction: |
+      Rename from 'Expectation Gap' to 'Expectation Quality Engine' (EQE).
+      The question shifts from 'did the market react?' to 'is the market's
+      skepticism justified?'. Two dimensions:
+        1. Gap (disagreement) - use sweet spot, not monotonic
+        2. Sustainability (credibility) - revenue-earnings alignment,
+           multi-quarter consistency, margin normalization
+
+    next_phase: "v3.4 Expectation Quality Engine Design Freeze"

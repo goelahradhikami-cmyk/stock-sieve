@@ -728,3 +728,33 @@ freeze_history:
       mispricing_detection: "☆☆☆☆☆ BOTTLENECK (v3.2, residual_alpha still negative)"
 
     next_phase: "v3.3 Expectation Gap Generator - replace 'drawdown+cheap' hypothesis with 'earnings acceleration > price reaction'"
+
+  sector_data_foundation:
+    foundation_date: "2026-07-21"
+    commit: "6-S.14.0"
+    tag: "sector-data-foundation"
+    scope: "Sector data infrastructure - prerequisite for v3.3 sector-neutral analysis"
+    freeze_status: "DATA INFRA FROZEN"
+    purpose: "Enable sector-neutral attribution across full 1204 episode range (2021-2026)"
+    
+    industry_master:
+      before: "1360/5540 (24.5%) stocks had industry classification"
+      after: "5199/5540 (93.8%) stocks have industry classification"
+      source: "baostock query_stock_industry (证监会行业分类, offline)"
+      method: "IndustryBootstrap.backfill_industry()"
+      uncovered: "341 stocks (new/delisted, baostock not covering)"
+    
+    industry_daily_returns:
+      before: "38054 rows, 2024-06-04 to 2026-07-17 (515 trading days)"
+      after: "87276 rows, 2021-08-03 to 2026-07-17 (1200 trading days, 77 industries)"
+      source: "TDX kline + security_master.industry, market-cap weighted"
+      method: "IndustryBootstrap.build_industry_daily_returns(start_date='2021-08-02')"
+    
+    why_critical: |
+      v3.2 discovered sector_beta rose (-1.02% -> -1.83%) - the second layer
+      of Recovery Beta Trap. Sector-neutral analysis is now a core requirement,
+      not optional. Without complete sector data, v3.3 attribution would
+      conflate 'expectation gap improvement' with 'sector data improvement'.
+      This foundation ensures v3.3's alpha can be cleanly attributed.
+    
+    next_phase: "Phase 1: v3.2.1 attribution rebaseline with complete sector data"

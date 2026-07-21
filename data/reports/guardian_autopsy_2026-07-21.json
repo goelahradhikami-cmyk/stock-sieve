@@ -1,0 +1,80 @@
+{
+  "commit": "6-S.19.2",
+  "experiment": "guardian_autopsy",
+  "date": "2026-07-21",
+  "n_total_episodes": 1204,
+  "n_buy": 150,
+  "n_buy_nonzero": 8,
+  "exp0c_failure_taxonomy": {
+    "n_buy": 8,
+    "n_success": 4,
+    "n_failure": 4,
+    "failure_rate": 0.5
+  },
+  "exp0b_confidence_calibration": {
+    "calibration": [
+      {
+        "quintile": 1,
+        "conf_range": [
+          65.51359615856711,
+          65.51359615856711
+        ],
+        "n": 1,
+        "mean_ret_pct": 2.8099624675556765,
+        "win_rate_pct": 100.0
+      },
+      {
+        "quintile": 2,
+        "conf_range": [
+          66.98966760877695,
+          66.98966760877695
+        ],
+        "n": 1,
+        "mean_ret_pct": -5.92233009708739,
+        "win_rate_pct": 0.0
+      },
+      {
+        "quintile": 3,
+        "conf_range": [
+          68.2274914628343,
+          68.2274914628343
+        ],
+        "n": 1,
+        "mean_ret_pct": 5.693247005534766,
+        "win_rate_pct": 100.0
+      },
+      {
+        "quintile": 4,
+        "conf_range": [
+          68.38745641953663,
+          68.38745641953663
+        ],
+        "n": 1,
+        "mean_ret_pct": 2.581324272990365,
+        "win_rate_pct": 100.0
+      },
+      {
+        "quintile": 5,
+        "conf_range": [
+          69.8409331523086,
+          86.95355582987358
+        ],
+        "n": 4,
+        "mean_ret_pct": 4.285626090757239,
+        "win_rate_pct": 75.0
+      }
+    ],
+    "n": 8
+  },
+  "exp0a_regime_map": {
+    "n": 8,
+    "fallback": "market_state"
+  },
+  "exp0d_beta_attribution": {
+    "n": 8,
+    "portfolio_return_pct": 2.7880885015027967,
+    "market_return_pct": 1.687188943640007,
+    "alpha_pct": 1.1008995578627896,
+    "verdict": "REAL ALPHA: Guardian adds > 30% beyond market beta"
+  }
+}

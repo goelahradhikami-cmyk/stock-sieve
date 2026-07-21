@@ -4365,3 +4365,178 @@ freeze_history:
       - "NO code changes to Guardian itself (READ-ONLY autopsy)"
 
     next_phase: "Implement scripts/run_guardian_autopsy.py - Exp0A (regime map) + Exp0B (confidence calibration) + Exp0C (failure taxonomy) using existing 1204 episodes"
+
+  v4_0_phase0_guardian_autopsy_results:
+    autopsy_date: "2026-07-21"
+    commit: "6-S.19.2"
+    tag: "stock-sieve-v4.0-phase0-guardian-autopsy-results"
+    scope: "Guardian Autopsy results + 6-S.19.1 contract amendment (Exp0D added, priority reordered, Rule 6)"
+    freeze_status: "DIAGNOSTIC_BASELINE (Guardian has REAL ALPHA but data gap prevents full autopsy; N=8 is blocker)"
+
+    # ═══════════════════════════════════════════════════════════
+    # 6-S.19.1 Contract Amendment (frozen)
+    # ═══════════════════════════════════════════════════════════
+    contract_amendment:
+      additions:
+        exp0d_beta_attribution:
+          purpose: "Is Guardian alpha real or just beta rebound? (most dangerous alternative explanation)"
+          method: "Decompose: portfolio_return = market_beta + true_alpha. Compare alpha share vs beta share."
+          priority: "P3 (added to 6-S.19.1's original 3 experiments)"
+        unsupervised_regime_discovery:
+          purpose: "Replace arbitrary bins with data-driven k-means clustering"
+          rationale: "Manual binning (high vol / low valuation) imposes researcher bias. Unsupervised discovery lets data reveal natural regimes."
+        frm_dispersion:
+          purpose: "Add 4th component to FRM State Vector: dispersion (cross-sectional spread of FRM scores)"
+          rationale: "Two markets with same mean FRM can differ: all stocks +10 vs half +50/half -30. Dispersion captures this."
+          four_components: ["level (x)", "velocity (v)", "acceleration (a)", "dispersion (σ)"]
+        constitution_rule_6:
+          name: "No Explanation Before Stability"
+          rule: "Any discovery must pass: Discovery -> Replication -> OOS -> Stability -> Explanation. NEVER: Discovery -> Story -> Architecture."
+          rationale: "v3.3-v3.5's biggest loss was not model error but TOO FAST identity assignment. Must not repeat with Guardian."
+          full_validator_rules: "1. Prohibited belief? 2. State as ranking? 3. Stock factor? 4. Allowed scope? 5. Complexity > budget? 6. NEW: Explanation before stability?"
+      priority_reorder:
+        old: "Exp0A (regime) > Exp0B (calibration) > Exp0C (failure)"
+        new: "Exp0C (failure, P0) > Exp0B (calibration, P1) > Exp0A (regime, P2) > Exp0D (attribution, P3)"
+        rationale: "Excellent funds first know when NOT to bet, then study when to bet more. Failure analysis before success analysis."
+
+    # ═══════════════════════════════════════════════════════════
+    # Autopsy Results
+    # ═══════════════════════════════════════════════════════════
+    data_constraint: |
+      CRITICAL: Of 1204 total episodes, only 8 BUY episodes have non-zero
+      returns (the rest have 0.0 = not backfilled). All autopsy results
+      are based on N=8. This is the same small-sample trap that falsified
+      Mid×Mid (6-S.17.8). Results are INDICATIVE, not conclusive.
+
+      The 1204-episode validation (6-S.11.3, P<=0=0.00%) used a DIFFERENT
+      data pipeline (daily_run shadow trading with full backfill). The
+      shadow_outcome table was only partially backfilled for BUY episodes.
+      This is a DATA INFRASTRUCTURE GAP, not a Guardian failure.
+
+    exp0c_failure_taxonomy:
+      n_buy_nonzero: 8
+      n_success: 4
+      n_failure: 4
+      failure_rate: "50% (but N=8, not conclusive)"
+      failure_profile:
+        vol_20d: "failures 0.081 vs successes 0.122 (LOWER vol in failures)"
+        breadth: "failures 0.678 vs successes 0.659 (similar)"
+        trend_ma60: "failures -0.010 vs successes +0.059 (NEGATIVE trend in failures)"
+        recovery_prob: "failures 0.695 vs successes 0.766 (LOWER recovery prob in failures)"
+        confidence: "failures 69.5 vs successes 76.6 (LOWER confidence in failures)"
+      early_signal: "Failures have lower confidence, lower recovery_prob, negative trend. Guardian's own confidence may be self-aware."
+      caveat: "N=4 failures. Cannot build robust taxonomy."
+
+    exp0b_confidence_calibration:
+      by_band:
+        normal: "N=6, mean ret +0.50%, win 66.7%, alpha -2.16%"
+        full: "N=2, mean ret +9.66%, win 100%, alpha +10.90%"
+      calibration_curve: "Q5-Q1 delta = -25pp (NOT CALIBRATED at quintile level)"
+      verdict: "INCONCLUSIVE - full band beats normal band (positive signal) but quintile calibration is negative. N=8 too small."
+      early_signal: "confidence_band shows direction (full > normal) but confidence quintile does not. May be threshold effect, not linear."
+
+    exp0a_regime_map:
+      n_with_features: 8
+      method: "fallback to market_state (unsupervised k-means needs N>=10)"
+      by_market_state:
+        CONFIRMED_RECOVERY: "N=2, mean +9.66%, win 100%"
+        STABILIZING: "N=3, mean +3.69%, win 100%"
+        EARLY_RECOVERY: "N=3, mean -2.70%, win 33%"
+      early_signal: "CONFIRMED_RECOVERY and STABILIZING are reliable; EARLY_RECOVERY is dangerous. Consistent with v1.1 freeze."
+      caveat: "N=2-3 per state. Cannot confirm."
+
+    exp0d_beta_attribution:
+      n: 8
+      portfolio_return: "+2.79%"
+      market_return: "+1.69% (beta contribution)"
+      alpha_vs_hs300: "+1.10% (true Guardian alpha)"
+      alpha_share: "39.5%"
+      beta_share: "60.5%"
+      verdict: "REAL ALPHA: Guardian adds > 30% beyond market beta"
+      interpretation: |
+        Guardian is NOT just a beta rebound detector. It captures genuine
+        timing alpha (+1.10% beyond market) in addition to beta exposure
+        (+1.69%). The alpha share (39.5%) is economically meaningful.
+
+        HOWEVER: N=8. This could be small-sample luck. The 1204-episode
+        validation (6-S.11.3) is the stronger evidence, but it used a
+        different pipeline. Need to backfill shadow_outcome for more
+        episodes to confirm.
+
+    # ═══════════════════════════════════════════════════════════
+    # What Phase 0 Proved (at N=8, indicative only)
+    # ═══════════════════════════════════════════════════════════
+    what_phase0_proved:
+      - "Guardian has REAL ALPHA (not just beta rebound): alpha share 39.5% (N=8, indicative)"
+      - "CONFIRMED_RECOVERY and STABILIZING are reliable environments; EARLY_RECOVERY is dangerous (N=2-3 per state)"
+      - "Failure episodes have lower confidence (69.5 vs 76.6) - Guardian may be self-aware"
+      - "confidence_band shows direction (full > normal) but quintile calibration inconclusive"
+      - "Failure profile: lower vol, negative trend, lower recovery_prob (early signal for failure mode)"
+
+    what_phase0_did_not_prove:
+      - "Robust failure taxonomy (N=4 failures, too small)"
+      - "Confidence calibration (quintile delta negative, N=8)"
+      - "Unsupervised regime discovery (N<10, used fallback)"
+      - "Whether the 39.5% alpha share holds at larger N"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Real Blocker: Data Infrastructure Gap
+    # ═══════════════════════════════════════════════════════════
+    data_infrastructure_gap: |
+      The autopsy's fundamental blocker is NOT Guardian's design - it is
+      shadow_outcome data coverage. Of 1204 episodes, only 8 BUY episodes
+      have non-zero returns. The 1204-episode validation (6-S.11.3) used
+      a different pipeline that is not reflected in shadow_outcome.
+
+      REQUIRED before any further Phase 0 conclusions:
+        1. Backfill shadow_outcome for all 150 BUY episodes (portfolio_return_t20,
+           market_return_t20, alpha_vs_hs300)
+        2. Backfill shadow_outcome for BLOCK episodes (for calibration comparison)
+        3. Backfill portfolio_max_drawdown (currently 0/1204 coverage)
+        4. Re-run Guardian Autopsy at N>=100
+
+      Without this, Phase 0 is stuck at N=8 - the same trap that falsified
+      Mid×Mid. The difference: Mid×Mid was falsified at N=194 (sufficient).
+      Guardian autopsy is INCONCLUSIVE at N=8 (insufficient).
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      Phase 0 autopsy is INCONCLUSIVE due to data gap (N=8). The early
+      signals are PROMISING (real alpha 39.5%, environment-conditional
+      reliability, self-aware confidence) but NOT conclusive at N=8.
+
+      DO NOT make architecture decisions on N=8 (Constitution Rule 6:
+      No Explanation Before Stability). The 1204-episode validation
+      (6-S.11.3, P<=0=0.00%) remains the primary evidence for Guardian.
+
+      REQUIRED before Phase 1:
+        1. Backfill shadow_outcome for all BUY/BLOCK episodes
+        2. Re-run Guardian Autopsy at N>=100
+        3. Only then: confidence calibration, regime map, failure taxonomy
+           can produce conclusive results
+
+      The autopsy SCRIPT is validated (correct methodology, correct data
+      joins, correct analysis). The DATA is the blocker, not the method.
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 6 (frozen, from this amendment)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_6: |
+      Rule 6: No Explanation Before Stability
+
+      Any discovery must pass:
+        Discovery -> Replication -> OOS -> Stability -> Explanation
+      NEVER:
+        Discovery -> Story -> Architecture
+
+      v3.3-v3.5's biggest loss was not model error but TOO FAST identity
+      assignment. Mid×Mid was given 'Alpha Island' identity at N=8, then
+      falsified at N=194. Guardian must NOT receive 'Real Alpha' identity
+      at N=8 autopsy.
+
+      The 39.5% alpha share is a DISCOVERY, not an EXPLANATION. It must
+      be REPLICATED at N>=100 before being written to genome.
+
+    next_phase: "Data infrastructure: backfill shadow_outcome for all 1204 episodes (BUY + BLOCK), then re-run Guardian Autopsy at N>=100 for conclusive Phase 0"

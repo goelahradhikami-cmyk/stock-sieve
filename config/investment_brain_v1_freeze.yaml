@@ -4745,3 +4745,265 @@ freeze_history:
       no_evolution_without_validator: "MUST NOT run Evolution v4 without 6-rule Constitution Validator"
 
     next_phase: "Step 0: shadow_outcome backfill (8 -> 1204 episodes), meet Data Readiness Contract, then re-run Guardian Autopsy at N>=100"
+
+  v4_0_investment_memory_ledger_contract:
+    freeze_date: "2026-07-21"
+    commit: "6-S.19.4"
+    tag: "stock-sieve-v4.0-investment-memory-ledger"
+    scope: "Constitution Rule 7 + Investment Memory Ledger + Counterfactual Coverage + Error Cost Calibration"
+    freeze_status: "CONTRACT FROZEN (Step 0 redefined as first asset, not data chore)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Paradigm Shift (frozen, final articulation)
+    # ═══════════════════════════════════════════════════════════
+    paradigm_shift: |
+      Stock Sieve has completed a rare transformation:
+
+        FROM: "寻找预测器" (finding predictors)
+        TO:   "管理预测器的不确定性" (managing predictor uncertainty)
+
+      This is closer to macro funds, CTAs, multi-asset funds, and
+      risk-parity systems. The competitive edge is NOT:
+        "always predict correctly"
+      It IS:
+        "bet less when wrong, bet more when right"
+
+      The entire v2-v3.5 chain proved: stock selection predictors don't
+      work. The v4.0 chain asks: WHEN should we trust our own predictor
+      (Guardian), and HOW MUCH should we bet?
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 7 (frozen, extends 6-S.18.0)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_7:
+      name: "No Research Without Complete Outcome Ledger"
+      rule: |
+        No research conclusion may be drawn from incomplete outcome data.
+        Every episode in the shadow trading history MUST have:
+          - actual outcome (return, drawdown)
+          - counterfactual outcome (what if we didn't act?)
+          - decision context (confidence, market state, features)
+        before it can be used in ANY analysis.
+
+      rationale: |
+        Many financial research failures come not from bad models but
+        from incomplete training data: successes recorded, failures
+        missing. v4.0 had exactly this: 8/150 BUY episodes with returns,
+        0 BLOCK episodes with counterfactual, 0 drawdown coverage.
+
+        Without BLOCK outcomes, we cannot answer: "if Guardian had said
+        BLOCK, what would have happened?" This counterfactual is CRITICAL
+        for Exposure Controller: it needs to know the cost of NOT acting,
+        not just the return of acting.
+
+      full_constitution_rules:
+        rule_1: "Prohibited belief? -> REJECT"
+        rule_2: "State variable as ranking? -> REJECT"
+        rule_3: "Stock selection factor? -> REJECT"
+        rule_4: "Within allowed scope? -> check"
+        rule_5: "Complexity > budget OR no OOS gain? -> REJECT"
+        rule_6: "Explanation before stability? -> REJECT"
+        rule_7: "NEW: Research without complete outcome ledger? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # Step 0 Redefined: Investment Memory Ledger (first asset, not chore)
+    # ═══════════════════════════════════════════════════════════
+    step_0_redefinition: |
+      Step 0 (shadow_outcome backfill) is NOT a data chore. It is
+      v4.0's FIRST ASSET: Investment Memory Ledger construction.
+
+      Once 1204 episodes are fully backfilled, Stock Sieve will have,
+      for the first time, its OWN INVESTMENT HISTORY. Without this
+      ledger, any Exposure Controller is theoretical. With it, the
+      Investment Brain gains long-term memory.
+
+      This is building the Brain's hippocampus - the structure that
+      converts experience into memory. No memory = no learning =
+      no intelligence.
+
+    # ═══════════════════════════════════════════════════════════
+    # Guardian Decision Memory (frozen schema design)
+    # ═══════════════════════════════════════════════════════════
+    guardian_decision_memory:
+      purpose: "The core data structure for v4.0 - Guardian's episodic memory"
+      design_principle: |
+        Future Evolution v4 should NOT evolve 'stock factors'. It should
+        evolve 'when to trust Guardian'. The Guardian Decision Memory is
+        the training data for that evolution.
+
+        Example evolution:
+          Generation 1: confidence 70% -> exposure 50%
+          Evolution discovers: in high-vol recovery, confidence 70%
+            actually has 80% win rate -> exposure 65%
+          This is the ALLOWED evolution type (policy tuning, not factor mining).
+
+      schema:
+        episode_id: "TEXT PK"
+        signal_date: "DATE"
+        market_state: "TEXT (Guardian state)"
+        confidence: "REAL (0-100)"
+        confidence_band: "TEXT (blocked/small/normal/full)"
+        decision: "TEXT (BUY/BLOCK)"
+        position_target: "REAL (0-1.0)"
+        # Outcome
+        actual_portfolio_return: "REAL (t20)"
+        actual_market_return: "REAL (t20)"
+        actual_alpha: "REAL (vs HS300)"
+        actual_max_drawdown: "REAL"
+        actual_recovery_time: "INTEGER (days to recover from DD)"
+        # Counterfactual
+        counterfactual_market_return: "REAL (if BLOCK, what would market do?)"
+        counterfactual_cost_of_inaction: "REAL (opportunity cost)"
+        # Decision context
+        vol_20d: "REAL"
+        breadth: "REAL"
+        trend_ma60: "REAL"
+        recovery_prob: "REAL"
+        # Failure classification (from Exp0C)
+        failure_type: "TEXT (NULL if success, else taxonomy code)"
+        # Metadata
+        created_at: "TIMESTAMP"
+
+      note: "This is a VIEW on shadow_episode + shadow_outcome, not a new table. But the counterfactual fields require new computation."
+
+    # ═══════════════════════════════════════════════════════════
+    # Counterfactual Coverage (frozen requirement)
+    # ═══════════════════════════════════════════════════════════
+    counterfactual_coverage:
+      why_critical: |
+        Exposure Controller optimizes "signal -> position", NOT
+        "signal -> buy/not-buy". It must know: is low exposure better
+        than zero exposure? Is zero exposure better than full exposure?
+
+        Without counterfactuals:
+          - BUY episodes tell us "what happened when we acted"
+          - BLOCK episodes tell us NOTHING (no outcome recorded)
+          - We cannot compute "cost of inaction"
+
+        With counterfactuals:
+          - Every BLOCK episode has "what would have happened if we bought"
+          - Every BUY episode has "what would have happened if we didn't"
+          - Exposure Controller can optimize across the full decision space
+
+      required_for:
+        - "Confidence Calibration (Exp0B) - needs BLOCK outcomes for comparison)"
+        - "Exposure Engine (Phase 2) - needs counterfactual cost of inaction"
+        - "Failure Taxonomy (Exp0C) - needs to know if BLOCK would have been correct)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Error Cost Calibration (Exp0B refinement)
+    # ═══════════════════════════════════════════════════════════
+    exp0b_refinement: |
+      Exp0B should NOT ask: "Can confidence predict return?"
+      Exp0B SHOULD ask: "Can confidence predict ERROR COST?"
+
+      These are different questions. Example:
+        Confidence 90%: return +8%, max DD -8%
+        Confidence 50%: return +4%, max DD -25%
+
+      Return difference is small (4pp). But DD difference is large (17pp).
+      For Exposure Controller, the DD matters more - it determines
+      position sizing.
+
+      Exp0B expanded metrics (at N>=100):
+        - confidence -> mean return (basic)
+        - confidence -> win rate (basic)
+        - confidence -> max drawdown (TAIL RISK)
+        - confidence -> tail loss (5th percentile return)
+        - confidence -> recovery time (days to recover from DD)
+
+      Exposure Controller cares about TAILS, not means. A confidence
+      score that predicts drawdown but not return is still extremely
+      valuable for position sizing.
+
+    # ═══════════════════════════════════════════════════════════
+    # Timing Attribution (Exp0D refinement)
+    # ═══════════════════════════════════════════════════════════
+    exp0d_refinement: |
+      Exp0D decomposes: portfolio_return = beta + alpha.
+      For v4.0, expand to TIMING ATTRIBUTION:
+
+        Total Return = Market Direction + Recovery Timing + Selection + Allocation
+
+      Since Selection is dead (6-S.18.0), focus on:
+        - Market Direction (beta): what the market did anyway
+        - Recovery Timing: the alpha from WHEN Guardian entered
+        - Allocation: the alpha from HOW MUCH was deployed
+
+      Example:
+        Market: +10%
+        Guardian: +18%
+        Decomposition: beta +10%, early entry +6%, allocation +2%
+
+      Future Exposure Engine optimizes the +6% (timing value) and +2%
+      (allocation value). The +10% beta is free market exposure.
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Final Architecture (frozen, complete)
+    # ═══════════════════════════════════════════════════════════
+    v4_0_final_architecture: |
+      Market Data
+          v
+      Market Guardian (find opportunity windows)
+          v
+      Recovery State Model (understand environment)
+          v
+      Confidence Calibration (know own reliability)
+          v
+      Exposure Controller (decide bet size)
+          v
+      Bayesian Portfolio (execute)
+          v
+      Return Stream
+
+      NOTE: There is NO Stock Ranker. This empty space is the result
+      of the complete v2-v3.5 falsification chain. It is not a gap
+      to fill - it is a proven boundary.
+
+      The system manages PREDICTOR UNCERTAINTY, not predictions.
+      Edge = "bet less when wrong, bet more when right".
+
+    # ═══════════════════════════════════════════════════════════
+    # Evidence Level Hierarchy (frozen, the quality control system)
+    # ═══════════════════════════════════════════════════════════
+    evidence_hierarchy: |
+      The system now has explicit evidence levels (Constitution Rules 6+7):
+
+        Discovery      -> observed pattern, small N, NO architecture action
+        Replication    -> pattern holds in independent sample
+        OOS Validation -> pattern holds in holdout period (2025-2026)
+        Stability      -> pattern holds across time splits and regimes
+        Explanation    -> economic mechanism identified (AFTER stability)
+        Architecture   -> written to genome, allowed in production
+
+      v3's failure: Discovery -> Explanation -> Architecture (skipped steps)
+      v4's discipline: Discovery -> Replication -> OOS -> Stability -> Explanation -> Architecture
+
+      Current status of findings:
+        Guardian timing alpha (1204 episodes, P<=0=0.00%): STABILITY (v1.1)
+        Guardian 39.5% alpha share (N=8): DISCOVERY (cannot advance)
+        FRM direction gate (+2.52% group alpha): STABILITY (v3.2.1)
+        Mid×Mid: FALSIFIED (Discovery -> Replication FAILED at N=194)
+        Stock selection (all candidates): FALSIFIED (complete chain)
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited (extends all prior)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_research_on_incomplete_ledger: "MUST NOT draw conclusions from incomplete outcome data (Rule 7)"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_architecture_on_discovery: "MUST NOT build architecture on Discovery-level evidence (Rule 6)"
+      no_evolution_without_7_rules: "MUST NOT run Evolution v4 without 7-rule Constitution Validator"
+      no_guardian_modification: "MUST NOT modify Guardian (v1.1 frozen, autopsy only)"
+      no_factor_mining: "MUST NOT mine new stock selection factors"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed (Step 0 scope)
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "scripts/backfill_shadow_outcome.py: NEW (backfill all 1204 episodes with returns, alpha, drawdown)"
+      - "scripts/compute_counterfactuals.py: NEW (for each BLOCK episode, compute what would have happened if BUY)"
+      - "migrations/guardian_decision_memory_view.sql: NEW (view joining episode + outcome + counterfactual)"
+      - "NO changes to Guardian, FRM, or any thesis module (READ-ONLY)"
+
+    next_phase: "Step 0: Build Investment Memory Ledger - backfill shadow_outcome (all 1204 episodes) + compute counterfactuals + create guardian_decision_memory view. This is v4.0's first asset, not a data chore."

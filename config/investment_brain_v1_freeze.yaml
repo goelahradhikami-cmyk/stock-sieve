@@ -1189,3 +1189,266 @@ freeze_history:
            multi-quarter consistency, margin normalization
 
     next_phase: "v3.4 Expectation Quality Engine Design Freeze"
+
+  v3_4_eqe_design_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.16.0"
+    tag: "security-analyst-v3.4-expectation-quality-design"
+    scope: "Expectation Quality Engine (EQE) Design Freeze - research contract"
+    freeze_status: "DESIGN FROZEN (research hypothesis + schema + validation gates)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Lineage (what v3.3 proved, what v3.4 must solve)
+    # ═══════════════════════════════════════════════════════════
+    lineage:
+      inherited_from_v3_3:
+        - "FRM Stage 1 hard gate (improving direction) is the proven alpha source (+2.52%, v3.2.1 Group B)"
+        - "RS gate is DEMOTED to price_reaction input, NOT re-added as gate (v3.2.2)"
+        - "earnings_event_reaction table + event-window returns (v3.3 Phase 1) are reusable infrastructure"
+        - "ExpectationGapEngine gap_score formula z(EA)-z(PR) is reusable as the 'gap dimension' input"
+      rejected_by_v3_3_autopsy:
+        - "Monotonic high-gap hypothesis (Gate 1 FAIL: D10 worse than D1)"
+        - "'market underreaction' as the economic interpretation (real meaning = market distrust)"
+        - "EGE as a standalone Stage 2 ranking (Gate 2 FAIL: degrades FRM alpha by 1.71pp)"
+      must_solve_by_v3_4:
+        - "Separate disagreement (gap) from credibility (sustainability)"
+        - "Use moderate-gap sweet spot (Q2-Q4), NOT monotonic gap"
+        - "Identify SUSTAINABLE earnings improvement (revenue-earnings alignment)"
+        - "Explain WHY market disbelieves some improvements but not others"
+
+    # ═══════════════════════════════════════════════════════════
+    # Core Research Hypothesis (falsifiable)
+    # ═══════════════════════════════════════════════════════════
+    core_hypothesis: |
+      The market's non-reaction to earnings improvement is not always an
+      error - it is often a CORRECT skepticism about sustainability. Alpha
+      lives in the subset where the skepticism is WRONG: where the
+      improvement is real AND durable AND moderately unpriced.
+
+      Mispricing occurs when:
+        (moderate_gap) AND (sustainable_improvement)
+      NOT when:
+        (extreme_gap)                      # market distrust is justified
+        (moderate_gap) AND (unsustainable) # market skepticism is correct
+
+      This is the opposite of EGE's monotonic assumption. EGE asked
+      'did the market react?'; EQE asks 'is the market's skepticism
+      justified?'. The burden of proof flips from price to fundamentals.
+
+    falsification_chain:
+      cheap_stocks: "DISPROVED (v2: cheap ≠ mispriced)"
+      cheap_plus_healthy: "DISPROVED (v2: deserved cheapness)"
+      fundamental_recovery: "PROVEN (v3.1: FRM +2.52% alpha)"
+      recovery_plus_strong_trend: "DISPROVED (v3.2.2: RS gate destroys alpha)"
+      recovery_plus_monotonic_gap: "DISPROVED (v3.3: high gap = distrust, not opportunity)"
+      recovery_plus_moderate_gap_plus_sustainability: "UNTESTED (v3.4 tests this)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture:
+      stage_1_recovery_eligibility:
+        status: "FROZEN (v3.1 validated, +2.52% alpha, MUST NOT break)"
+        gate: "FRM direction = improving (hard reject deteriorating)"
+        note: "Unchanged from v3.3. This is the proven alpha source."
+
+      stage_2_expectation_quality_engine:
+        status: "NEW (replaces EGE monotonic ranking with 2D filter)"
+        components:
+          gap_dimension_disagreement:
+            formula: "gap_score = z(EA) - z(PR)  [inherited from v3.3 EGE]"
+            usage: "QUINTILE BUCKETING, not monotonic score"
+            sweet_spot: "Q2-Q4 (gap +0.14 to +0.67, residual +1.52% to +2.04%)"
+            reject_extremes: "Q1 (gap<=+0.14, already priced) AND Q5 (gap>+0.67, market distrust)"
+            note: "v3.3 autopsy proved inverted-U. EQE operationalizes the sweet spot."
+          sustainability_dimension_credibility:
+            formula: "sustainability_score = w1*alignment + w2*consistency + w3*margin_norm"
+            sub_components:
+              revenue_earnings_alignment:
+                test: "sign(revenue_yoy_current) == sign(earnings_yoy_current) AND |revenue_growth| > 0.3*|earnings_growth|"
+                meaning: "earnings improvement is backed by revenue, not cost-cutting or one-offs"
+                data_source: "akshare_financials (revenue_yoy, earnings_yoy - already in FRM)"
+                reject: "earnings up while revenue down (suspect sustainability)"
+              multi_quarter_consistency:
+                test: "earnings_acceleration_1st > 0 AND earnings_acceleration_2nd >= 0"
+                meaning: "improvement is accelerating or stable, not a single-quarter spike"
+                data_source: "earnings_event_reaction (3 vintage-aware periods, already computed)"
+                reject: "V-shape one-off bounce (2nd derivative strongly negative)"
+              margin_normalization:
+                test: "gross_margin_current within [gross_margin_3q_median - 1*sigma, +inf)"
+                meaning: "margin is not at an unsustainable peak"
+                data_source: "akshare_financials (gross_margin, requires 3q history backfill)"
+                reject: "margin at historical peak (mean-reversion risk)"
+            note: |
+              These three sub-components are NOT weighted into a single
+              score by default. EQE v3.4 uses them as INDEPENDENT FILTERS
+              (hard reject on any failure). Weighted scoring is deferred
+              to v3.5 if hard-filter proves too restrictive.
+          composite_gate:
+            logic: "moderate_gap (Q2-Q4) AND sustainability_pass (all 3 sub-components)"
+            output: "EQE candidate set (replaces EGE ranking output)"
+            note: "No soft scoring in v3.4. The gate is binary: in or out."
+
+      stage_3_mispricing_validation:
+        status: "SIMPLIFIED (valuation as last gate, unchanged from v3.3)"
+        role: "Confirm EQE candidate is not a value trap"
+        factors: ["valuation_gap (retained)", "quality_filter (ROE/debt)"]
+        note: "Unchanged from v3.3. Cheapness is CONFIRMATION, not entrance."
+
+    # ═══════════════════════════════════════════════════════════
+    # Candidate Ranking (frozen)
+    # ═══════════════════════════════════════════════════════════
+    candidate_ranking:
+      formula: "0.4 * Earnings_Acceleration + 0.4 * Gap_Score (within Q2-Q4) + 0.2 * Quality_Filter"
+      note: |
+        Ranking is applied ONLY within the EQE candidate set (post-gate).
+        Gap_Score contributes to ranking but NOT to gating (gating is
+        quintile-bucketed). This prevents the v3.3 failure mode where
+        high-gap stocks dominated the ranking.
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen, 4-stage)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v3_4_a_sweet_spot_alpha:
+        test: "EQE sweet-spot (Q2-Q4) residual_alpha > 0"
+        purpose: "v3.3 autopsy's sweet-spot finding generalizes to positive alpha"
+        required: "mean residual_alpha > 0 across the Q2-Q4 bucket"
+        baseline: "v3.3 autopsy Q2-Q4 average = +0.85% (1.52 + -1.01 + 2.04)/3"
+
+      v3_4_b_sustainability_lift:
+        test: "EQE (sweet_spot AND sustainable) > EQE (sweet_spot only)"
+        purpose: "Sustainability filter adds incremental alpha beyond gap alone"
+        required: "delta residual_alpha >= +1.5pp AND positive_rate delta >= +5pp"
+        baseline: "v3.3 autopsy Q2-Q4 (no sustainability filter) = +0.85%"
+
+      v3_4_c_frm_preservation:
+        test: "EQE residual_alpha >= FRM-only baseline (+2.52%)"
+        purpose: "EQE does NOT break FRM's proven alpha (v3.3 EGE failed this)"
+        required: "residual >= +2.0% OR positive_rate >= 58%"
+        baseline: "v3.2.1 Group B (FRM-only) = +2.52%, 58.3% positive"
+
+      v3_4_d_positive_alpha:
+        test: "residual_alpha > 0 with N >= 30 (statistical power)"
+        purpose: "True selection alpha exists, not small-sample noise"
+        required: "mean residual_alpha > 0 AND N >= 30 AND positive_rate >= 50%"
+        note: "This is the ultimate goal. Failure here triggers v3.5 iteration."
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_monotonic_gap_gate: "MUST NOT use gap_score as a monotonic high-gap gate (v3.3 disproved)"
+      no_rs_gate: "MUST NOT re-add RS > threshold as a gate (v3.2.2 disproved)"
+      no_valuation_primary: "MUST NOT use PE/PB/drawdown as primary signal (v2 disproved)"
+      no_evolution: "Evolution v4 remains disabled until EQE validated"
+      no_momentum_as_price_reaction: "MUST NOT use momentum_3m/6m as price_reaction (spans announcement)"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+      no_kill_uw_changes: "MUST NOT modify KillCriteria / DoctrineUnderwriter signatures"
+      no_soft_sustainability_scoring: "MUST NOT weight sustainability sub-components into a single score in v3.4 (hard filters only)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "src/thesis/expectation_quality.py: NEW module (sustainability filters + EQE composite gate)"
+      - "src/thesis/expectation_gap.py: extend gap_score with quintile bucketing (gap_quintile field)"
+      - "src/thesis/candidate_generator.py: replace Stage 2 EGE ranking with EQE composite gate"
+      - "src/thesis/market_anomaly.py: extend V3CandidateFeatures with sustainability fields"
+      - "migrations/earnings_sustainability.sql: NEW table (3q margin history, alignment flag)"
+      - "scripts/run_v3_4_validation.py: 4-experiment validation script (sweet_spot / sustainability_lift / frm_preservation / positive_alpha)"
+
+    # ═══════════════════════════════════════════════════════════
+    # New Schema (frozen)
+    # ═══════════════════════════════════════════════════════════
+    new_schema:
+      earnings_sustainability_table:
+        purpose: "Sustainability signals for EQE - 3-quarter fundamental credibility"
+        key_fields:
+          - "security_id, available_date (PK, joins earnings_event_reaction)"
+          - "revenue_yoy_current, revenue_yoy_previous (alignment input)"
+          - "earnings_yoy_current, earnings_yoy_previous (alignment input)"
+          - "alignment_flag (1 = revenue backs earnings, 0 = suspect)"
+          - "earnings_acceleration_1st, earnings_acceleration_2nd (consistency input)"
+          - "consistency_flag (1 = accelerating/stable, 0 = V-shape spike)"
+          - "gross_margin_current, gross_margin_3q_median, gross_margin_3q_std (margin_norm input)"
+          - "margin_norm_flag (1 = not at peak, 0 = peak / mean-reversion risk)"
+          - "sustainability_score (binary: 1 = all 3 flags pass, 0 = any fail)"
+        note: "Joins 1:1 with earnings_event_reaction on (security_id, available_date)"
+
+      v3_candidate_features_extension:
+        new_fields:
+          - "gap_quintile (1-5, computed from gap_score cross-sectionally)"
+          - "alignment_flag, consistency_flag, margin_norm_flag (sustainability sub-flags)"
+          - "sustainability_score (composite 0/1)"
+          - "eqe_gate_pass (1 = moderate_gap AND sustainability_pass)"
+          - "failure_class_v4 (extended taxonomy, see below)"
+
+      failure_classification_v4:
+        classes:
+          UNSUSTAINABLE_REVENUE_DECOUPLE: "earnings up AND revenue down (alignment fail)"
+          ONE_OFF_SPIKE: "earnings_acceleration_1st > 0 AND earnings_acceleration_2nd < -threshold (consistency fail)"
+          MARGIN_PEAK_RISK: "gross_margin_current > 3q_median + 1.5*sigma (margin_norm fail)"
+          EXTREME_GAP_DISTRUST: "gap_quintile == 5 (market distrust is justified)"
+          LOW_GAP_ALREADY_PRICED: "gap_quintile == 1 (no disagreement to exploit)"
+          SWEET_SPOT_BUT_UNSUSTAINABLE: "Q2-Q4 gap AND sustainability_score == 0 (filter target)"
+          TRUE_EQE_CANDIDATE: "Q2-Q4 gap AND sustainability_score == 1 (v3.4 alpha source)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Implementation Phases
+    # ═══════════════════════════════════════════════════════════
+    implementation_phases:
+      phase_1: "earnings_sustainability table backfill (alignment + consistency + margin_norm flags)"
+      phase_2: "gap_quintile bucketing on earnings_event_reaction (cross-sectional, per decision date)"
+      phase_3: "ExpectationQualityEngine module (3 sub-filters + composite EQE gate)"
+      phase_4: "Replace CandidateGenerator Stage 2 (EGE ranking) with EQE composite gate"
+      phase_5: "4-experiment validation (sweet_spot / sustainability_lift / frm_preservation / positive_alpha)"
+      phase_6: "Commit + tag based on results (PASS -> v3.4-frozen, FAIL -> v3.5 iteration)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Feasibility (verified from existing schema)
+    # ═══════════════════════════════════════════════════════════
+    data_feasibility:
+      earnings_3period: "5225/5226 stocks have >=3 vintage-aware periods (99.98%, v3.3 verified)"
+      revenue_earnings_alignment: "revenue_yoy + earnings_yoy already in akshare_financials (FRM uses them)"
+      multi_quarter_consistency: "earnings_acceleration_1st + 2nd already in earnings_event_reaction (v3.3 Phase 1)"
+      margin_normalization: "gross_margin requires 3q history backfill - NEW data work in Phase 1"
+      event_reaction_table: "183 rows in earnings_event_reaction (v3.3 diagnostic baseline, reusable)"
+      gap_quintile_thresholds: "derivable from v3.3 autopsy Q1=-0.30, Q2=+0.14, Q4=+0.65, Q5=+0.67 (approx, recompute cross-sectionally)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Decision Tree (if validation fails)
+    # ═══════════════════════════════════════════════════════════
+    failure_decision_tree:
+      gate_a_fail_sweet_spot_negative: |
+        Sweet spot is NOT positive alpha. Implication: gap quintile alone
+        is insufficient. Pivot to v3.5: reconsider whether gap has ANY
+        alpha content, or whether sustainability alone (without gap) is
+        the real signal.
+      gate_b_fail_no_sustainability_lift: |
+        Sustainability filter adds nothing. Implication: market's
+        skepticism is NOT about sustainability (autopsy hypothesis wrong).
+        Pivot to v3.5: re-examine what high gap actually means -
+        maybe liquidity, volatility, or sector-rotation effects.
+      gate_c_fail_breaks_frm: |
+        EQE degrades FRM alpha (like v3.3 EGE did). Implication: the
+        sustainability filter is too aggressive and filtering out good
+        stocks. Pivot to v3.5: relax hard filters to soft scoring,
+        or widen the sweet spot to Q1-Q4.
+      gate_d_fail_small_sample: |
+        Positive but N < 30 or positive_rate < 50%. Implication: signal
+        exists but is weak. Iterate v3.4.1: tune sustainability thresholds
+        (margin_norm sigma, alignment ratio) before declaring v3.5.
+
+    # ═══════════════════════════════════════════════════════════
+    # No-Touch Boundary (frozen)
+    # ═══════════════════════════════════════════════════════════
+    no_touch_boundary:
+      market_guardian: "StateTransitionEngine + RecoveryConfidence + AnomalyDetector (v1.1 frozen)"
+      kill_criteria: "4 hard vetoes (quality_deterioration, value_trap, falling_knife, cashflow_divergence)"
+      doctrine_underwriter: "explanation_only mode, evolution disabled"
+      bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen, not evolved)"
+      stage_1_frm_gate: "hard reject on deteriorating direction (v3.1 validated, +2.52% alpha)"
+
+    next_phase: "Phase 1: earnings_sustainability table backfill (alignment + consistency + margin_norm flags)"

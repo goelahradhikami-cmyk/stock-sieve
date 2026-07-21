@@ -4115,3 +4115,253 @@ freeze_history:
       alpha we already have.
 
     next_phase: "Phase 0: Guardian Autopsy - build guardian_state_snapshot table, decompose 1204 episodes, identify alpha source"
+
+  v4_0_phase0_guardian_autopsy_contract:
+    freeze_date: "2026-07-21"
+    commit: "6-S.19.1"
+    tag: "stock-sieve-v4.0-phase0-guardian-autopsy-contract"
+    scope: "Phase 0 Guardian Autopsy execution contract - regime map, NOT alpha explanation"
+    freeze_status: "EXECUTION CONTRACT FROZEN (refined from 6-S.19.0 - prevents over-attribution)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Critical Refinement (from design review)
+    # ═══════════════════════════════════════════════════════════
+    critical_refinement: |
+      6-S.19.0 asked: "WHY does Guardian work?"
+      This question is DANGEROUS. It assumes Guardian has a SINGLE cause.
+      Real markets don't work that way. Over-attribution risk:
+
+        discover pattern -> give economic explanation -> write to genome
+        -> increase position -> fail
+
+      This is the SAME error pattern as v3.3/v3.4 (beautiful story,
+      small sample, overfit). v4.0 must NOT repeat it with Guardian.
+
+      REFINED question: "In WHAT ENVIRONMENTS does Guardian work/fail?"
+      This produces CONDITIONAL DISTRIBUTIONS, not causal explanations.
+      A regime map is empirically testable; a causal story is not.
+
+      Output: Guardian Regime Map (conditional reliability), NOT
+              Guardian Alpha Explanation (causal story).
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Foundation (verified)
+    # ═══════════════════════════════════════════════════════════
+    data_foundation:
+      episodes: "1204 (all evaluated, shadow_episode)"
+      market_features_available:
+        - "vol_20d (20-day realized volatility)"
+        - "vol_change (volatility change)"
+        - "trend_ma60 (60-day MA trend)"
+        - "breadth (market breadth)"
+        - "recovery_prob (recovery probability)"
+        - "confidence (0-100, Guardian confidence)"
+        - "confidence_band (blocked/small/normal/full)"
+        - "market_state (PANIC/STABILIZING/EARLY_RECOVERY/CONFIRMED_RECOVERY/EUPHORIA)"
+      outcomes_available:
+        - "portfolio_return_t20 (T+20 equal-weight return)"
+        - "portfolio_return_t60 (T+60)"
+        - "portfolio_max_drawdown (max DD during holding)"
+        - "alpha_vs_hs300 (alpha vs CSI 300)"
+        - "alpha_vs_csiall (alpha vs CSI All Share)"
+        - "alpha_vs_equal (alpha vs equal-weight universe)"
+      market_index: "market_index_daily (3592 rows, 2021-2026)"
+      note: "Most features for guardian_state_snapshot are ALREADY in shadow_episode. Minimal new data work needed."
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 0 Three Experiments (frozen)
+    # ═══════════════════════════════════════════════════════════
+    experiments:
+      exp0a_regime_conditional_reliability:
+        purpose: "Build Guardian Regime Map - conditional reliability, NOT causal explanation"
+        method: |
+          For each of 1204 episodes, extract market features at signal time.
+          Bin episodes into market environments (not predefined - data-driven).
+          For each environment, compute:
+            - Guardian win rate (portfolio_return_t20 > 0)
+            - Mean return
+            - Mean max drawdown
+            - Mean alpha vs HS300
+          Produce: Guardian reliability as CONDITIONAL DISTRIBUTION.
+        output: "Guardian Regime Map (environment -> reliability statistics)"
+        key_principle: "Describe WHERE Guardian works, NOT WHY. No causal claims."
+        example_output: |
+          Regime A (high vol + low valuation + earnings bottom):
+            N=45, win rate 78%, mean return +18%, mean DD -8%
+          Regime B (low vol + high valuation + earnings late-expansion):
+            N=67, win rate 52%, mean return +3%, mean DD -12%
+          -> Guardian is NOT uniformly reliable. It has environments.
+
+      exp0b_confidence_calibration:
+        purpose: "Is Guardian's confidence score calibrated to actual outcomes?"
+        method: |
+          Bin episodes by confidence_band (blocked/small/normal/full).
+          For each bin, compute actual win rate and mean return.
+          A well-calibrated confidence means:
+            full band -> highest win rate, highest return
+            blocked band -> lowest win rate
+          If calibration is poor, confidence is NOT predictive.
+        output: "Confidence Calibration Curve (predicted confidence vs actual outcome)"
+        key_question: "Does Guardian's confidence predict its own reliability?"
+        implication_if_calibrated: "Confidence can drive Exposure Controller (Phase 2)"
+        implication_if_miscalibrated: "Confidence is noise. Need recalibration before use."
+
+      exp0c_failure_mode_taxonomy:
+        purpose: "When does Guardian FAIL? Classify failure modes."
+        method: |
+          Identify episodes where Guardian signaled BUY but outcome was negative
+          (portfolio_return_t20 < 0 or alpha_vs_hs300 < -5%).
+          Cluster by market features to find failure patterns.
+          Build failure mode taxonomy (e.g. "false recovery", "liquidity trap").
+        output: "Guardian Failure Mode Taxonomy"
+        key_principle: "Failures are more informative than successes for risk management."
+        implication: "Exposure Controller (Phase 2) can reduce exposure when failure-mode conditions appear."
+
+    # ═══════════════════════════════════════════════════════════
+    # FRM State Vector (frozen design for Phase 1)
+    # ═══════════════════════════════════════════════════════════
+    frm_state_vector:
+      design_principle: |
+        Market state is a DYNAMIC SYSTEM. Treat FRM like physics:
+          level (x):     current state (FRM score)
+          velocity (v):  change speed (ΔFRM per period)
+          acceleration (a): change acceleration (Δ²FRM)
+        Two stocks with same level but different velocity/acceleration
+        have completely different meanings:
+          Slow recovery: -10 -> -8 -> -6 -> -4 (velocity +2, accel 0)
+          Fast recovery: -10 -> -5 -> +5 -> +15 (velocity +10, accel +5)
+        Both reach +15 eventually but the DYNAMICS differ.
+      three_components:
+        level: "current FRM score (state value)"
+        velocity: "FRM_current - FRM_previous (1st derivative)"
+        acceleration: "(FRM_current - FRM_previous) - (FRM_previous - FRM_previous2) (2nd derivative)"
+      phase_1_test: "Does velocity/acceleration predict regime alpha better than level alone?"
+      prohibited: "MUST NOT use these as stock ranking variables (6-S.18.0). This is regime dynamics, not stock selection."
+
+    # ═══════════════════════════════════════════════════════════
+    # Exposure Controller Three-Layer Design (frozen for Phase 2)
+    # ═══════════════════════════════════════════════════════════
+    exposure_controller_design:
+      three_layers: |
+        DO NOT output position directly. Use three layers:
+          1. Guardian Confidence (from Phase 0 calibration)
+          2. Risk Budget (confidence -> allowed risk %)
+          3. Exposure Target (risk budget -> equity allocation %)
+        Example:
+          Confidence 90% -> Risk Budget 80% -> Exposure 80%
+          Confidence 60% -> Risk Budget 50% -> Exposure 50%
+          Confidence 30% -> Risk Budget 20% -> Exposure 20%
+      anti_gambling_rule: |
+        NEVER: signal=1 -> all in. That turns timing alpha into gambling.
+        The exposure must scale with confidence, not binary switch.
+      phase_2_deliverable: "Backtested compounding curve with dynamic exposure vs static"
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Validator - 5th Rule (frozen addition)
+    # ═══════════════════════════════════════════════════════════
+    constitution_validator_rule_5:
+      name: "Complexity Penalty"
+      rationale: |
+        ALL previous failed models shared one trait: increasing complexity.
+        v3.3 EGE added gap_score on top of FRM. v3.4 added sustainability.
+        v3.5 added crowding + uncertainty_zone. Each added complexity
+        without out-of-sample gain. Complexity without OOS gain is overfitting.
+      rule: |
+        Every Evolution v4 candidate MUST answer:
+          "How much out-of-sample improvement does this new complexity bring?"
+        If the answer is "none" or "in-sample only", REJECT.
+      complexity_budget:
+        max_new_parameters: 5
+        required_oos_gain: true
+        oos_test_period: "2025-2026 (holdout, not used in any prior experiment)"
+      full_validator_rules:
+        1: "Uses PROHIBITED belief? -> REJECT"
+        2: "Treats state variable as ranking? -> REJECT"
+        3: "Adds stock selection factor? -> REJECT"
+        4: "Operates within allowed scope? -> check"
+        5: "NEW: Complexity > budget OR no OOS gain? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Final Form (frozen vision)
+    # ═══════════════════════════════════════════════════════════
+    v4_0_final_form: |
+      Investment Brain
+            |
+      Market Guardian (timing, frozen v1.1)
+            |
+      Recovery State Model (FRM state vector: level + velocity + acceleration)
+            |
+      Confidence Calibration Engine (Guardian Regime Map -> reliability per environment)
+            |
+      Exposure Controller (confidence -> risk budget -> exposure target)
+            |
+      Bayesian Portfolio Engine (frozen allocation)
+            |
+      ETF / Basket / Equity Exposure
+
+      NOT an AI stock selection system.
+      An AI Recovery Regime Allocation System.
+
+    # ═══════════════════════════════════════════════════════════
+    # What Phase 0 Must NOT Do (anti-overfitting discipline)
+    # ═══════════════════════════════════════════════════════════
+    anti_overfitting_discipline:
+      no_causal_claims: "MUST NOT claim 'Guardian works because X'. Only claim 'Guardian works WHEN X'."
+      no_single_explanation: "MUST NOT assume Guardian has one alpha source. It may be multi-causal."
+      no_in_sample_optimization: "MUST NOT tune parameters on 1204 episodes without holdout."
+      no_complexity_without_oos: "MUST NOT add features without out-of-sample validation (Constitution Rule 5)."
+      no_story_before_statistics: "MUST NOT build economic narrative before statistical evidence. Statistics first, story later (if at all)."
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v4_0_phase0_a_regime_map_built:
+        test: "Exp0A produces Guardian Regime Map with >= 3 distinct environments"
+        required: "at least 3 environments with different win rates (delta >= 15pp)"
+        failure: "Guardian is uniform across environments (no conditional pattern). Proceed to Phase 1 directly."
+      v4_0_phase0_b_confidence_calibrated:
+        test: "Confidence band correlates with actual outcome"
+        required: "full band win rate > blocked band win rate by >= 10pp"
+        failure: "Confidence is not calibrated. Must recalibrate before Exposure Controller."
+      v4_0_phase0_c_failure_modes_identified:
+        test: "At least 2 failure mode clusters identified"
+        required: "each cluster has N >= 10 and mean return < 0"
+        failure: "Cannot identify failure patterns. Risk management proceeds without taxonomy."
+
+    # ═══════════════════════════════════════════════════════════
+    # The Institutional Question (frozen)
+    # ═══════════════════════════════════════════════════════════
+    institutional_question: |
+      Phase 0 answers two institutional-grade questions:
+        1. "Of the past 1204 successes, what state was the market in?"
+        2. "For the 1205th time, how do we know this isn't the exception?"
+
+      The answer to (1) is the Regime Map (conditional distribution).
+      The answer to (2) is the Failure Mode Taxonomy (when to NOT trust Guardian).
+
+      Together they transform Guardian from a black-box timing signal
+      into a calibrated, environment-aware confidence model.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited (extends 6-S.19.0)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_causal_explanation_before_statistics: "MUST NOT build 'why Guardian works' story before regime map statistics"
+      no_parameter_tuning_in_phase0: "MUST NOT tune Guardian parameters in Phase 0 (autopsy only, not optimization)"
+      no_complexity_without_oos: "MUST NOT add features without OOS validation (Constitution Rule 5)"
+      no_stock_selection: "MUST NOT add stock selection (6-S.18.0 permanent)"
+      no_guardian_modification: "MUST NOT modify Guardian parameters (v1.1 frozen)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "scripts/run_guardian_autopsy.py: NEW (Exp0A/B/C, reads existing shadow_episode + shadow_outcome)"
+      - "data/reports/guardian_regime_map.json: NEW (regime reliability statistics)"
+      - "data/reports/guardian_confidence_calibration.json: NEW"
+      - "data/reports/guardian_failure_taxonomy.json: NEW"
+      - "NO new tables needed (shadow_episode already has features)"
+      - "NO code changes to Guardian itself (READ-ONLY autopsy)"
+
+    next_phase: "Implement scripts/run_guardian_autopsy.py - Exp0A (regime map) + Exp0B (confidence calibration) + Exp0C (failure taxonomy) using existing 1204 episodes"

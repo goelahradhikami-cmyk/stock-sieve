@@ -1,0 +1,304 @@
+{
+  "commit": "6-S.17.2",
+  "experiment": "exp8_uncertainty_cube",
+  "date": "2026-07-21",
+  "n_total": 60,
+  "n_with_all_three": 56,
+  "thresholds": {
+    "frm_low_max": 57.0,
+    "frm_high_min": 68.0,
+    "gap_t1": -0.008848924625778739,
+    "gap_t2": 0.21889373846548038,
+    "sus_t1": 0.09702746799394128,
+    "sus_t2": 0.27659566782007217
+  },
+  "cube": {
+    "LLL": {
+      "label": "LLL",
+      "n": 1,
+      "alpha_pct": 5.223457924929617,
+      "positive_rate_pct": 100.0,
+      "median_pct": 5.223457924929617
+    },
+    "LLM": {
+      "label": "LLM",
+      "n": 5,
+      "alpha_pct": -1.0368675708090376,
+      "positive_rate_pct": 60.0,
+      "median_pct": 1.2234930520369822
+    },
+    "LLH": {
+      "label": "LLH",
+      "n": 3,
+      "alpha_pct": -5.071873836370218,
+      "positive_rate_pct": 33.333333333333336,
+      "median_pct": -13.502242936620545
+    },
+    "LML": {
+      "label": "LML",
+      "n": 3,
+      "alpha_pct": 1.7896266330964865,
+      "positive_rate_pct": 33.333333333333336,
+      "median_pct": -3.2680868684883513
+    },
+    "LMM": {
+      "label": "LMM",
+      "n": 2,
+      "alpha_pct": 4.8245790306630845,
+      "positive_rate_pct": 50.0,
+      "median_pct": 4.8245790306630845
+    },
+    "LMH": {
+      "label": "LMH",
+      "n": 1,
+      "alpha_pct": 4.993864726786281,
+      "positive_rate_pct": 100.0,
+      "median_pct": 4.993864726786281
+    },
+    "LHL": {
+      "label": "LHL",
+      "n": 2,
+      "alpha_pct": 0.30988574845478534,
+      "positive_rate_pct": 50.0,
+      "median_pct": 0.30988574845478534
+    },
+    "LHM": {
+      "label": "LHM",
+      "n": 1,
+      "alpha_pct": 22.0006181925998,
+      "positive_rate_pct": 100.0,
+      "median_pct": 22.0006181925998
+    },
+    "LHH": {
+      "label": "LHH",
+      "n": 3,
+      "alpha_pct": 2.2408279042660126,
+      "positive_rate_pct": 66.66666666666667,
+      "median_pct": 0.34237276233263503
+    },
+    "MLL": {
+      "label": "MLL",
+      "n": 2,
+      "alpha_pct": 9.654629515968093,
+      "positive_rate_pct": 100.0,
+      "median_pct": 9.654629515968093
+    },
+    "MLM": {
+      "label": "MLM",
+      "n": 2,
+      "alpha_pct": -2.7182936399211233,
+      "positive_rate_pct": 0.0,
+      "median_pct": -2.7182936399211233
+    },
+    "MLH": {
+      "label": "MLH",
+      "n": 0
+    },
+    "MML": {
+      "label": "MML",
+      "n": 2,
+      "alpha_pct": 15.811773953355104,
+      "positive_rate_pct": 100.0,
+      "median_pct": 15.811773953355104
+    },
+    "MMM": {
+      "label": "MMM",
+      "n": 3,
+      "alpha_pct": 3.0012628240595234,
+      "positive_rate_pct": 66.66666666666667,
+      "median_pct": 2.4524705862443916
+    },
+    "MMH": {
+      "label": "MMH",
+      "n": 3,
+      "alpha_pct": 8.926680423440532,
+      "positive_rate_pct": 66.66666666666667,
+      "median_pct": 14.883079949503712
+    },
+    "MHL": {
+      "label": "MHL",
+      "n": 1,
+      "alpha_pct": -3.1063050965986134,
+      "positive_rate_pct": 0.0,
+      "median_pct": -3.1063050965986134
+    },
+    "MHM": {
+      "label": "MHM",
+      "n": 2,
+      "alpha_pct": 4.853684950842514,
+      "positive_rate_pct": 100.0,
+      "median_pct": 4.853684950842514
+    },
+    "MHH": {
+      "label": "MHH",
+      "n": 1,
+      "alpha_pct": 4.809435846197864,
+      "positive_rate_pct": 100.0,
+      "median_pct": 4.809435846197864
+    },
+    "HLL": {
+      "label": "HLL",
+      "n": 2,
+      "alpha_pct": 1.498370078485906,
+      "positive_rate_pct": 50.0,
+      "median_pct": 1.498370078485906
+    },
+    "HLM": {
+      "label": "HLM",
+      "n": 2,
+      "alpha_pct": 10.809542754711664,
+      "positive_rate_pct": 100.0,
+      "median_pct": 10.809542754711664
+    },
+    "HLH": {
+      "label": "HLH",
+      "n": 0
+    },
+    "HML": {
+      "label": "HML",
+      "n": 3,
+      "alpha_pct": -2.511628155544585,
+      "positive_rate_pct": 33.333333333333336,
+      "median_pct": -0.05780425150378604
+    },
+    "HMM": {
+      "label": "HMM",
+      "n": 1,
+      "alpha_pct": 1.59112345534456,
+      "positive_rate_pct": 100.0,
+      "median_pct": 1.59112345534456
+    },
+    "HMH": {
+      "label": "HMH",
+      "n": 2,
+      "alpha_pct": -3.8844392597650166,
+      "positive_rate_pct": 50.0,
+      "median_pct": -3.8844392597650166
+    },
+    "HHL": {
+      "label": "HHL",
+      "n": 2,
+      "alpha_pct": 11.480475275308184,
+      "positive_rate_pct": 100.0,
+      "median_pct": 11.480475275308184
+    },
+    "HHM": {
+      "label": "HHM",
+      "n": 1,
+      "alpha_pct": -13.69171696046486,
+      "positive_rate_pct": 0.0,
+      "median_pct": -13.69171696046486
+    },
+    "HHH": {
+      "label": "HHH",
+      "n": 6,
+      "alpha_pct": -1.0315699598104513,
+      "positive_rate_pct": 33.333333333333336,
+      "median_pct": -0.9223280380816403
+    }
+  },
+  "extreme_combinations": {
+    "MMM (all middle)": {
+      "label": "MMM (all middle)",
+      "n": 3,
+      "alpha_pct": 3.0012628240595234,
+      "positive_rate_pct": 66.66666666666667,
+      "median_pct": 2.4524705862443916
+    },
+    "HHH (all high)": {
+      "label": "HHH (all high)",
+      "n": 6,
+      "alpha_pct": -1.0315699598104513,
+      "positive_rate_pct": 33.333333333333336,
+      "median_pct": -0.9223280380816403
+    },
+    "LLL (all low)": {
+      "label": "LLL (all low)",
+      "n": 1,
+      "alpha_pct": 5.223457924929617,
+      "positive_rate_pct": 100.0,
+      "median_pct": 5.223457924929617
+    },
+    "High FRM + High Gap": {
+      "label": "High FRM + High Gap",
+      "n": 9,
+      "alpha_pct": 0.3422015368098666,
+      "positive_rate_pct": 44.44444444444444,
+      "median_pct": -0.2739417850459801
+    },
+    "High FRM + High Sustain": {
+      "label": "High FRM + High Sustain",
+      "n": 8,
+      "alpha_pct": -1.7447872847990924,
+      "positive_rate_pct": 37.5,
+      "median_pct": -0.9223280380816403
+    },
+    "High Gap + High Sustain": {
+      "label": "High Gap + High Sustain",
+      "n": 10,
+      "alpha_pct": 0.5342499800133196,
+      "positive_rate_pct": 50.0,
+      "median_pct": 0.03421548864332748
+    },
+    "Mid FRM + Mid Gap": {
+      "label": "Mid FRM + Mid Gap",
+      "n": 8,
+      "alpha_pct": 8.425922206151297,
+      "positive_rate_pct": 75.0,
+      "median_pct": 10.190460896274873
+    },
+    "Mid FRM + Mid Sustain": {
+      "label": "Mid FRM + Mid Sustain",
+      "n": 7,
+      "alpha_pct": 1.8963672991459075,
+      "positive_rate_pct": 57.142857142857146,
+      "median_pct": 2.4524705862443916
+    },
+    "Any 2+ extremes (H or L)": {
+      "label": "Any 2+ extremes (H or L)",
+      "n": 41,
+      "alpha_pct": 1.4130093386149392,
+      "positive_rate_pct": 56.09756097560975,
+      "median_pct": 0.6921823379217914
+    },
+    "Any 2+ middle (M)": {
+      "label": "Any 2+ middle (M)",
+      "n": 15,
+      "alpha_pct": 5.527896119181593,
+      "positive_rate_pct": 66.66666666666667,
+      "median_pct": 4.2809572167581535
+    }
+  },
+  "crowding_control": {
+    "market_cap": {
+      "t1": 94.2,
+      "t2": 257.19
+    }
+  },
+  "time_split": {
+    "2023": {
+      "n": 34,
+      "alpha_pct": 1.6062056084470415,
+      "mmm_n": 1,
+      "mmm_alpha_pct": -0.0038620364030080012
+    },
+    "2024": {
+      "n": 21,
+      "alpha_pct": 4.1815022988025845,
+      "mmm_n": 2,
+      "mmm_alpha_pct": 4.503825254290788
+    },
+    "2026": {
+      "n": 1,
+      "alpha_pct": -1.5707142911173007,
+      "mmm_n": 0,
+      "mmm_alpha_pct": null
+    }
+  },
+  "h3_1_pass": true,
+  "h3_2_pass": true,
+  "control_pass": false,
+  "time_pass": false,
+  "verdict": "H3 PARTIALLY VALIDATED - Alpha Island exists but may be crowding artifact",
+  "recommendation": "Do NOT paradigm-shift yet. The middle-zone alpha may come from avoiding crowded trades, not uncertainty premium. Need larger N and more controls before operationalizing."
+}

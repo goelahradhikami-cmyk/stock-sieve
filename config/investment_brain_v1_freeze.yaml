@@ -2154,3 +2154,179 @@ freeze_history:
       backfill) should confirm before operationalizing.
 
     next_phase: "Phase 1 exp2 (layer ablation, LOWER priority) OR skip to Phase 2 exp8 (3D cube: moderate-gap x moderate-sustainability x moderate-FRM, HIGHEST priority)"
+
+  v3_5_exp8_uncertainty_cube:
+    experiment_date: "2026-07-21"
+    commit: "6-S.17.2"
+    tag: "security-analyst-v3.5-exp8-uncertainty-cube"
+    scope: "3D Uncertainty Cube - paradigm-shift validation for H3"
+    freeze_status: "DIAGNOSTIC_BASELINE (H3 PARTIALLY VALIDATED - Alpha Island exists but underpowered; crowding control incomplete)"
+
+    experiment_design:
+      question: "Do the four 'middle zones' (gap, sustainability, FRM, EA) overlap into a unified Alpha Island?"
+      method: "3x3x3 cube: FRM (L/M/H) x Gap (L/M/H) x Sustainability (L/M/H)"
+      baseline: "Group A (FRM-only, v3.2.1 Group B), N=60, +2.52%"
+      intersection: "56/60 have all three dimensions"
+      four_sub_experiments:
+        step1_3d_cube: "27-cell cube, find Middle-Middle-Middle (MMM) Alpha Island"
+        step2_extreme_danger: "HHH and extreme combinations vs middle"
+        step3_crowding_control: "CRITICAL - control for market_cap, turnover, momentum to rule out crowding artifact"
+        step4_time_split: "yearly stability of Alpha Island"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results
+    # ═══════════════════════════════════════════════════════════
+    step1_results:
+      thresholds:
+        frm: "L < 57.0, M < 68.0, H >= 68.0 (from Exp1 quintile boundaries)"
+        gap: "L < -0.009, M < 0.219, H >= 0.219 (cross-sectional terciles)"
+        sustain: "L < 0.097, M < 0.277, H >= 0.277 (composite proxy terciles)"
+      alpha_island_mmm:
+        n: 3
+        alpha: "+3.00%"
+        positive_rate: "66.7%"
+        vs_overall: "+0.49pp above bucketed mean (+2.52%)"
+        verdict: "POSITIVE but N=3 is too small for statistical confidence"
+      danger_zone_hhh:
+        n: 6
+        alpha: "-1.03%"
+        positive_rate: "33.3%"
+        verdict: "NEGATIVE - confirms H3-2 (all-high is danger, not opportunity)"
+      worst_cell: "HHM (High FRM + High Gap + Mid Sustain): N=1, -13.69%"
+
+    step2_results:
+      key_findings:
+        any_2plus_middle: "N=15, alpha=+5.53%, positive=66.7% (STRONGEST group)"
+        any_2plus_extremes: "N=41, alpha=+1.41%, positive=56.1%"
+        middle_vs_extreme_delta: "+4.12pp (2+ middle >> 2+ extremes)"
+        mid_frm_plus_mid_gap: "N=8, alpha=+8.43%, positive=75.0% (BEST 2D combo)"
+        high_frm_plus_high_gap: "N=9, alpha=+0.34%, positive=44.4% (v3.3.1 warned -5.29%, less negative here)"
+        high_frm_plus_high_sustain: "N=8, alpha=-1.74%, positive=37.5% (market priced in)"
+      interpretation: |
+        The '2+ middle' aggregate (N=15, +5.53%) is more robust than the
+        strict MMM cell (N=3, +3.00%). This suggests the Alpha Island is
+        not a single cell but a REGION: any 2 of 3 dimensions in the
+        middle zone produces alpha. This is economically sensible -
+        uncertainty asymmetry doesn't require ALL signals to be moderate,
+        just enough to avoid the 'all known' or 'all distrusted' extremes.
+
+    step3_results:
+      market_cap_control:
+        verdict: "MMM survives in Mid and High market_cap terciles"
+        low_cap_tercile: "MMM -0.00% vs non-MMM +1.02% (delta -1.03pp, N_mmm=1)"
+        mid_cap_tercile: "MMM +6.56% vs non-MMM +6.18% (delta +0.37pp, N_mmm=1)"
+        high_cap_tercile: "MMM +2.45% vs non-MMM -0.11% (delta +2.57pp, N_mmm=1)"
+        caveat: "N_mmm=1 per tercile - not statistically meaningful"
+      volume_ratio_control: "SKIPPED - volume_ratio is NULL for all Group A (Stage 2 field, only populated when rs_data_available=1)"
+      relative_strength_control: "SKIPPED - relative_strength is NULL for all Group A (same reason)"
+      regression: "SKIPPED - insufficient N (0) with all 3 controls non-null"
+      critical_gap: |
+        The crowding control test is INCOMPLETE. Two of three control
+        variables (volume_ratio, relative_strength) are unavailable for
+        Group A because they are Stage 2 (RS) fields, and Group A by
+        definition skips Stage 2 (rs_data_available=0). Only market_cap
+        was testable, and it was inconclusive at N_mmm=1 per tercile.
+
+        This is a DATA GAP, not a hypothesis falsification. To properly
+        test H3 against crowding, we need to either:
+          (a) backfill volume_ratio and a pre-decision momentum measure
+              for Group A stocks (independent of Stage 2 RS computation), OR
+          (b) re-run the cube on a larger universe that includes Stage 2
+              data (but this changes the baseline from FRM-only).
+
+    step4_results:
+      by_year:
+        "2023": "N=34, alpha=+1.61%, MMM N=1 alpha=-0.00%"
+        "2024": "N=21, alpha=+4.18%, MMM N=2 alpha=+4.50%"
+        "2026": "N=1 (excluded, too few)"
+      verdict: "INCONCLUSIVE - MMM N per year is 0-2, cannot assess stability"
+
+    # ═══════════════════════════════════════════════════════════
+    # Hypothesis Verdicts
+    # ═══════════════════════════════════════════════════════════
+    hypothesis_verdicts:
+      H3_1_alpha_island:
+        verdict: "WEAKLY SUPPORTED"
+        evidence: "MMM alpha=+3.00% > 0, and '2+ middle' aggregate (N=15) +5.53% is robust"
+        caveat: "MMM N=3 is too small. The '2+ middle' regional definition is more reliable."
+      H3_2_extreme_danger:
+        verdict: "SUPPORTED"
+        evidence: "HHH alpha=-1.03% < MMM +3.00%. All-high is danger, confirming market over-prices certainty."
+      H3_crowding_control:
+        verdict: "INCONCLUSIVE (data gap)"
+        evidence: "market_cap control inconclusive (N_mmm=1/tercile). volume_ratio and relative_strength unavailable for Group A."
+        implication: "Cannot rule out crowding artifact. H3 is NOT fully validated."
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp8 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_exp8_proved:
+      - "All-high (HHH) is DANGER (alpha -1.03%), confirming extremes are risk"
+      - "'2+ middle dimensions' aggregate (N=15, +5.53%) outperforms '2+ extremes' (N=41, +1.41%) by +4.12pp"
+      - "Mid FRM + Mid Gap is the strongest 2D combination (N=8, +8.43%, 75% positive)"
+      - "The Alpha Island is a REGION (2+ middle), not a single cell (MMM N=3 too sparse)"
+      - "H3-2 (extreme danger) is supported: HHH negative, worst cell HHM -13.69%"
+
+    what_exp8_did_not_prove:
+      - "H3 is NOT fully validated - crowding control incomplete (data gap)"
+      - "MMM cell has N=3 - cannot distinguish Alpha Island from noise"
+      - "Cannot rule out that middle-zone alpha is just 'avoiding crowded trades'"
+      - "Time stability inconclusive (MMM N per year = 0-2)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision (NOT a paradigm shift - yet)
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      DO NOT paradigm-shift to Uncertainty Asymmetry Detector YET.
+
+      The evidence is PROMISING but NOT sufficient:
+        + H3-1 (Alpha Island exists): weakly supported (MMM +3.00%, but N=3)
+        + H3-2 (extremes are danger): supported (HHH -1.03%)
+        - H3 crowding control: INCONCLUSIVE (data gap)
+
+      The '2+ middle' regional finding (N=15, +5.53%) is the most robust
+      signal, but without crowding controls it could be:
+        (a) genuine uncertainty premium (H3 true), OR
+        (b) crowding avoidance (middle = less traded, not uncertainty)
+
+      These are economically different and require different architectures.
+      Building v3.6 on an un distinguished signal would repeat the
+      v3.3/v3.4 black-box optimization error.
+
+      REQUIRED before any paradigm shift:
+        1. Backfill volume_ratio and pre-decision momentum for Group A
+           (independent of Stage 2 RS), so crowding control can run
+        2. Extend the universe to increase MMM cell N (currently 3)
+        3. Re-run exp8 with complete controls and larger N
+        4. Only if MMM/2+middle alpha SURVIVES crowding control: paradigm shift
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Diagnostic Rules
+    # ═══════════════════════════════════════════════════════════
+    frozen_diagnostic_rules:
+      all_high_is_danger: "HHH (all-high) alpha = -1.03%. All-high on gap+sustainability+FRM is a RISK signal."
+      middle_region_alpha: "'2+ middle dimensions' (N=15, +5.53%) outperforms '2+ extremes' (N=41, +1.41%) by +4.12pp"
+      mid_frm_mid_gap_strongest: "Mid FRM + Mid Gap (N=8, +8.43%, 75% positive) is the strongest 2D combination"
+      alpha_island_is_regional: "The Alpha Island is a REGION (2+ middle), not a single MMM cell (N=3 too sparse)"
+      crowding_control_required: "Any operationalization of H3 MUST pass crowding control (market_cap + turnover + momentum) first"
+
+    # ═══════════════════════════════════════════════════════════
+    # Sample Size Constraint (critical limitation)
+    # ═══════════════════════════════════════════════════════════
+    sample_size_constraint: |
+      The fundamental limitation: Group A has N=60, intersecting with all
+      three dimensions gives N=56, and the MMM cell has N=3. A 3x3x3 cube
+      on N=56 averages ~2 per cell. This is fundamentally underpowered for
+      3D analysis.
+
+      The '2+ middle' aggregate (N=15) is more statistically meaningful,
+      but still small. The 4.12pp delta vs '2+ extremes' is promising but
+      not conclusive.
+
+      Before any v3.6 design, the candidate universe MUST be expanded:
+        - Extend backfill to more episodes (currently 2023-2024 dominated)
+        - Consider including Group C (rs_data_available=1) stocks with
+          sustainability data, broadening to N=194
+        - Target N>=200 for the MMM/2+middle cell to reach statistical power
+
+    next_phase: "v3.5 data expansion: backfill volume_ratio + pre-decision momentum for Group A, extend universe to N>=200, re-run exp8 with complete crowding controls"

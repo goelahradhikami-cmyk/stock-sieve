@@ -227,10 +227,31 @@ investment_brain_layers:
     key_finding: "Timing Intelligence is independently valuable"
 
   layer_2_security_analyst:
-    status: "DIAGNOSTIC_ONLY - v2 reconstruction complete, NOT frozen (residual_alpha negative)"
+    status: "DIAGNOSTIC_BASELINE v3.2 - four-layer capability mapped, mispricing hypothesis is the bottleneck"
     production: false
     rating: "★★☆☆☆"
     responsibility: "Stock selection layer ('what to buy')"
+
+    # Four-layer capability map (v3.2 contribution):
+    # Proves WHERE the error is, not just THAT there is an error.
+    four_layer_capability_map:
+      market_timing:
+        layer: "Market Guardian"
+        rating: "★★★★★"
+        status: "FROZEN v1.1 - proven (1204 episodes, P(loss)=0.00%)"
+      recovery_eligibility:
+        layer: "Stage 1 FRM Gate"
+        rating: "★★★☆☆"
+        status: "VALIDATED v3.1 - eliminates deteriorating stocks (88% improving)"
+      relative_strength:
+        layer: "Stage 2 RS Gate"
+        rating: "★★★☆☆"
+        status: "PARTIAL v3.2 - reduces market_beta (-2.38% -> -1.08%) but sector_beta rose"
+      mispricing_detection:
+        layer: "Stage 3 Anomaly"
+        rating: "☆☆☆☆☆"
+        status: "BOTTLENECK v3.2 - residual_alpha still -4.30% after Stage 1+2 filtering"
+        diagnosis: "The 'drawdown + cheap + not broken = mispriced' hypothesis is wrong in recovery markets. Many stocks are 'deservedly cheap but won't rise', not mispriced."
     v2_reconstruction:
       commit: "6-S.12"
       date: "2026-07-21"
@@ -650,3 +671,60 @@ freeze_history:
         liquidity_threshold: "frozen (volume_ratio > 0.3)"
     v3_2_status: "PENDING - requires attribution backfill for v3 new candidates (0 overlap with v1/v2 pool)"
     next_phase: "6-S.13.6 v3 attribution backfill + v3.2 Gate validation (residual_alpha > -2%)"
+
+  v3_2_attribution_boundary_diagnostic:
+    diagnostic_date: "2026-07-21"
+    commit: "6-S.13.6"
+    tag: "security-analyst-v3.2-diagnostic"
+    scope: "v3.2 attribution boundary - proves WHERE the selection error is"
+    freeze_status: "DIAGNOSTIC_BASELINE (NOT FROZEN, production=false)"
+    purpose:
+      - "attribution benchmark for v3 candidate pool"
+      - "anomaly hypothesis boundary validation"
+      - "four-layer capability mapping (timing/recovery/RS/mispricing)"
+
+    ab_comparison_result:
+      group_a_v2_anomaly:
+        n: 22
+        residual_alpha_mean: "-5.71%"
+        positive_rate: "18.2%"
+        market_beta: "-2.38%"
+        sector_beta: "-1.02%"
+        beta_sum: "-3.40%"
+      group_c_v3_recovery_rs:
+        n: 134
+        residual_alpha_mean: "-4.30%"
+        positive_rate: "31.3%"
+        market_beta: "-1.08%"
+        sector_beta: "-1.83%"
+        beta_sum: "-2.92%"
+
+    gate_evaluation:
+      gate1_residual_alpha_gt_neg2pct: "FAIL (-4.30%)"
+      gate2_positive_rate_gt_30pct: "PASS (31.3%)"
+      gate3_beta_reduction: "MARGINAL FAIL (beta_sum -3.40% -> -2.92%)"
+
+    situation: "C (with positive signals)"
+    situation_explanation: |
+      residual_alpha improved (-5.71% -> -4.30%, delta +1.41pp) but still
+      below -2%. Stage 1/2 filter garbage and reduce market beta, but do
+      NOT produce positive true selection alpha. The mispricing hypothesis
+      itself is the bottleneck. However, positive_rate nearly doubled
+      (18.2% -> 31.3%), proving v3 finds SOME genuine alpha - just not
+      enough. This is not a pure failure; it is a boundary point that
+      isolates the error to Stage 3 (mispricing detection).
+
+    key_findings:
+      - "V3 Stage 1 (FRM) eliminated deteriorating stocks: 61% -> 0% (v3.1)"
+      - "V3 Stage 2 (RS) reduced market_beta: -2.38% -> -1.08%"
+      - "BUT sector_beta rose: -1.02% -> -1.83% (RS finds sector-strong stocks, not stock-alpha)"
+      - "positive_rate nearly doubled: 18.2% -> 31.3% (v3 finds SOME true alpha)"
+      - "residual_alpha still -4.30%: mispricing hypothesis is the binding constraint"
+
+    four_layer_capability_map:
+      market_timing: "★★★★★ FROZEN (Market Guardian v1.1)"
+      recovery_eligibility: "★★★☆☆ VALIDATED (v3.1, FRM gate)"
+      relative_strength: "★★★☆☆ PARTIAL (v3.2, reduces market beta but sector beta rose)"
+      mispricing_detection: "☆☆☆☆☆ BOTTLENECK (v3.2, residual_alpha still negative)"
+
+    next_phase: "v3.3 Expectation Gap Generator - replace 'drawdown+cheap' hypothesis with 'earnings acceleration > price reaction'"

@@ -1,0 +1,44 @@
+{
+  "commit": "6-S.17.9",
+  "experiment": "exp11b_portfolio_impact",
+  "date": "2026-07-21",
+  "thresholds": {
+    "frm_q5": 91.39999999999999,
+    "gap_q5": 0.7792458107674146
+  },
+  "portfolio_a": {
+    "label": "Portfolio A: FRM direction only (baseline)",
+    "n": 194,
+    "alpha_pct": -1.581858895133272,
+    "positive_rate_pct": 40.72164948453608,
+    "worst_stock_pct": -47.54716981132076,
+    "volatility_pct": 13.945260762221897,
+    "median_alpha_pct": -2.2976779663371993
+  },
+  "portfolio_b": {
+    "label": "Portfolio B: FRM + MEF (reject H×H, Gap Q5)",
+    "n": 157,
+    "alpha_pct": -0.4655575290875418,
+    "positive_rate_pct": 42.67515923566879,
+    "worst_stock_pct": -47.54716981132076,
+    "volatility_pct": 14.357782634006892,
+    "median_alpha_pct": -1.5707142911173007
+  },
+  "n_removed": 37,
+  "random_bootstrap": {
+    "alpha_mean": -1.0946929007488748,
+    "alpha_p5": -1.7791907509816456,
+    "alpha_p95": -0.48249223605446195,
+    "worst_mean": -44.24566124637819,
+    "vol_mean": 13.6539585983719
+  },
+  "checks": {
+    "mef_reduces_worst": false,
+    "mef_reduces_vol": false,
+    "mef_preserves_alpha": true,
+    "mef_beats_random_2of3": "False"
+  },
+  "n_pass": "1",
+  "verdict": "FAIL (1/4 pass) - MEF does NOT improve portfolio",
+  "recommendation": "MEF does not add value beyond random filtering. FRM stays alone."
+}

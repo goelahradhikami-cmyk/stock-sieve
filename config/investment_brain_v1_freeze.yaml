@@ -3438,3 +3438,160 @@ freeze_history:
       architecture_rename: "REVISED from 'Market Belief Disagreement Detector' to 'Extreme Risk Filter' (or similar). The disagreement-selection theory is falsified."
 
     next_phase: "Exp11B: out-of-sample test of extreme penalty (does H×H rejection survive 2025-2026 holdout?) - the Mid×Mid track is CLOSED"
+
+  v3_5_2_exp11b_portfolio_impact:
+    experiment_date: "2026-07-21"
+    commit: "6-S.17.9"
+    tag: "security-analyst-v3.5.2-exp11b-portfolio"
+    scope: "Market Extremity Filter portfolio impact test - does MEF improve quality?"
+    freeze_status: "DIAGNOSTIC_BASELINE (MEF FAILS - no portfolio improvement beyond random; Layer 2 search CONCLUDED)"
+
+    experiment_design:
+      purpose: "Does filtering extreme stocks IMPROVE the portfolio? (not just 'do extremes lose')"
+      method: "Three portfolios: A (FRM only), B (FRM+MEF), C (FRM+random filter, 1000x bootstrap)"
+      mef_rejects: "High FRM × High Gap (H×H) + Gap Q5 (top 20% disagreement)"
+      n_removed: "37 stocks (19.1% of pool)"
+      metrics: "alpha, worst_stock (drawdown proxy), volatility, positive_rate"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results - MEF FAILS
+    # ═══════════════════════════════════════════════════════════
+    results:
+      portfolio_a_frm_only:
+        n: 194
+        alpha: "-1.58%"
+        worst_stock: "-47.55%"
+        volatility: "13.95%"
+        positive_rate: "40.7%"
+      portfolio_b_frm_mef:
+        n: 157
+        alpha: "-0.47%"
+        worst_stock: "-47.55% (UNCHANGED)"
+        volatility: "14.36% (INCREASED)"
+        positive_rate: "42.7%"
+      portfolio_c_random_filter:
+        alpha_mean: "-1.09%"
+        alpha_p5_p95: "[-1.78%, -0.48%]"
+        worst_stock_mean: "-44.25%"
+        volatility_mean: "13.65%"
+
+    validation_checks:
+      mef_reduces_worst: "FAIL (A=-47.55%, B=-47.55% unchanged - worst stock not in extreme zone)"
+      mef_reduces_vol: "FAIL (A=13.95%, B=14.36% INCREASED - removing stocks increases concentration)"
+      mef_preserves_alpha: "PASS (A=-1.58%, B=-0.47%, within 1pp)"
+      mef_beats_random_2of3: "FAIL (beats random on 1/3 metrics only - alpha; random is better on worst & vol)"
+      result: "1/4 pass. MEF does NOT improve portfolio quality."
+
+    # ═══════════════════════════════════════════════════════════
+    # The Uncomfortable Truth - Layer 2 Search Concluded
+    # ═══════════════════════════════════════════════════════════
+    layer2_search_conclusion: |
+      The entire v3.5/v3.5.1/v3.5.2 chain searched for a Layer 2 that
+      adds value beyond FRM direction gate. EVERY candidate FAILED:
+
+        RS gate (v3.2.2):           DESTROYS alpha
+        EGE gap ranking (v3.3):     FALSIFIED (monotonic assumption wrong)
+        Sustainability (v3.4):       REMOVES alpha (filter kills good stocks)
+        Mid×Mid (v3.5.2 Exp11A):    SMALL-SAMPLE ARTIFACT (+8.43% -> -1.31%)
+        MEF extreme filter (Exp11B): NO PORTFOLIO IMPROVEMENT (1/4 checks)
+
+      No per-stock selection layer adds value beyond FRM direction gate.
+      The search for Layer 2 is CONCLUDED with a definitive negative result.
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp11B Proved
+    # ═══════════════════════════════════════════════════════════
+    what_exp11b_proved:
+      - "MEF does NOT improve portfolio quality (1/4 checks pass)"
+      - "MEF alpha improvement (+1.11pp) is NOT significant vs random (+0.49pp)"
+      - "MEF does NOT reduce drawdown (worst stock unchanged - not in extreme zone)"
+      - "MEF INCREASES volatility (removing stocks increases concentration risk)"
+      - "Random filter beats MEF on 2/3 metrics (worst_stock, volatility)"
+      - "No Layer 2 selection adds value beyond FRM direction gate"
+
+    what_exp11b_did_not_prove:
+      - "Whether FRM direction gate itself is robust (Group A +2.52% vs Combined -1.58%)"
+      - "Whether the alpha is in TIMING (Market Guardian) rather than stock selection"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Complete Falsification Chain (frozen summary)
+    # ═══════════════════════════════════════════════════════════
+    complete_falsification_chain:
+      cheap_stocks: "DISPROVED (v2: cheap ≠ mispriced)"
+      cheap_plus_healthy: "DISPROVED (v2: deserved cheapness)"
+      fundamental_recovery: "MARGINAL (v3.1: FRM +2.52% at N=60, but -1.58% at N=194)"
+      recovery_plus_RS: "DISPROVED (v3.2.2: RS gate destroys alpha)"
+      recovery_plus_monotonic_gap: "DISPROVED (v3.3: high gap = distrust)"
+      recovery_plus_sustainability: "DISPROVED (v3.4: filter removes alpha)"
+      recovery_plus_mid_mid: "DISPROVED (v3.5.2 Exp11A: small-sample artifact)"
+      recovery_plus_extreme_filter: "DISPROVED (v3.5.2 Exp11B: no portfolio improvement)"
+      conclusion: "No stock selection layer beyond FRM direction adds value."
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision - Layer 2 Search Concluded
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      LAYER 2 SEARCH CONCLUDED. No per-stock selection layer adds value
+      beyond FRM direction gate. Do NOT pursue further Layer 2 candidates.
+
+      The Stock Sieve architecture is SIMPLER than expected:
+        Layer 1: Market Guardian (timing) - VALIDATED, FROZEN (v1.1)
+        Layer 2: FRM direction gate (portfolio filter) - MARGINAL but best available
+        Layer 3: NO per-stock selector - every candidate disproved
+
+      This is a DEFINITIVE NEGATIVE RESULT, not a failure. It saves
+      future work from chasing non-existent alpha in stock selection.
+      The value is in TIMING (when to enter), not SELECTION (which stock).
+
+      v3.6 should NOT add a Layer 2 selector. v3.6 should focus on:
+        (a) Strengthening Market Guardian (timing precision)
+        (b) Strengthening FRM direction gate (if it can be made more robust)
+        (c) Portfolio construction (Bayesian allocation optimization)
+        NOT (d) per-stock selection within the pool
+
+      Evolution v4 stays DISABLED. There is no validated alpha to evolve.
+
+    # ═══════════════════════════════════════════════════════════
+    # Stock Sieve Final Gene (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_gene: |
+      Market Guardian:    ★★★★★ TIMING CONFIRMED (v1.1 frozen, 1204 episodes)
+      FRM direction gate: ★★★   PORTFOLIO FILTER (marginal alpha, best available)
+      FRM score:          ❌     NOT quality (uncertainty proxy, non-monotonic)
+      Gap:                ❌     NOT alpha selector (extreme = risk but filter fails)
+      Sustainability:     ❌     NOT alpha (removes alpha, risk penalty only)
+      Mid×Mid:            ❌     SMALL-SAMPLE ARTIFACT (falsified at N=194)
+      MEF extreme filter: ❌     NO PORTFOLIO IMPROVEMENT (falsified)
+      RS:                 ❌     NOT a gate (destroys alpha)
+      Crowding:           ❌     NOT significant
+
+      Layer 2 search: CONCLUDED (all candidates disproved)
+      The value is in TIMING, not SELECTION.
+
+    # ═══════════════════════════════════════════════════════════
+    # What This Means for Stock Sieve's Identity
+    # ═══════════════════════════════════════════════════════════
+    identity_redefinition: |
+      Stock Sieve is NOT a stock selection engine.
+      Stock Sieve is a MARKET TIMING engine with a simple recovery filter.
+
+      The original assumption was:
+        Market timing (when) + Stock selection (what) = alpha
+
+      The falsification chain proved:
+        Market timing (when) = alpha (Market Guardian validated)
+        Stock selection (what) = NO incremental alpha (all Layer 2 disproved)
+
+      The architecture is:
+        Market Guardian -> FRM direction gate -> Bayesian Portfolio
+        (timing)          (simple filter)       (allocation)
+
+      No cognitive architecture, no disagreement detector, no uncertainty
+      selector. The search for 'why does the market misprice' revealed
+      that the market does NOT systematically misprice in a way that
+      Stock Sieve can exploit beyond timing.
+
+      This is humbling but honest. The Belief Audit did its job:
+      it prevented false beliefs from being written into the genome.
+
+    next_phase: "v3.6 should focus on Market Guardian strengthening and FRM gate robustness, NOT Layer 2 selection. Layer 2 search is CONCLUDED."

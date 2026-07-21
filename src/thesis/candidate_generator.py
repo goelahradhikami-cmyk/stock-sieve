@@ -49,6 +49,7 @@ from src.thesis.market_anomaly import (
 )
 from src.thesis.fundamental_recovery import FundamentalRecoveryScorer
 from src.thesis.sector_confirmation import SectorConfirmationScorer
+from src.thesis.expectation_gap import ExpectationGapEngine
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -84,6 +85,8 @@ class CandidateGenerator:
         self.rs_scorer = SectorConfirmationScorer(cache_db)
         self.anomaly_detector = MarketAnomalyDetector(
             cache_db=cache_db, eval_db=eval_db)
+        # v3.3: EGE replaces RS gate (6-S.15.2)
+        self.ege_engine = ExpectationGapEngine(cache_db)
 
         # Funnel log buffer (batched writes)
         self._funnel_log_buffer: list[tuple] = []
@@ -281,32 +284,24 @@ class CandidateGenerator:
         for code, features in stage1_passed:
             rs = self.rs_scorer.compute(code, trade_date)
 
+            # RS retained as DIAGNOSTIC field only (v3.2.2 proved RS gate
+            # destroys alpha). No longer a hard gate.
             features.relative_strength = rs.rs_vs_sector
             features.sector_strength = rs.sector_vs_market
             features.rs_score = rs.score
 
-            # Update recovery_score with Stage 2 components
-            features.recovery_score = self._enrich_recovery_score(
-                features, rs)
+            # v3.3: EGE scoring (replaces RS gate, 6-S.15.2)
+            # EGE does NOT gate - it scores for ranking.
+            ege_score = self.ege_engine.compute(code, trade_date)
+            # Store EGE in recovery_score field (repurposed for v3.3)
+            if ege_score.gap_score is not None:
+                # Use gap_score as the Stage 2 ranking signal
+                features.recovery_score = ege_score.gap_score * 50 + 50  # map z-score to 0-100
+            else:
+                features.recovery_score = 50.0  # neutral when EGE data unavailable
 
-            if rs.data_available:
-                # Hard gate: stock must outperform sector
-                if rs.rs_vs_sector is None or rs.rs_vs_sector <= RS_HARD_GATE_THRESHOLD:
-                    self._update_funnel_log(
-                        episode_id, trade_date, code,
-                        stage2_rs_vs_sector=rs.rs_vs_sector,
-                        stage2_sector_vs_market=rs.sector_vs_market,
-                        stage2_rs_score=rs.score,
-                        stage2_data_available=1,
-                        stage2_pass=0,
-                        rejection_stage='stage2',
-                        rejection_reason='WEAK_RS',
-                    )
-                    features.candidate_stage = 'rejected'
-                    features.rejection_reason = 'WEAK_RS'
-                    continue
-            # else: pre-2024-06, soft gate (pass through, log data unavail)
-
+            # NO HARD GATE in Stage 2 (v3.3 design freeze)
+            # All Stage 1 survivors pass through; EGE score used for ranking only
             features.candidate_stage = 'stage2_pass'
             passed.append((code, features))
 
@@ -316,7 +311,7 @@ class CandidateGenerator:
                 stage2_sector_vs_market=rs.sector_vs_market,
                 stage2_rs_score=rs.score,
                 stage2_data_available=1 if rs.data_available else 0,
-                stage2_pass=1,
+                stage2_pass=1,  # always pass (no gate)
             )
 
         return passed

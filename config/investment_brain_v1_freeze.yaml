@@ -1048,3 +1048,68 @@ freeze_history:
       poc_result: "acceleration>0 group has residual +3.4pp better than acceleration<=0 group"
 
     next_phase: "Phase 1: earnings_event_reaction table + event window return calculation"
+
+  v3_3_ege_diagnostic:
+    diagnostic_date: "2026-07-21"
+    commit: "6-S.15.3"
+    tag: "security-analyst-v3.3-ege-diagnostic"
+    scope: "EGE implementation + 3-gate validation"
+    freeze_status: "DIAGNOSTIC_BASELINE (EGE captures the phenomenon but direction is wrong)"
+    production: false
+
+    implementation:
+      expectation_gap_engine: "src/thesis/expectation_gap.py (z(EA) - z(PR))"
+      candidate_generator: "Stage 2 RS gate replaced with EGE ranking (no hard gate)"
+      event_reaction_data: "183 rows in earnings_event_reaction table"
+
+    gate_results:
+      gate1_gap_discrimination:
+        test: "D10 (highest gap) > D1 (lowest gap)"
+        d10_residual: "-8.74%"
+        d1_residual: "-1.80%"
+        result: "FAIL - D10 is WORSE than D1 (reversed direction)"
+      gate2_frm_preservation:
+        test: "EGE top-30% >= FRM-only baseline"
+        ege_top30_residual: "-3.40%"
+        frm_only_residual: "-1.69%"
+        result: "FAIL - EGE degrades FRM alpha by 1.71pp"
+      gate3_rs_inversion:
+        test: "high gap = low RS (market hasn't noticed)"
+        gap_rs_correlation: "-0.0509"
+        result: "PASS - EGE correctly inverts RS"
+
+    key_finding: |
+      EGE captures the phenomenon (Gate 3: high gap = low RS = market hasn't
+      noticed), but the DIRECTION is wrong. High gap (theoretical underreaction)
+      produces WORSE alpha, not better. This mirrors v2's lesson:
+        v2:   cheap + not broken != mispriced
+        v3.3: earnings improved + price didn't react != market underreaction
+
+      The market's failure to react is not always an error - sometimes the
+      market correctly identifies that the earnings improvement is not real
+      (accounting noise, one-off gains, low-base effect).
+
+    inverted_u_shape: |
+      D1   -1.80%   D2  -7.22%   D3  +4.30%   D4  -1.27%
+      D5   -0.24%   D6  -1.77%   D7  +1.90%   D8  +2.17%
+      D9   -3.51%   D10 -8.74%
+
+      Middle deciles (D3, D7, D8) are positive (~58% positive rate).
+      Both extremes (D1-D2 and D9-D10) are negative.
+      This is an inverted-U, not monotonic. 'Sweet spot' may exist.
+
+    extreme_value_concern: |
+      D10 gap range: +1.76 to +179.22 (extreme tail)
+      Need to check if top 1% outliers drive the -8.74% mean.
+
+    what_ege_proved:
+      - "EGE correctly captures 'market hasn't reacted' (Gate 3 PASS)"
+      - "RS is properly inverted (high gap = low RS, negative correlation)"
+      - "The 'market underreaction' hypothesis is INSUFFICIENT"
+      - "Need to explain WHY market chooses not to react"
+
+    what_ege_did_not_prove:
+      - "High gap -> high alpha (DISPROVED by Gate 1)"
+      - "EGE preserves FRM alpha (DISPROVED by Gate 2)"
+
+    next_phase: "High Gap Autopsy - why does the market not react? Is it correct?"

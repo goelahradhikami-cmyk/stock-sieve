@@ -824,3 +824,63 @@ freeze_history:
       - "v3.2.1 passes Gate 1 and Gate 2 - v3.3 target already partially met"
     
     next_phase: "v3.3 design must reconsider RS gate - it may need removal or redesign"
+
+  v3_2_2_rs_ablation_study:
+    study_date: "2026-07-21"
+    commit: "6-S.14.2"
+    tag: "security-analyst-v3.2.2-rs-ablation"
+    scope: "RS Ablation Study - prove RS gate is a negative contribution layer"
+    freeze_status: "DIAGNOSTIC_BASELINE (RS gate verdict: DEMOTE, not delete)"
+    
+    experiments:
+      exp1_rs_quintile:
+        finding: "Q1 (weakest RS) > Q5 (strongest RS): -4.47% > -4.85%"
+        hypothesis_a: "SUPPORTED - weak RS (price not yet reacted) > strong RS"
+        surprise: "Q3 (medium RS) is the only positive quintile (+1.37%)"
+      exp2_threshold_sweep:
+        finding: "RS > 0 filters ZERO stocks (all 134 already have RS > 0)"
+        implication: "RS gate's damage is not from filtering, but from RS-available stocks being lower quality"
+        optimal: "RS > +0.05 gives -3.15% but still worse than FRM-only +2.52%"
+      exp3_frm_rs_2d_matrix:
+        best_cell: "strong FRM + Q1 weak RS = +3.49%"
+        worst_cell: "strong FRM + Q5 strong RS = -6.94%"
+        finding: "FRM strong + RS weak is best; FRM strong + RS strong is worst"
+      exp4_early_late_rs:
+        corr_rs20_residual: "-0.2663 (NEGATIVE correlation)"
+        corr_rs60_residual: "-0.2002 (negative)"
+        finding: "RS_20d is a NEGATIVE predictor of future residual_alpha"
+        hypothesis_b: "SUPPORTED - RS captures late momentum, not idiosyncratic alpha"
+      exp5_sample_composition:
+        finding: "Within same FRM bucket, Group B (no RS) still beats Group C (with RS)"
+        medium_frm: "B +3.13% vs C -4.40% (delta +7.53pp)"
+        strong_frm: "B +1.24% vs C -2.76% (delta +4.00pp)"
+        hypothesis_d: "RULED OUT - not sample bias"
+    
+    hypothesis_verdicts:
+      A_rs_filters_early_repricing: "SUPPORTED"
+      B_rs_captures_late_momentum: "SUPPORTED"
+      C_rs_frm_information_overlap: "SUPPORTED"
+      D_sample_selection_bias: "RULED OUT"
+    
+    key_conclusion: |
+      RS gate is a NEGATIVE contribution layer. It systematically filters
+      OUT high-alpha stocks (FRM strong + RS weak = +3.49%) and keeps
+      low-alpha stocks (FRM strong + RS strong = -6.94%).
+      
+      The investment insight: at earnings turning points, the best stocks
+      are NOT the ones already rising, but those where fundamentals improved
+      while price has not yet confirmed.
+    
+    rs_verdict: "DEMOTE (not delete)"
+    rs_new_role: |
+      RS moves from 'eligibility gate' to 'Expectation Gap Engine input'.
+      RS no longer answers 'does this stock qualify?' but 'has the market
+      already noticed this recovery?'. High RS = market already priced in
+      (lower expectation gap). Low RS = potential underreaction (higher gap).
+    
+    architectural_update: |
+      v3.2 structure:  Stage 1 FRM -> Stage 2 RS gate -> Stage 3 Mispricing
+      v3.3 structure:  Stage 1 FRM -> Stage 2 Expectation Gap -> Stage 3 Portfolio
+      RS is absorbed into Expectation Gap as the 'price_reaction' dimension.
+    
+    next_phase: "v3.3 Expectation Gap Engine - RS demoted to EGE input, not gate"

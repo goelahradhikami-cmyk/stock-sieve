@@ -1718,3 +1718,266 @@ freeze_history:
       Direction B if A also fails.
 
     next_phase: "v3.5 design freeze - Direction A (Imperfection Premium) or Direction B (FRM source re-examination)"
+
+  v3_5_frm_belief_audit_design_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.17.0"
+    tag: "security-analyst-v3.5-frm-belief-audit-design"
+    scope: "FRM Belief Audit - decompose the black box before optimizing it"
+    freeze_status: "DESIGN FROZEN (research question + decomposition plan + validation gates)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Why v3.5 is NOT Imperfection Premium
+    # ═══════════════════════════════════════════════════════════
+    design_rationale: |
+      v3.4 Phase 1.5 revealed an inverted-U between sustainability and alpha.
+      The immediate temptation is to operationalize this as 'Imperfection
+      Premium' (select moderate-sustainability Q2-Q3). This is REJECTED.
+
+      Reason: the inverted-U proves non-linear correlation, NOT causation.
+      Three competing hypotheses can explain the same shape:
+        H1. Imperfection Premium (market over-penalizes quality flaws)
+        H2. FRM is the real signal; sustainability is noise
+        H3. Uncertainty alpha (extremes are known/over-priced; middle
+            has maximum information asymmetry)
+
+      Building v3.5A (Imperfection Premium) without distinguishing these
+      would repeat the v3.3/v3.4 error: optimizing an un-decomposed black
+      box. The correct sequence is:
+        1. Decompose FRM to identify its alpha source (THIS freeze)
+        2. Only then decide whether to build on direction, inflection,
+           or uncertainty
+
+      This freeze is a BELIEF AUDIT, not a strategy design. Per the
+      Investment Brain immune-system principle: do not write un-audited
+      experience into the genome (Evolution v4 would propagate the bias).
+
+    # ═══════════════════════════════════════════════════════════
+    # Core Research Question (falsifiable)
+    # ═══════════════════════════════════════════════════════════
+    core_question: "FRM alpha originates from earnings quality or earnings direction?"
+
+    sub_questions:
+      - "Is FRM alpha driven by the DIRECTION of earnings revision (improving vs deteriorating)?"
+      - "Is FRM alpha driven by the INFLECTION point (negative -> less negative -> positive)?"
+      - "Is FRM alpha driven by the SPEED of recovery (steepness of earnings acceleration)?"
+      - "Does FRM SCORE itself predict alpha, or is the score just a direction proxy?"
+
+    falsification_chain_so_far:
+      cheap_stocks: "DISPROVED (v2: cheap ≠ mispriced)"
+      cheap_plus_healthy: "DISPROVED (v2: deserved cheapness)"
+      fundamental_recovery: "PROVEN (v3.1: FRM +2.52% alpha) - BUT SOURCE UNKNOWN"
+      recovery_plus_strong_trend: "DISPROVED (v3.2.2: RS gate destroys alpha)"
+      recovery_plus_monotonic_gap: "DISPROVED (v3.3: high gap = distrust)"
+      recovery_plus_sustainability: "DISPROVED (v3.4: sustainability filter removes alpha)"
+      recovery_source_earnings_direction: "UNTESTED (v3.5 tests this)"
+      recovery_source_earnings_inflection: "UNTESTED (v3.5 tests this)"
+      recovery_source_uncertainty_asymmetry: "UNTESTED (v3.5 tests this)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Current FRM Black Box (what we're auditing)
+    # ═══════════════════════════════════════════════════════════
+    frm_current_architecture:
+      layers:
+        earnings_acceleration:
+          weight: "50%"
+          input: "earnings_yoy_current - earnings_yoy_previous"
+          scoring: "bucketed thresholds (revision > +10pp -> 90, > +2pp -> 70, etc.)"
+        margin_stabilization:
+          weight: "30%"
+          input: "net_margin_current - net_margin_previous"
+          scoring: "bucketed thresholds (delta > +3pp -> 85, etc.)"
+        revenue_acceleration:
+          weight: "20%"
+          input: "revenue_yoy_current - revenue_yoy_previous"
+          scoring: "bucketed thresholds (revision > +5pp -> 85, etc.)"
+      amplification: "market_state_weight (PANIC=1.0 ... EUPHORIA=0.3, frozen v1.1)"
+      gate_usage: "hard reject on frm_direction='deteriorating' (v3.1 frozen)"
+      data_inputs: "2 vintage-aware periods only (current + previous)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Early Signals from Pre-Freeze Exploration (NOT conclusions)
+    # ═══════════════════════════════════════════════════════════
+    early_signals:
+      note: "Exploratory, N=60 Group A. NOT validation. Informative only."
+      frm_direction_breakdown:
+        improving: "N=45, alpha=+2.67%, avg_frm=65.7"
+        stable: "N=14, alpha=+2.07%, avg_frm=50.6"
+        unknown: "N=1, alpha=+1.72%"
+        signal: "Both 'improving' AND 'stable' have positive alpha. Deteriorating is hard-rejected (v3.1). Direction alone may not be the differentiator."
+      frm_score_quintile:
+        Q1: "alpha +1.41% (frm 44-52)"
+        Q2: "alpha +1.30% (frm 52-57)"
+        Q3: "alpha +4.89% (frm 57-65)"
+        Q4: "alpha +5.39% (frm 66-71)  <-- BEST"
+        Q5: "alpha -0.41% (frm 71-91)  <-- WORST"
+        correlation: "-0.040 (near zero! FRM score does NOT predict alpha)"
+        signal: "FRM SCORE ITSELF is not predictive. The score may be a direction proxy, not an alpha signal. This is a major red flag for the current architecture."
+      earnings_acceleration_quintile:
+        Q1: "alpha +2.19% (EA -0.02 to +0.01)"
+        Q2: "alpha +4.89% (EA +0.01 to +0.06)  <-- PEAK"
+        Q3: "alpha +0.58% (EA +0.06 to +0.14)"
+        Q4: "alpha +3.47% (EA +0.16 to +0.52)"
+        Q5: "alpha +1.79% (EA +0.53 to +74.8)"
+        correlation: "-0.222 (negative - extreme EA has lower alpha)"
+        signal: "Another inverted-U. Extreme acceleration (Q5) underperforms moderate (Q2). Consistent with uncertainty-asymmetry hypothesis H3."
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Competing Hypotheses (to be distinguished)
+    # ═══════════════════════════════════════════════════════════
+    hypotheses:
+      H1_imperfection_premium:
+        claim: "Market over-penalizes quality flaws; moderate-imperfection stocks have alpha"
+        test: "Moderate-sustainability Q2-Q3 alpha > Q1 AND > Q4-Q5, controlling for FRM direction"
+        if_true: "v3.6 builds Imperfection Premium selector"
+        if_false: "H1 rejected; quality is not the mechanism"
+      H2_frm_is_direction_only:
+        claim: "FRM alpha comes from earnings DIRECTION (improving/stable), not quality. The score is a noisy proxy."
+        test: "frm_direction alone (improving vs stable) produces same alpha as full FRM score. FRM score adds NO incremental alpha beyond direction."
+        early_signal_support: "FRM score correlation with alpha = -0.040 (near zero). frm_direction 'stable' also has +2.07% alpha."
+        if_true: "Simplify FRM to direction-only gate; discard the 0-100 score. v3.6 explores what direction actually captures."
+        if_false: "FRM score has incremental value; decompose which layer (earnings/margin/revenue) drives it."
+      H3_uncertainty_asymmetry:
+        claim: "Alpha lives in maximum-information-asymmetry zone. Extremes (very high/low gap, very high/low sustainability, very high EA) are known or over-priced. Middle has alpha."
+        test: "Multiple signals (gap, sustainability, EA, FRM score) ALL show inverted-U. The common factor is 'extremes bad, middle good' regardless of what the signal measures."
+        early_signal_support: "Both gap (v3.3.1) and sustainability (v3.4) and EA (exploration) show inverted-U. Three independent signals, same shape."
+        if_true: "v3.6 builds Uncertainty Asymmetry engine - select for moderate-everything, reject all extremes. This unifies gap + sustainability + EA."
+        if_false: "Inverted-U is signal-specific, not a general principle."
+
+    # ═══════════════════════════════════════════════════════════
+    # Decomposition Plan (3 phases)
+    # ═══════════════════════════════════════════════════════════
+    decomposition_plan:
+      phase_1_frm_attribution_decomposition:
+        purpose: "Break FRM into independent components and test each"
+        experiments:
+          exp1_direction_vs_score:
+            test: "Does frm_direction alone (improving/stable, hard-reject deteriorating) produce same alpha as full FRM pipeline?"
+            method: "Compare Group A (FRM score-ranked top-N) vs Group A-dir (direction-only, all improving+stable)"
+            distinguishes: "H2 (direction-only) vs H1/H3 (score matters)"
+          exp2_layer_ablation:
+            test: "Which FRM layer (earnings_accel 50% / margin 30% / revenue 20%) drives alpha?"
+            method: "Recompute alpha using each layer alone as the gate, compare to full FRM"
+            distinguishes: "Which fundamental signal is the real alpha source"
+          exp3_score_quintile_monotonicity:
+            test: "Is FRM score monotonic, inverted-U, or flat with alpha?"
+            method: "5-quintile analysis on Group A (already explored, needs formal validation with larger N)"
+            early_signal: "correlation -0.040 (flat/negative) - score may be noise"
+          exp4_earnings_inflection_detection:
+            test: "Is alpha driven by INFLECTION (sign change in earnings_yoy: neg->pos) rather than level or acceleration?"
+            method: "Classify Group A by inflection pattern (Q-2 neg, Q-1 neg, Q0 pos = inflection). Compare inflection vs non-inflection alpha."
+            data_requirement: "3 vintage-aware periods (already available in earnings_event_reaction)"
+            distinguishes: "H1 (quality) vs inflection-specific signal"
+          exp5_recovery_speed:
+            test: "Is alpha driven by SPEED of recovery (steepness of earnings_yoy change across 3 periods)?"
+            method: "Compute recovery_speed = (earnings_yoy_q0 - earnings_yoy_q2) / 2. Quintile vs alpha."
+            distinguishes: "Speed vs level vs direction"
+      phase_2_two_dimensional_matrix:
+        purpose: "Find the true alpha cell in 2D signal space"
+        experiments:
+          exp6_frm_x_earnings_acceleration:
+            test: "FRM score tertile × EA quintile matrix - which cell has highest alpha?"
+            rationale: "EA is the 50%-weight component of FRM; testing them together isolates whether EA carries independent signal beyond FRM"
+          exp7_direction_x_inflection:
+            test: "frm_direction (improving/stable) × inflection (yes/no) matrix"
+            rationale: "If inflection adds alpha beyond direction, H1 is weakened"
+          exp8_gap_x_sustainability_x_direction:
+            test: "3D cube: gap sweet-spot × sustainability moderate × frm_direction"
+            rationale: "Tests H3 (uncertainty asymmetry) - if all three 'middle' zones combine, is alpha amplified?"
+            note: "Uses v3.3 gap + v3.4 sustainability + v3.5 direction data (all already computed)"
+      phase_3_security_analyst_redefinition:
+        purpose: "Based on Phase 1+2 results, redefine what Security Analyst detects"
+        decision_tree:
+          if_H2_true: "Security Analyst = Recovery DIRECTION Detector (simplify FRM to direction gate)"
+          if_H1_true: "Security Analyst = Imperfection Premium Detector (select moderate-quality)"
+          if_H3_true: "Security Analyst = Uncertainty Asymmetry Detector (reject all extremes)"
+          if_none_true: "FRM remains black-box; keep as frozen signal, do not evolve"
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v3_5_a_frm_score_predictive:
+        test: "FRM score quintile Q5 (highest) alpha > Q1 (lowest) alpha"
+        purpose: "Does the FRM SCORE itself predict alpha? (early signal says NO, correlation -0.040)"
+        required: "Q5 > Q1 by >= 1.0pp"
+        failure_implication: "FRM score is noise; only direction matters. Simplify to direction gate."
+      v3_5_b_direction_sufficient:
+        test: "frm_direction-only alpha >= full-FRM alpha"
+        purpose: "Is direction alone sufficient? (H2 test)"
+        required: "direction-only residual_alpha >= +2.0% (within 0.5pp of full FRM +2.52%)"
+        baseline: "FRM-only +2.52%"
+      v3_5_c_inflection_incremental:
+        test: "Inflection stocks (neg->pos sign change) alpha > non-inflection improving stocks"
+        purpose: "Does inflection add alpha beyond direction? (H1 vs inflection test)"
+        required: "inflection alpha - non-inflection alpha >= +1.5pp"
+      v3_5_d_uncertainty_universal:
+        test: "At least 3 independent signals show inverted-U (gap, sustainability, EA, FRM score)"
+        purpose: "Is inverted-U a universal principle? (H3 test)"
+        required: ">= 3 of 4 signals show Q-middle > Q-extremes by >= 2pp"
+        already_observed: "gap (v3.3.1), sustainability (v3.4), EA (exploration) = 3 signals. Needs formal validation."
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_imperfection_premium_premature: "MUST NOT build Imperfection Premium selector before H1/H2/H3 are distinguished (would repeat v3.3/v3.4 black-box optimization)"
+      no_sustainability_gate: "MUST NOT re-add sustainability as hard gate (v3.4 disproved)"
+      no_gap_monotonic_gate: "MUST NOT use gap_score as monotonic gate (v3.3 disproved)"
+      no_rs_gate: "MUST NOT re-add RS gate (v3.2.2 disproved)"
+      no_evolution: "Evolution v4 remains disabled until FRM source identified"
+      no_new_factors_before_decomposition: "MUST NOT add new factors (quality, momentum, etc.) until FRM's existing alpha is explained"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+      no_kill_uw_changes: "MUST NOT modify KillCriteria / DoctrineUnderwriter signatures"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "scripts/run_v3_5_frm_decomposition.py: NEW (8 experiments, attribution decomposition)"
+      - "scripts/run_v3_5_2d_matrix.py: NEW (3 two-dimensional matrix experiments)"
+      - "src/thesis/fundamental_recovery.py: READ-ONLY analysis (no changes to scoring until Phase 3 decision)"
+      - "data/reports/: NEW decomposition reports (JSON)"
+      - "NO new modules, NO schema changes, NO candidate_generator changes until Phase 3"
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Feasibility (verified)
+    # ═══════════════════════════════════════════════════════════
+    data_feasibility:
+      frm_components: "frm_score, earnings_acceleration, frm_direction already on shadow_candidates_v3 (60 Group A rows)"
+      three_period_earnings: "earnings_event_reaction has 3 vintage-aware periods (v3.3 Phase 1) - enables inflection and speed tests"
+      gap_scores: "earnings_event_reaction has expectation_gap (v3.3) - enables 3D matrix"
+      sustainability: "earnings_sustainability has 181 rows (v3.4 Phase 1) - enables 3D matrix"
+      sample_size_concern: "Group A N=60 is small for 2D matrices (cells may have N<5). Phase 2 may need to extend backfill to more episodes."
+
+    # ═══════════════════════════════════════════════════════════
+    # Failure Decision (if decomposition inconclusive)
+    # ═══════════════════════════════════════════════════════════
+    failure_decision: |
+      If all 4 gates fail AND no hypothesis is clearly supported:
+        1. FRM remains a FROZEN BLACK-BOX signal. Do not evolve.
+        2. Accept that FRM's alpha source is not decomposable with
+           available data (N=60, 2-period vintage).
+        3. Pivot v3.6 to expanding the candidate universe (more episodes,
+           longer horizon) rather than decomposing the existing signal.
+        4. Evolution v4 stays disabled. The Investment Brain keeps FRM
+           as a validated-but-unexplained signal - this is acceptable
+           because it is VALIDATED (+2.52%), just not EXPLAINED.
+
+      This is NOT a failure of the Belief Audit. Knowing that a signal
+      works but cannot be decomposed is itself a valid audit outcome.
+      It prevents v3.6 from building on a misattribution.
+
+    # ═══════════════════════════════════════════════════════════
+    # No-Touch Boundary (frozen)
+    # ═══════════════════════════════════════════════════════════
+    no_touch_boundary:
+      market_guardian: "StateTransitionEngine + RecoveryConfidence + AnomalyDetector (v1.1 frozen)"
+      kill_criteria: "4 hard vetoes (frozen)"
+      doctrine_underwriter: "explanation_only mode, evolution disabled"
+      bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen)"
+      stage_1_frm_gate: "hard reject on deteriorating direction (v3.1 validated) - READ-ONLY in v3.5"
+      frm_scoring_weights: "50/30/20 earnings/margin/revenue (READ-ONLY until Phase 3 decision)"
+
+    next_phase: "Phase 1: FRM Attribution Decomposition (exp1 direction-vs-score, exp2 layer ablation, exp3 score quintile, exp4 inflection, exp5 recovery speed)"

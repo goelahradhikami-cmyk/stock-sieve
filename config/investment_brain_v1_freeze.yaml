@@ -2330,3 +2330,241 @@ freeze_history:
         - Target N>=200 for the MMM/2+middle cell to reach statistical power
 
     next_phase: "v3.5 data expansion: backfill volume_ratio + pre-decision momentum for Group A, extend universe to N>=200, re-run exp8 with complete crowding controls"
+
+  v3_5_1_mechanism_identification_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.17.3"
+    tag: "security-analyst-v3.5.1-mechanism-identification"
+    scope: "Mechanism Identification - distinguish uncertainty premium from crowding avoidance"
+    freeze_status: "DESIGN FROZEN (mechanism fork point - H3-A vs H3-B)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Why v3.5.1 (not v3.6, not data expansion)
+    # ═══════════════════════════════════════════════════════════
+    design_rationale: |
+      Exp8 advanced the question from 'does FRM work?' to 'what is the
+      alpha MECHANISM?'. The middle-uncertainty zone has alpha (N=15,
+      +5.53%), but two economically distinct explanations fit the data:
+
+        H3-A: Uncertainty Asymmetry Premium
+              Market cannot form consensus on moderate-signal stocks.
+              Information asymmetry creates alpha. Architecture implication:
+              SELECT for uncertainty zone (moderate signals).
+
+        H3-B: Crowding Avoidance Premium
+              Extreme stocks are hot/event/over-traded. Middle stocks are
+              less crowded. Alpha comes from avoiding crowded trades, not
+              from uncertainty. Architecture implication: SELECT for low
+              crowding (regardless of signal moderation).
+
+      These require DIFFERENT architectures. Building v3.6 on an
+      undistinguished mechanism would repeat the v3.3/v3.4 black-box
+      optimization error. v3.5.1 is NOT data expansion - it is a
+      mechanism identification experiment with a clear fork decision.
+
+      This is the most critical fork point in the entire Stock Sieve
+      falsification chain. The question is no longer 'what signal
+      works?' but 'WHY does the market fail to price these stocks?'.
+
+    # ═══════════════════════════════════════════════════════════
+    # Current State (frozen snapshot)
+    # ═══════════════════════════════════════════════════════════
+    current_state:
+      market_guardian: "★★★★★ TIMING CONFIRMED (v1.1 frozen, 1204 episodes)"
+      frm_recovery_direction: "★★★★ DIRECTION ALPHA CONFIRMED (+2.52%, v3.2.1)"
+      frm_score: "❌ NOT a quality score (Exp1: Q5 worst alpha, inverted-U)"
+      frm_score_redefined: "✅ UNCERTAINTY INDICATOR CANDIDATE (not quality)"
+      uncertainty_zone: "+ evidence (4 signals inverted-U), - mechanism unresolved"
+      mechanism_fork: "H3-A (uncertainty premium) vs H3-B (crowding avoidance) - NEXT"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Mechanism Fork (falsifiable)
+    # ═══════════════════════════════════════════════════════════
+    mechanism_fork:
+      H3_A_uncertainty_premium:
+        claim: "Alpha comes from information asymmetry. Market cannot form consensus on moderate-signal stocks because information is genuinely ambiguous."
+        test: "Uncertainty zone alpha SURVIVES controlling for crowding. The coefficient on uncertainty_zone is positive and significant after crowding controls."
+        architecture_implication: "Uncertainty Asymmetry Detector - SELECT for moderate signals (the zone where market is uncertain)"
+        if_true: "Paradigm shift: Security Analyst finds stocks the market cannot price, not stocks with best recovery."
+      H3_B_crowding_avoidance:
+        claim: "Alpha comes from avoiding crowded trades. Extreme-signal stocks are hot/event/over-traded. Middle stocks are simply less crowded."
+        test: "Uncertainty zone alpha DISAPPEARS when crowding is controlled. The coefficient on crowding is significant; uncertainty_zone becomes insignificant."
+        architecture_implication: "Crowding Filter - SELECT for low crowding (regardless of signal moderation). Uncertainty zone was a proxy for low crowding."
+        if_true: "No paradigm shift. Add crowding filter to existing FRM direction gate. Security Analyst stays as Recovery Direction Detector + crowding avoidance."
+
+    # ═══════════════════════════════════════════════════════════
+    # Crowding Vector Definition (frozen)
+    # ═══════════════════════════════════════════════════════════
+    crowding_vector:
+      design_principle: |
+        RS (relative strength) is DEMOTED as a gate (v3.2.2) but RS-like
+        measures are REHABILITATED as crowding DIAGNOSTICS (not gates).
+        The distinction:
+          WRONG (v3.2.2 disproved): RS_high -> BUY (RS as alpha signal)
+          RIGHT (v3.5.1): RS_high -> possibly_crowded (RS as crowding diagnostic)
+        The crowding vector measures how much attention/flow a stock has
+        received, NOT whether it will go up.
+
+      features:
+        momentum_crowding:
+          return_20d: "trailing 20-day return (short-term momentum, crowding proxy)"
+          return_60d: "trailing 60-day return (medium-term momentum)"
+          interpretation: "High momentum = market has already noticed = crowded"
+          data_source: "TDX kline via LocalDataProvider (same as event_reaction.py)"
+          vintage_safe: "computed from prices BEFORE trade_date (no lookahead)"
+
+        liquidity_crowding:
+          turnover_percentile: "cross-sectional turnover percentile at trade_date"
+          volume_ratio: "current_volume / avg(volume, 20d) - abnormal volume spike"
+          interpretation: "High turnover/volume = market attention = crowded"
+          data_source: "TDX kline volume + finance_snapshots float_mcap for turnover"
+          vintage_safe: "computed from volume BEFORE trade_date"
+
+        volatility_crowding:
+          realized_vol_20d: "20-day realized volatility (std of daily returns)"
+          interpretation: "High vol = event-driven attention = potentially crowded"
+          data_source: "TDX kline via LocalDataProvider"
+          vintage_safe: "computed from prices BEFORE trade_date"
+
+        attention_crowding:
+          abnormal_volume: "(current_volume - avg_20d) / std_20d - volume spike z-score"
+          price_gap: "absolute daily return on trade_date (event-driven attention)"
+          interpretation: "Volume spike / price gap = sudden attention = crowded"
+          data_source: "TDX kline"
+          vintage_safe: "computed from data ON or BEFORE trade_date"
+
+      composite: "crowding_score = zscore(turnover_pct) + zscore(return_20d) + zscore(realized_vol_20d) + zscore(abnormal_volume) - NOT a gate, a CONTROL variable"
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Experiments (frozen design)
+    # ═══════════════════════════════════════════════════════════
+    experiments:
+      exp9_alpha_attribution_regression:
+        purpose: "THE CRITICAL TEST - does uncertainty zone alpha survive crowding controls?"
+        model: "alpha = b0 + b1*uncertainty_zone + b2*crowding_score + b3*market_cap + controls"
+        where_uncertainty_zone: "binary: 1 if 2+ of (FRM, gap, sustainability) in middle tercile, 0 otherwise"
+        decision_rule:
+          if_b1_positive_significant_and_b2_insignificant: "H3-A VALIDATED - uncertainty premium is real"
+          if_b1_insignificant_and_b2_significant: "H3-B VALIDATED - alpha is crowding avoidance"
+          if_both_significant: "MIXED - both mechanisms contribute; decompose further"
+          if_neither_significant: "INCONCLUSIVE - alpha may be noise or regime-specific"
+        data_requirement: "N>=60 (Group A) with all crowding features backfilled"
+        priority: "P0 - highest"
+
+      exp10_uncertainty_x_crowding_matrix:
+        purpose: "Decompose the middle zone - is it uncertainty OR crowding OR both?"
+        method: "2x2 matrix: uncertainty_zone (yes/no) x crowding_tercile (low/mid/high)"
+        expected_patterns:
+          H3_A_pattern: "uncertainty_yes + low_crowding = BEST; uncertainty_yes + high_crowding = still good (uncertainty dominates)"
+          H3_B_pattern: "uncertainty_yes + low_crowding = BEST; uncertainty_yes + high_crowding = BAD (crowding dominates)"
+          both_pattern: "uncertainty_yes + low_crowding = BEST; both factors contribute incrementally"
+        cells:
+          unc_yes_low_crowd: "predict: best if H3-A, best if H3-B (cannot distinguish here)"
+          unc_yes_high_crowd: "CRITICAL CELL - good if H3-A, bad if H3-B"
+          unc_no_low_crowd: "tests if crowding alone explains alpha"
+          unc_no_high_crowd: "predict: worst in all hypotheses"
+        priority: "P1"
+
+      exp11_time_stability:
+        purpose: "Verify the mechanism is stable across regimes, not a single-period artifact"
+        method: "Split by time period (2023 vs 2024-2026) AND market_state (STABILIZING vs CONFIRMED_RECOVERY)"
+        concern: "N=15 '2+ middle' alpha +5.53% may be concentrated in 2024 bull phase"
+        required: "Alpha positive in BOTH time periods with N>=5 per period"
+        failure_implication: "If alpha is regime-specific, neither H3-A nor H3-B is stable enough to operationalize"
+        priority: "P2"
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v3_5_1_a_mechanism_identified:
+        test: "Exp9 produces a clear H3-A or H3-B verdict (not INCONCLUSIVE)"
+        required: "b1 or b2 significant at 5%, the other not"
+        failure_implication: "If inconclusive, extend N (more episodes) before re-running. Do NOT guess."
+      v3_5_1_b_mechanism_stable:
+        test: "Exp11 shows alpha positive in both time periods"
+        required: "alpha > 0 in 2023 AND 2024-2026 splits, N>=5 each"
+        failure_implication: "Mechanism is regime-specific; do not operationalize"
+      v3_5_1_c_crowding_data_complete:
+        test: "All 4 crowding features (momentum, liquidity, volatility, attention) backfilled for Group A"
+        required: ">=90% coverage of Group A stocks"
+        failure_implication: "Cannot run Exp9; backfill is a blocker"
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_v3_6_before_mechanism: "MUST NOT design v3.6 (Uncertainty Detector or Crowding Filter) before H3-A/H3-B is distinguished"
+      no_rs_gate_rehabilitation: "MUST NOT re-add RS as a gate (v3.2.2 disproved). RS-like measures are ONLY crowding diagnostics, not alpha signals."
+      no_paradigm_shift_on_inconclusive: "MUST NOT paradigm-shift on inconclusive evidence (would repeat v3.3/v3.4 black-box error)"
+      no_alpha_optimization: "MUST NOT optimize for higher alpha in v3.5.1. The goal is mechanism identification, not returns."
+      no_evolution: "Evolution v4 remains disabled until mechanism is identified AND validated"
+      no_new_factors: "MUST NOT add new factors (quality, sentiment, etc.) until existing alpha is mechanically explained"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence"
+      no_kill_uw_changes: "MUST NOT modify KillCriteria / DoctrineUnderwriter signatures"
+      no_portfolio_layer_changes: "MUST NOT modify Bayesian Allocation or Portfolio Layer (mechanism work is Security Analyst only)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "scripts/backfill_crowding_features.py: NEW (compute 4 crowding features for Group A from TDX kline)"
+      - "scripts/run_v3_5_1_exp9_attribution.py: NEW (regression: alpha ~ uncertainty_zone + crowding + controls)"
+      - "scripts/run_v3_5_1_exp10_uncertainty_crowding_matrix.py: NEW (2x2 decomposition)"
+      - "scripts/run_v3_5_1_exp11_time_stability.py: NEW (period + market_state split)"
+      - "migrations/crowding_features.sql: NEW table (stores crowding vector, vintage-safe)"
+      - "NO changes to src/thesis/ modules (FRM, EGE, sustainability all READ-ONLY)"
+      - "NO changes to candidate_generator.py (no new gates until mechanism identified)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Feasibility (verified)
+    # ═══════════════════════════════════════════════════════════
+    data_feasibility:
+      price_data: "LocalDataProvider reads TDX .day files (D:/new_tdx_mock/vipdoc, 2021-2026). Same source event_reaction.py used successfully for Group A."
+      volume_data: "TDX kline includes volume field. volume_ratio and abnormal_volume computable."
+      turnover_data: "finance_snapshots has turnover_pct + float_mcap (5323 rows). Cross-sectional percentile computable."
+      volatility: "realized_vol_20d = std(daily_returns, 20d) from TDX close prices."
+      vintage_safety: "All features computed from data BEFORE trade_date. No lookahead. LocalDataProvider already vintage-safe (used by FRM, event_reaction)."
+      coverage_concern: "Group A trade_dates range 2023-01-13 to 2026-05-27. TDX data covers 2021+, so 60-day lookback windows are fully available for all Group A stocks."
+
+    # ═══════════════════════════════════════════════════════════
+    # Decision Tree (fork resolution)
+    # ═══════════════════════════════════════════════════════════
+    decision_tree:
+      if_H3_A_validated:
+        action: "Paradigm shift to Uncertainty Asymmetry Detector"
+        architecture: "FRM direction gate -> uncertainty zone selector (moderate signals) -> portfolio"
+        implication: "Security Analyst finds stocks the market CANNOT price (information asymmetry), not stocks with best recovery."
+        next: "v3.6 Uncertainty Asymmetry Detector design freeze"
+      if_H3_B_validated:
+        action: "Add crowding filter to existing architecture (NO paradigm shift)"
+        architecture: "FRM direction gate -> crowding filter (low crowding) -> portfolio"
+        implication: "Security Analyst stays as Recovery Direction Detector. Alpha was from avoiding crowded trades, not from uncertainty."
+        next: "v3.6 Crowding Filter add-on (minor change, not paradigm shift)"
+      if_both_mechanisms:
+        action: "Decompose further - which component (uncertainty vs crowding) carries more alpha?"
+        architecture: "TBD based on decomposition"
+        next: "v3.5.2 further decomposition (uncertainty component vs crowding component)"
+      if_inconclusive:
+        action: "Extend universe (N>=200) and re-run. Do NOT guess."
+        architecture: "FRM stays frozen black-box (validated +2.52% but unexplained)"
+        next: "v3.5.1.1 data expansion + re-run Exp9"
+      if_regime_specific:
+        action: "Neither mechanism is stable. Accept FRM as regime-conditional signal."
+        architecture: "FRM direction gate, conditional on market_state. No uncertainty/crowding layer."
+        next: "v3.6 regime-conditional FRM (minor change)"
+
+    # ═══════════════════════════════════════════════════════════
+    # No-Touch Boundary (frozen)
+    # ═══════════════════════════════════════════════════════════
+    no_touch_boundary:
+      market_guardian: "StateTransitionEngine + RecoveryConfidence + AnomalyDetector (v1.1 frozen)"
+      kill_criteria: "4 hard vetoes (frozen)"
+      doctrine_underwriter: "explanation_only mode, evolution disabled"
+      bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen)"
+      stage_1_frm_gate: "hard reject on deteriorating direction (v3.1 validated) - READ-ONLY"
+      frm_scoring_weights: "50/30/20 (READ-ONLY, Exp1 proved score is uncertainty proxy not quality)"
+      portfolio_layer: "Bayesian Allocation + Doctrine (frozen, mechanism work is Security Analyst only)"
+
+    next_phase: "Phase 1: backfill crowding features (4 features for Group A from TDX kline, vintage-safe)"

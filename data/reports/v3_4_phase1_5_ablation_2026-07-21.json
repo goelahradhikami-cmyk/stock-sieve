@@ -1,0 +1,64 @@
+{
+  "commit": "6-S.16.2",
+  "phase": "1.5",
+  "experiment": "FRM Sustainability Incremental Value Test",
+  "date": "2026-07-21",
+  "baseline": "v3.2.1 Group B (FRM-only, rs_data_available=0)",
+  "group_a": {
+    "label": "Group A (FRM-only baseline)",
+    "n": 60,
+    "residual_alpha_mean_pct": 2.516166453952875,
+    "residual_alpha_median_pct": 1.407308253690771,
+    "positive_rate_pct": 58.333333333333336,
+    "market_beta_pct": 3.5741020800495975,
+    "sector_beta_pct": 1.263373979650647,
+    "return_mean_pct": 2.3213096057473694,
+    "return_std_pct": 8.654498805961898
+  },
+  "group_b": {
+    "label": "Group B (FRM + Sustainability)",
+    "n": 22,
+    "residual_alpha_mean_pct": 1.7320620848735944,
+    "residual_alpha_median_pct": 1.1252517052001116,
+    "positive_rate_pct": 54.54545454545455,
+    "market_beta_pct": 3.854813362679737,
+    "sector_beta_pct": 0.5773649199042741,
+    "return_mean_pct": 2.7001161977104173,
+    "return_std_pct": 4.765184367588658
+  },
+  "gates": {
+    "B1_alpha_lift": {
+      "required": ">= +1.5pp",
+      "actual": "-0.78pp",
+      "group_a_alpha": 2.516166453952875,
+      "group_b_alpha": 1.7320620848735944,
+      "verdict": "FAIL"
+    },
+    "B2_hitrate_lift": {
+      "required": ">= +5.0pp",
+      "actual": "-3.79pp",
+      "group_a_positive_rate": 58.333333333333336,
+      "group_b_positive_rate": 54.54545454545455,
+      "verdict": "FAIL"
+    },
+    "B3_not_just_risk": {
+      "required": "alpha_delta > 0 AND return_std >= 0.5%",
+      "actual_alpha_delta": "-0.78pp",
+      "actual_return_std": "4.77%",
+      "verdict": "FAIL"
+    },
+    "quintile_diagnosis": {
+      "case": "MIXED - inspect quintile profile manually",
+      "rank_corr": -0.4404932821557136,
+      "alphas": [
+        2.121597374512665,
+        3.6258747787525962,
+        5.674001408302081,
+        0.7351970251367279,
+        0.5940373514326363
+      ]
+    }
+  },
+  "verdict": "FAIL - STOP. Do not tune parameters.",
+  "n_group_b": 22
+}

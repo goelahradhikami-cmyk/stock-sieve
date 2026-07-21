@@ -1553,4 +1553,168 @@ freeze_history:
       bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen, not evolved)"
       stage_1_frm_gate: "hard reject on deteriorating direction (v3.1 validated, +2.52% alpha)"
 
-    next_phase: "Phase 1: earnings_sustainability data foundation (schema + calculator + vintage-safe backfill + leakage test + distribution report)"
+    next_phase: "Phase 1.5 Sustainability Ablation (Gate B - life-or-death experiment)"
+
+  v3_4_phase1_sustainability_foundation:
+    foundation_date: "2026-07-21"
+    commit: "6-S.16.1"
+    tag: "security-analyst-v3.4-phase1-sustainability-foundation"
+    scope: "earnings_sustainability data layer (diagnostic, NOT alpha factor)"
+    freeze_status: "DATA INFRA FROZEN (leakage-verified, ready for Phase 1.5)"
+
+    deliverables:
+      - "migrations/earnings_sustainability.sql (raw values + flags, vintage-safe)"
+      - "src/thesis/sustainability_calculator.py (3 sub-components, industry-aware)"
+      - "scripts/backfill_sustainability.py (vintage-safe population)"
+      - "scripts/run_v3_4_phase1_validation.py (leakage test + distribution report)"
+
+    schema_design:
+      stores_raw_values: true
+      vintage_safe: "available_date <= as_of_date (report_date + 90d fallback for nulls)"
+      pk: "(security_id, available_date) joins 1:1 earnings_event_reaction"
+      raw_fields:
+        alignment: "revenue_yoy, earnings_yoy, profit_elasticity"
+        persistence: "accel_q0/q1/q2, accel_trend, accel_volatility, reversal_count"
+        margin: "operating_margin_current, 3q_median, 3q_std, company_zscore, industry_zscore"
+      derived_flags: "alignment_flag, consistency_flag, margin_normalization_flag, sustainability_pass"
+      data_substitution: "operating_margin for gross_margin (gross_margin table has 0 rows; operating_profit/revenue 99.9% coverage)"
+
+    validation_results:
+      leakage_test: "PASS (0 rows with available_date > as_of_date)"
+      rows_written: 181
+      v3_candidate_coverage: "177/194 (91.2%)"
+      sub_component_pass_rates:
+        alignment_pass: "84/181 (46.4%)"
+        consistency_pass: "170/181 (93.9%)"
+        margin_norm_pass: "104/181 (57.5%)"
+        sustainability_pass: "55/181 (30.4%)"
+      dominant_failure: "ALIGNMENT_DECOUPLE 97/181 (53.6%) - over half have earnings growth not backed by revenue"
+
+    key_observation: |
+      ALIGNMENT_DECOUPLE dominates (53.6%). This was initially interpreted
+      as supporting the v3.3.1 autopsy hypothesis ('market distrusts
+      unsustainable improvement'). Phase 1.5 would reveal this interpretation
+      was WRONG - the market actually REWARDS decouple stocks.
+
+    next_phase: "Phase 1.5 Sustainability Ablation - life-or-death test"
+
+  v3_4_phase1_5_sustainability_ablation:
+    ablation_date: "2026-07-21"
+    commit: "6-S.16.2"
+    tag: "security-analyst-v3.4-phase1.5-ablation"
+    scope: "FRM Sustainability Incremental Value Test (life-or-death for v3.4)"
+    freeze_status: "DIAGNOSTIC_BASELINE (v3.4 hypothesis FALSIFIED - sustainability does NOT lift FRM alpha)"
+
+    experiment:
+      name: "FRM Sustainability Incremental Value Test"
+      question: "Does the market reward 'earnings improvement + credibility'?"
+      baseline: "v3.2.1 Group B (FRM-only, rs_data_available=0): N=60, +2.52%, 58.3% positive"
+      group_a: "FRM-only (v3.2.1 Group B reproduced exactly)"
+      group_b: "FRM + sustainability_pass=1 (subset of Group A)"
+      coverage: "56/60 Group A candidates have sustainability data (93.3%)"
+
+    gate_results:
+      gate_b1_alpha_lift:
+        required: ">= +1.5pp"
+        actual: "-0.78pp (A=+2.52% -> B=+1.73%)"
+        verdict: "FAIL - sustainability REDUCES alpha"
+      gate_b2_hitrate_lift:
+        required: ">= +5.0pp"
+        actual: "-3.79pp (A=58.3% -> B=54.5%)"
+        verdict: "FAIL - sustainability REDUCES hit rate"
+      gate_b3_not_just_risk:
+        required: "alpha_delta > 0 AND return_std >= 0.5%"
+        actual: "alpha_delta=-0.78pp, return_std=4.77%"
+        verdict: "FAIL - alpha_delta negative (though dispersion preserved)"
+
+    counterintuitive_finding: |
+      The sustainability filter REMOVES alpha, not adds it. pass=0 stocks
+      (filtered out) have HIGHER alpha (+3.02%) than pass=1 stocks (+1.73%).
+
+      Failure-reason breakdown of the REJECTED group (pass=0):
+        MARGIN_PEAK (N=6):     +5.96% alpha, 66.7% positive  <-- BEST performers
+        CONSISTENCY_SPIKE (N=3): +3.98% alpha, 66.7% positive
+        ALIGNMENT_DECOUPLE (N=25): +2.20% alpha, 60.0% positive
+
+      The filter systematically removes the TOP performers:
+        - 7 of top-10 alpha stocks are pass=0 (filtered out)
+        - 6 of bottom-10 alpha stocks are pass=0 (also filtered out)
+
+      It acts as a SYMMETRIC noise filter, not an alpha filter: removes
+      both tails, keeps the mediocre middle. This is why alpha drops.
+
+    quintile_diagnosis:
+      method: "Sort Group A by composite sustainability proxy, 5 quintiles"
+      n: 56
+      profile:
+        Q1: "alpha +2.12% (proxy -0.060, sustain_pass 36.4%)"
+        Q2: "alpha +3.63% (proxy +0.089, sustain_pass 45.5%)"
+        Q3: "alpha +5.67% (proxy +0.188, sustain_pass 27.3%)  <-- PEAK"
+        Q4: "alpha +0.74% (proxy +0.282, sustain_pass 36.4%)"
+        Q5: "alpha +0.59% (proxy +0.476, sustain_pass 50.0%)  <-- WORST"
+      rank_correlation: "-0.440 (negative - higher sustainability, lower alpha)"
+      case: "D (INVERTED-U / non-monotonic) - NOT A, B, or C"
+      interpretation: |
+        This is the SAME inverted-U shape as v3.3.1 gap autopsy:
+          - Moderate sustainability (Q2-Q3) = BEST alpha (+3.6% to +5.7%)
+          - Low sustainability (Q1) = moderate (+2.1%)
+          - High sustainability (Q4-Q5) = WORST (+0.6% to +0.7%)
+
+        Economic meaning: stocks that are TOO clean (perfect alignment,
+        stable acceleration, normal margins) are already priced in - no
+        surprise, no alpha. Stocks with MODERATE quality imperfections
+        have alpha because the market OVER-DISCOUNTS the imperfections.
+
+        The v3.3.1 autopsy hypothesis ('market distrusts unsustainable
+        improvement') is FALSIFIED. The market does not distrust - it
+        OVER-PRICES quality. The alpha is in the imperfect-but-recovering
+        middle, not the clean-and-sustainable top.
+
+    what_v3_4_proved:
+      - "Sustainability is NOT a monotonic alpha factor (Gate B1/B2/B3 FAIL)"
+      - "Sustainability filter REMOVES alpha (-0.78pp) by over-filtering top performers"
+      - "The sustainability-alpha relationship is INVERTED-U (like gap in v3.3.1)"
+      - "v3.3.1 autopsy hypothesis ('market distrusts unsustainable') is FALSIFIED"
+      - "FRM alpha comes from recovery ITSELF, not recovery quality"
+
+    what_v3_4_did_not_solve:
+      - "Why does FRM have alpha if not from quality? (re-examine in v3.5)"
+      - "Is the inverted-U a general principle (both gap AND sustainability)?"
+      - "Does combining moderate-gap AND moderate-sustainability produce alpha?"
+
+    frozen_decision: |
+      v3.4 hypothesis FALSIFIED. Sustainability does NOT lift FRM alpha.
+      The original EQE design (hard AND filter on sustainability) is WRONG.
+
+      DO NOT proceed to Phase 2 EQE Composer as designed.
+      DO NOT tune sustainability thresholds (the problem is structural,
+      not parametric - the relationship is inverted-U, not monotonic).
+
+      The frozen diagnostic rules from this ablation:
+        1. Sustainability_pass as a hard gate is PROHIBITED (removes alpha)
+        2. The alpha zone is MODERATE sustainability (Q2-Q3), not high
+        3. Margin_peak and consistency_spike stocks are NOT risk - they
+           are alpha sources (MARGIN_PEAK had +5.96% alpha, best group)
+
+    v3_5_direction: |
+      Two candidate directions for v3.5, both leveraging the inverted-U:
+
+      Direction A - 'Imperfection Premium':
+        The market over-discounts quality imperfections. Alpha lives in
+        stocks with MODERATE sustainability issues (Q2-Q3). This is the
+        mirror image of v3.3.1's gap sweet spot. The new engine should
+        SELECT for moderate imperfection, not filter for cleanliness.
+        Formula: sustainability_quintile IN (Q2, Q3) as the sweet spot.
+
+      Direction B - 'Re-examine FRM source':
+        If sustainability doesn't explain FRM alpha, what does? FRM may
+        be capturing a different signal entirely - perhaps pure earnings
+        direction (improving vs deteriorating) is the alpha, and quality
+        is irrelevant at the 20-day horizon. This would mean v3.4's
+        entire premise (quality matters) is wrong, and v3.5 should
+        explore what FRM actually measures.
+
+      Recommended: Direction A first (cheaper, reuses v3.4 data), then
+      Direction B if A also fails.
+
+    next_phase: "v3.5 design freeze - Direction A (Imperfection Premium) or Direction B (FRM source re-examination)"

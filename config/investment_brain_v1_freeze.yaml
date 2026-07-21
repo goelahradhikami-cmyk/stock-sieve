@@ -2568,3 +2568,98 @@ freeze_history:
       portfolio_layer: "Bayesian Allocation + Doctrine (frozen, mechanism work is Security Analyst only)"
 
     next_phase: "Phase 1: backfill crowding features (4 features for Group A from TDX kline, vintage-safe)"
+
+  v3_5_1_crowding_foundation:
+    foundation_date: "2026-07-21"
+    commit: "6-S.17.4"
+    tag: "security-analyst-v3.5.1-crowding-foundation"
+    scope: "crowding_snapshot data layer (diagnostic, NOT alpha factor, NOT gate)"
+    freeze_status: "DATA INFRA FROZEN (100% Group A coverage, vintage-verified, ready for Exp9)"
+
+    deliverables:
+      - "migrations/crowding_snapshot.sql (raw features + composite, vintage-safe)"
+      - "src/thesis/crowding_calculator.py (4 feature groups, stores raw + v1 composite)"
+      - "scripts/backfill_crowding.py (vintage-safe population from TDX kline)"
+
+    schema_design:
+      stores_raw_features: true
+      vintage_safe: "all features from TDX kline BEFORE trade_date (no lookahead)"
+      pk: "(security_id, trade_date) joins Group A candidates"
+      raw_features:
+        momentum: "return_20d, return_60d"
+        liquidity: "turnover_percentile (0% coverage - data gap), volume_ratio"
+        volatility: "realized_vol_20d"
+        attention: "abnormal_volume, price_gap"
+      controls: "market_cap, float_mcap (from security_master)"
+      composite: "crowding_score_v1 = avg(zscore(turnover_pct) + zscore(return_20d) + zscore(realized_vol_20d) + zscore(abnormal_volume)) - DIAGNOSTIC ONLY, not production"
+      rs_rehabilitation_note: |
+        RS is NOT rehabilitated as a gate (v3.2.2 disproved). RS-like
+        measures (momentum, volume) are crowding DIAGNOSTICS only:
+          WRONG (v3.2.2): RS_high -> BUY (RS as alpha signal)
+          RIGHT (v3.5.1): RS_high -> possibly_crowded (control variable)
+        A falsified factor is not discarded; it is repositioned.
+
+    validation_results:
+      coverage: "60/60 Group A (100%)"
+      feature_coverage:
+        return_20d: "60/60 (100%)"
+        return_60d: "60/60 (100%)"
+        volume_ratio: "60/60 (100%)"
+        realized_vol_20d: "60/60 (100%)"
+        abnormal_volume: "60/60 (100%)"
+        price_gap: "60/60 (100%)"
+        market_cap: "60/60 (100%)"
+        crowding_score_v1: "60/60 (100%)"
+        turnover_percentile: "0/60 (0%) - DATA GAP"
+      data_gap_turnover: |
+        finance_snapshots has 0 rows for 2023-2024 (Group A's primary
+        period). turnover_percentile cannot be computed. This is a
+        NON-BLOCKING gap: volume_ratio and abnormal_volume cover the
+        liquidity/attention dimension. Exp9 can proceed without
+        turnover_percentile; if H3-B is suggested, the gap should be
+        filled before final conclusion.
+
+    feature_distributions:
+      return_20d: "mean=+9.24%, range [-15.5%, +95.9%]"
+      return_60d: "mean=+12.4%, range [-24.6%, +51.2%]"
+      realized_vol_20d: "mean=2.19%, range [0.94%, 5.49%]"
+      volume_ratio: "mean=1.03, range [0.38, 3.16]"
+      abnormal_volume: "mean=+0.10, range [-2.16, +5.89] (zscore)"
+      crowding_score_v1: "mean=0.00, range [-0.86, +1.85] (zscore composite)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Preview: crowding quintile vs alpha (NOT Exp9, just sanity check)
+    # ═══════════════════════════════════════════════════════════
+    crowding_quintile_preview:
+      note: "Univariate preview. Exp9 regression with all controls needed for definitive verdict."
+      Q1_lowest_crowding: "alpha=-2.50%, positive=25.0%  <- WORST"
+      Q2: "alpha=+5.75%, positive=83.3%  <- BEST"
+      Q3: "alpha=+2.34%, positive=58.3%"
+      Q4: "alpha=+5.83%, positive=75.0%  <- BEST (tie)"
+      Q5_highest_crowding: "alpha=+1.16%, positive=50.0%"
+      pattern: "NOT monotonic. Q1 (lowest crowding) is WORST, not best."
+      early_signal: |
+        If H3-B (crowding avoidance) were true, Q1 (lowest crowding)
+        should be BEST and Q5 (highest) should be WORST, monotonically.
+        Actual: Q1 is WORST (-2.50%). This CONTRADICTS H3-B's simple form.
+
+        If H3-A (uncertainty premium) were true, crowding should NOT
+        linearly explain alpha. The non-monotonic pattern is consistent
+        with crowding being a weak/non-explanatory variable.
+
+        CAVEAT: This is univariate. Exp9 with frm_direction + uncertainty_zone
+        + market_cap controls is required for a definitive verdict. The
+        preview is PROMISING for H3-A but not conclusive.
+
+    what_crowding_foundation_proved:
+      - "Crowding features are computable for 100% of Group A from TDX kline (vintage-safe)"
+      - "Raw features stored (not just composite) for post-hoc decomposition"
+      - "RS-like measures successfully repositioned as crowding diagnostics (not gates)"
+      - "turnover_percentile is a known data gap (non-blocking for Exp9)"
+
+    what_crowding_foundation_did_not_prove:
+      - "Whether H3-A or H3-B is correct (needs Exp9 regression)"
+      - "Whether crowding_score_v1 is the right composite (diagnostic only, v1)"
+      - "Whether turnover_percentile matters (data gap prevents testing)"
+
+    next_phase: "Exp9: alpha = b0 + b1*uncertainty_zone + b2*crowding_score + b3*frm_direction + b4*market_cap + b5*volatility (THE CRITICAL TEST)"

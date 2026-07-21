@@ -758,3 +758,69 @@ freeze_history:
       This foundation ensures v3.3's alpha can be cleanly attributed.
     
     next_phase: "Phase 1: v3.2.1 attribution rebaseline with complete sector data"
+
+  v3_2_1_attribution_rebaseline:
+    rebaseline_date: "2026-07-21"
+    commit: "6-S.14.1"
+    tag: "security-analyst-v3.2.1-rebaseline"
+    scope: "v3.2 attribution recomputed with complete sector data (2021-2026)"
+    freeze_status: "DIAGNOSTIC_BASELINE (revised - true baseline for v3.3)"
+    production: false
+    
+    why_rebaseline: |
+      v3.2 used partial sector data (only 2024-06+). v3.2.1 uses complete
+      sector data (2021-08+). The difference is dramatic and proves v3.2's
+      high sector_beta was a data artifact, not a real exposure.
+    
+    v3_2_vs_v3_2_1:
+      v3_2_partial_sector:
+        n: 134
+        residual_alpha_mean: "-4.30%"
+        positive_rate: "31.3%"
+        sector_beta: "-1.83%"
+        market_beta: "-1.08%"
+      v3_2_1_complete_sector:
+        n: 194
+        residual_alpha_mean: "-1.58%"
+        positive_rate: "40.7%"
+        sector_beta: "-0.26%"
+        market_beta: "+0.36%"
+      improvement: "residual_alpha +2.72pp, sector_beta +1.57pp (artifact removed)"
+    
+    ab_comparison_v3_2_1:
+      group_a_v2_anomaly:
+        n: 22
+        residual_alpha: "-5.71%"
+        positive_rate: "18.2%"
+      group_b_v3_recovery_no_rs:
+        n: 60
+        residual_alpha: "+2.52%  # POSITIVE!"
+        positive_rate: "58.3%"
+        finding: "FRM-only (no RS filter) produces POSITIVE true selection alpha"
+      group_c_v3_recovery_rs_full:
+        n: 134
+        residual_alpha: "-3.42%"
+        positive_rate: "32.8%"
+        finding: "RS gate DEGRADES alpha (filters out high-alpha stocks)"
+    
+    gate_evaluation:
+      gate1_residual_alpha_gt_neg2pct: "PASS (-1.58%)"
+      gate2_positive_rate_gt_30pct: "PASS (40.7%)"
+      gate3_beta_reduction: "PASS (beta_sum -3.40% -> +0.09%, beta near neutral)"
+    
+    situation: "B (bordering on A)"
+    situation_explanation: |
+      v3.2.1 passes Gate 1 (residual > -2%) and Gate 2 (positive > 30%).
+      The breakthrough finding: Group B (FRM-only, no RS) has POSITIVE
+      residual_alpha (+2.52%). This means FRM alone produces true selection
+      alpha. The RS gate was DEGRADING performance by filtering out
+      high-alpha stocks. v3.3 should reconsider whether RS gate helps or hurts.
+    
+    key_findings:
+      - "v3.2's sector_beta (-1.83%) was a DATA ARTIFACT, not real exposure"
+      - "With complete sector data, sector_beta drops to -0.26% (near neutral)"
+      - "FRM-only (Group B) produces POSITIVE residual_alpha (+2.52%, 58.3% positive)"
+      - "RS gate DEGRADES alpha: Group C (-3.42%) vs Group B (+2.52%)"
+      - "v3.2.1 passes Gate 1 and Gate 2 - v3.3 target already partially met"
+    
+    next_phase: "v3.3 design must reconsider RS gate - it may need removal or redesign"

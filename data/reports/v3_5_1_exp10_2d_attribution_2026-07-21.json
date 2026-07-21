@@ -1,0 +1,107 @@
+{
+  "commit": "6-S.17.6",
+  "experiment": "exp10_2d_attribution",
+  "date": "2026-07-21",
+  "gap_terciles": [
+    -0.008848924625778739,
+    0.21889373846548038
+  ],
+  "frm_buckets": [
+    57.0,
+    68.0
+  ],
+  "matrix": {
+    "LL": {
+      "label": "",
+      "n": 10,
+      "alpha_pct": -1.5473557938988696,
+      "median_pct": 0.46321827563725415,
+      "positive_rate_pct": 50.0,
+      "std_pct": 9.212170177987598
+    },
+    "LM": {
+      "label": "",
+      "n": 6,
+      "alpha_pct": 3.335317114566985,
+      "median_pct": 0.8628889291489649,
+      "positive_rate_pct": 50.0,
+      "std_pct": 8.296765467695895
+    },
+    "LH": {
+      "label": "",
+      "n": 6,
+      "alpha_pct": 4.890478900384569,
+      "median_pct": 0.5008763586941491,
+      "positive_rate_pct": 66.66666666666667,
+      "std_pct": 8.078991713148145
+    },
+    "ML": {
+      "label": "",
+      "n": 4,
+      "alpha_pct": 3.468167938023485,
+      "median_pct": 0.42951879154454964,
+      "positive_rate_pct": 50.0,
+      "std_pct": 7.57333147501624
+    },
+    "MM": {
+      "label": "",
+      "n": 8,
+      "alpha_pct": 8.425922206151297,
+      "median_pct": 10.190460896274873,
+      "positive_rate_pct": 75.0,
+      "std_pct": 7.437141418118228
+    },
+    "MH": {
+      "label": "",
+      "n": 5,
+      "alpha_pct": -0.19653410964676543,
+      "median_pct": 4.2809572167581535,
+      "positive_rate_pct": 60.0,
+      "std_pct": 6.8403204300674165
+    },
+    "HL": {
+      "label": "",
+      "n": 5,
+      "alpha_pct": 9.141120845218806,
+      "median_pct": 8.844887712428593,
+      "positive_rate_pct": 80.0,
+      "std_pct": 7.728240288985871
+    },
+    "HM": {
+      "label": "",
+      "n": 6,
+      "alpha_pct": -2.2854399218032047,
+      "median_pct": 0.31718904320900265,
+      "positive_rate_pct": 50.0,
+      "std_pct": 4.924709062700304
+    },
+    "HH": {
+      "label": "",
+      "n": 9,
+      "alpha_pct": 0.3422015368098666,
+      "median_pct": -0.2739417850459801,
+      "positive_rate_pct": 44.44444444444444,
+      "std_pct": 8.65767114014077
+    }
+  },
+  "sustainability_incremental": {
+    "skipped": true,
+    "n_pass": 6,
+    "n_fail": 2
+  },
+  "stability": {
+    "2023": {
+      "n": 2,
+      "alpha_pct": 6.910939916904776,
+      "positive_rate_pct": 50.0
+    },
+    "2024": {
+      "n": 6,
+      "alpha_pct": 8.930916302566803,
+      "positive_rate_pct": 83.33333333333333
+    }
+  },
+  "verdict": "Mid FRM × Mid Gap confirmed as alpha cell (candidate architecture)",
+  "recommendation": "v3.6 architecture candidate: FRM direction gate (portfolio filter) + Gap disagreement ranker (per-stock selector within pool). Sustainability optional. Extend N to confirm before paradigm shift.",
+  "architecture_insight": "FRM is GATE not RANKER. State gate -> pool -> disagreement ranker."
+}

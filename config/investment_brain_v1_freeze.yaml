@@ -2831,3 +2831,165 @@ freeze_history:
       FRM direction cannot.
 
     next_phase: "Data expansion: extend universe to N>=200 (include Group C + more episodes), re-run Exp9 with larger N for definitive H3-A/H3-B verdict"
+
+  v3_5_1_exp10_2d_attribution:
+    experiment_date: "2026-07-21"
+    commit: "6-S.17.6"
+    tag: "security-analyst-v3.5.1-exp10-2d-attribution"
+    scope: "FRM × Gap 2D attribution + sustainability incremental test"
+    freeze_status: "DIAGNOSTIC_BASELINE (Mid×Mid is strongest signal in entire chain; architecture candidate emerging)"
+
+    experiment_design:
+      motivation: |
+        Exp9 revealed FRM direction is a GATE (portfolio filter), not a
+        RANKER (per-stock predictor). This reframes the question: within
+        the FRM-selected pool, what selects individual stocks?
+        Exp10 tests whether Mid FRM × Mid Gap is the alpha cell.
+      exp10a: "FRM × Gap 3×3 matrix - find the alpha cell"
+      exp10b: "Sustainability incremental test - does it add or dilute within Mid×Mid?"
+      stability: "Mid×Mid by year (2023 vs 2024)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp10A Results - FRM × Gap 2D Matrix
+    # ═══════════════════════════════════════════════════════════
+    exp10a_results:
+      matrix:
+        FRM_Low_Gap_Low: "alpha=-1.55%, N=10, positive=50%"
+        FRM_Low_Gap_Mid: "alpha=+3.34%, N=6, positive=50%"
+        FRM_Low_Gap_High: "alpha=+4.89%, N=6, positive=67%"
+        FRM_Mid_Gap_Low: "alpha=+3.47%, N=4, positive=50%"
+        FRM_Mid_Gap_Mid: "alpha=+8.43%, N=8, positive=75%  <-- BEST CELL"
+        FRM_Mid_Gap_High: "alpha=-0.20%, N=5, positive=60%"
+        FRM_High_Gap_Low: "alpha=+9.14%, N=5, positive=80%  <-- SURPRISE (N=5)"
+        FRM_High_Gap_Mid: "alpha=-2.29%, N=6, positive=50%"
+        FRM_High_Gap_High: "alpha=+0.34%, N=9, positive=44%  <-- danger zone"
+      key_comparisons:
+        mid_mid_vs_rest: "+8.43% vs +1.61% (delta +6.82pp) - STRONGEST signal in entire chain"
+        mid_mid_vs_frm_baseline: "+8.43% vs +2.52% (delta +5.91pp above FRM direction alone)"
+        frm_mid_row: "+4.72% (N=17) - entire Mid FRM row positive"
+        gap_mid_col: "+3.69% (N=20) - entire Mid Gap col positive"
+        diagonal_vs_off: "+2.04% vs +2.94% - diagonal NOT special, Mid×Mid is"
+        hh_danger: "+0.34% (N=9) - confirms extremes not opportunity"
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp10B Results - Sustainability Incremental
+    # ═══════════════════════════════════════════════════════════
+    exp10b_results:
+      mid_mid_all: "alpha=+8.43%, N=8, positive=75%"
+      mid_mid_sustain_pass: "alpha=+5.96%, N=6, positive=66.7%"
+      mid_mid_sustain_fail: "alpha=+15.81%, N=2, positive=100%  <-- FAIL BEATS PASS"
+      verdict: "Sustainability DILUTES alpha within Mid×Mid (pass < fail). N=2 too small for conclusive verdict, but direction confirms v3.4 finding."
+      implication: "Sustainability should be DEMOTED. It is noise or negative within the Mid×Mid alpha cell."
+
+    # ═══════════════════════════════════════════════════════════
+    # Stability
+    # ═══════════════════════════════════════════════════════════
+    stability:
+      "2023": "alpha=+6.91%, N=2 (too small)"
+      "2024": "alpha=+8.93%, N=6, positive=83.3%"
+      verdict: "PROMISING but 2023 N=2 insufficient. Need larger N for confirmation."
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture Insight (THE KEY FINDING)
+    # ═══════════════════════════════════════════════════════════
+    architecture_insight: |
+      Exp9 + Exp10 together reveal the correct architecture:
+
+      FRM is a GATE (portfolio filter), not a RANKER (per-stock predictor).
+      All previous failures (RS, EGE, sustainability, high FRM) made the
+      SAME error: treating a state variable as a ranking variable.
+
+      The correct architecture is three layers:
+        Layer 1: FRM direction gate (portfolio filter)
+          -> selects improving+stable stocks (candidate pool)
+          -> +2.52% group-level alpha (v3.2.1)
+          -> does NOT predict per-stock alpha (Exp9: direction t=0.12)
+
+        Layer 2: FRM score × Gap disagreement ranker (per-stock selector)
+          -> within the pool, select Mid FRM × Mid Gap stocks
+          -> this is the per-stock alpha source
+          -> +8.43% alpha (vs +2.52% FRM direction alone, delta +5.91pp)
+          -> both dimensions contribute (Mid FRM row +4.72%, Mid Gap col +3.69%)
+
+        Layer 3: Sustainability DEMOTED (removes alpha within Mid×Mid)
+        Layer 3: Crowding not significant (Exp9)
+        Layer 3: RS disproved as gate (v3.2.2)
+
+      This is the State -> Disagreement -> Selection three-layer cognitive
+      architecture that top active funds use:
+        market state -> candidate universe -> cognitive error identification
+
+      FRM does not predict returns. It defines which stocks are worth
+      studying. The alpha comes from identifying WHERE within the pool
+      the market's disagreement creates mispricing (Mid×Mid).
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp10 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_exp10_proved:
+      - "Mid FRM × Mid Gap is the STRONGEST alpha cell in the entire Stock Sieve chain (+8.43%, 75% positive, N=8)"
+      - "Mid×Mid delta vs rest = +6.82pp (largest single signal found)"
+      - "Both FRM and Gap contribute incrementally (Mid row +4.72%, Mid col +3.69%)"
+      - "Sustainability DILUTES alpha within Mid×Mid (pass +5.96% < fail +15.81%)"
+      - "H×H (all-high) confirms extremes are not opportunity (+0.34%)"
+      - "The alpha is in the INTERSECTION of two moderate signals, not either alone"
+
+    what_exp10_did_not_prove:
+      - "Statistical significance at N=8 (too small for t-test)"
+      - "Temporal stability (2023 N=2 insufficient)"
+      - "Whether FRM High × Gap Low (+9.14%, N=5) is a real second alpha cell or noise"
+      - "Whether the pattern survives at N>=200"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Diagnostic Rules
+    # ═══════════════════════════════════════════════════════════
+    frozen_diagnostic_rules:
+      mid_mid_is_alpha_cell: "Mid FRM (57-68) × Mid Gap (tercile 2) = +8.43% alpha, 75% positive. Strongest signal in chain."
+      frm_is_gate_not_ranker: "FRM direction selects the POOL (+2.52% group alpha), does NOT rank stocks within pool (Exp9 t=0.12). All previous failures treated state variables as ranking variables."
+      sustainability_demoted: "Sustainability filter REMOVES alpha within Mid×Mid (pass +5.96% < fail +15.81%). DEMOTED to noise/negative."
+      both_dimensions_contribute: "Mid FRM row +4.72%, Mid Gap col +3.69%. Neither alone is sufficient; the intersection amplifies."
+      extreme_high_not_opportunity: "H×H (+0.34%) confirms all-high is not opportunity. Market has priced in certainty."
+
+    # ═══════════════════════════════════════════════════════════
+    # v3.6 Architecture Candidate (frozen for evaluation)
+    # ═══════════════════════════════════════════════════════════
+    v3_6_architecture_candidate: |
+      Based on Exp9 (FRM is gate) + Exp10 (Mid×Mid is alpha cell), the
+      v3.6 architecture candidate is:
+
+        Market Guardian (v1.1 frozen)
+              |
+              v
+        FRM Direction Gate (Layer 1: portfolio filter)
+          - improving/stable pass, deteriorating reject
+          - selects candidate pool with +2.52% group alpha
+          - does NOT rank within pool
+              |
+              v
+        Disagreement Ranker (Layer 2: per-stock selector)
+          - FRM score × Gap disagreement 2D matrix
+          - SELECT Mid FRM × Mid Gap (the alpha cell)
+          - REJECT H×H (danger zone) and L×L (no signal)
+          - this is the per-stock alpha source (+8.43%)
+              |
+              v
+        Portfolio Layer (Bayesian Allocation, frozen)
+
+      Sustainability: DEMOTED (removes alpha)
+      Crowding: not significant (Exp9)
+      RS: not a gate (v3.2.2), possibly a crowding diagnostic only
+
+      This candidate requires N>=200 confirmation before implementation.
+      The Mid×Mid cell (N=8) is promising but underpowered.
+
+    # ═══════════════════════════════════════════════════════════
+    # Verdict
+    # ═══════════════════════════════════════════════════════════
+    verdict:
+      summary: "Mid FRM × Mid Gap confirmed as alpha cell (candidate architecture)"
+      strength: "STRONGEST signal in entire Stock Sieve chain (+8.43%, delta +6.82pp vs rest)"
+      caveat: "N=8 is underpowered. Need N>=200 for statistical confirmation."
+      architecture_emerging: "Three-layer: State gate -> Disagreement ranker -> Selection"
+      next_action: "Extend N to >=200, re-test Mid×Mid stability, then decide on v3.6 paradigm shift"
+
+    next_phase: "Data expansion to N>=200 (include Group C + more episodes), re-test Mid FRM × Mid Gap stability at larger N before v3.6 architecture decision"

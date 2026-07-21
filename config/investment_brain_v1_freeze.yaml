@@ -5007,3 +5007,186 @@ freeze_history:
       - "NO changes to Guardian, FRM, or any thesis module (READ-ONLY)"
 
     next_phase: "Step 0: Build Investment Memory Ledger - backfill shadow_outcome (all 1204 episodes) + compute counterfactuals + create guardian_decision_memory view. This is v4.0's first asset, not a data chore."
+
+  v4_0_phase0_guardian_autopsy_v2_results:
+    autopsy_date: "2026-07-21"
+    commit: "6-S.19.5"
+    tag: "stock-sieve-v4.0-phase0-autopsy-v2"
+    scope: "Corrected Guardian Autopsy - FULL decision ledger (BLOCK counterfactual + BUY actual), N=111"
+    freeze_status: "DIAGNOSTIC_BASELINE (CONFIDENCE IS CALIBRATED - +33pp delta, Guardian knows its own reliability)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Correction from 6-S.19.2
+    # ═══════════════════════════════════════════════════════════
+    correction: |
+      6-S.19.2 only looked at BUY episodes with non-zero portfolio_return
+      (N=8). It MISSED that BLOCK episodes have counterfactual market_return
+      (N=103). The full decision ledger is N=111, which MEETS the Data
+      Readiness Contract minimum (N>=100).
+
+      The shadow_outcome table ALREADY had this data. The original autopsy
+      script filtered incorrectly (only BUY non-zero). This is a DATA
+      INTERPRETATION error, not a DATA INFRASTRUCTURE gap. The Investment
+      Memory Ledger was more complete than believed.
+
+    # ═══════════════════════════════════════════════════════════
+    # Results (N=111)
+    # ═══════════════════════════════════════════════════════════
+    results:
+      data_coverage:
+        total_usable: 111
+        block_with_counterfactual: 103
+        buy_with_portfolio_return: 8
+        meets_data_readiness: true
+
+      block_counterfactual:
+        n: 103
+        accuracy: "54.4% (market fell when Guardian said block)"
+        mean_market_return: "-0.17%"
+        avg_avoided_loss: "-3.43% (when Guardian was correct to block)"
+        avg_missed_gain: "+3.73% (when Guardian was wrong to block)"
+        by_market_state:
+          STABILIZING: "N=26, 69.2% correct (BEST)"
+          CONFIRMED_RECOVERY: "N=14, 64.3% correct"
+          EARLY_RECOVERY: "N=16, 62.5% correct"
+          PANIC: "N=44, 38.6% correct (WORST - Guardian over-blocks in panic)"
+        interpretation: |
+          Guardian's BLOCK is correct 54.4% of the time - slightly better
+          than coin flip, but with asymmetry: when correct, avoids -3.43%
+          loss; when wrong, misses +3.73% gain. The COST of being wrong
+          (missing gains) is slightly higher than the BENEFIT of being
+          right (avoiding losses). This is important for Exposure Controller:
+          blocking has an opportunity cost.
+
+          By state: Guardian is BEST at blocking in STABILIZING (69.2%)
+          and WORST in PANIC (38.6%). In PANIC, Guardian over-blocks -
+          it says don't buy but the market often recovers. This is a
+          FAILURE MODE: panic-induced over-caution.
+
+      buy_alpha:
+        n: 8
+        portfolio_return: "+2.79%"
+        market_return: "+1.69% (beta)"
+        alpha: "+1.10% (true Guardian alpha)"
+        alpha_share: "39.5%"
+        win_rate: "75.0%"
+        caveat: "N=8 still too small for statistical significance. But directionally consistent with v1.1 validation."
+
+      combined_decision_quality:
+        total: 111
+        block_accuracy: "54.4%"
+        buy_win_rate: "75.0%"
+        overall: "55.9% (62 correct of 111 decisions)"
+        interpretation: "Guardian makes correct decisions 55.9% of the time. Not dominant, but the asymmetry (BUY 75% vs BLOCK 54%) suggests Guardian is better at identifying good entries than avoiding bad ones."
+
+      confidence_calibration:
+        n: 111
+        method: "Combined BLOCK (outcome = -market_return) + BUY (outcome = portfolio_return)"
+        quintile_results:
+          Q1: "conf 15-34, win 40.9%"
+          Q2: "conf 34-42, win 31.8%"
+          Q3: "conf 42-54, win 45.5%"
+          Q4: "conf 54-59, win 86.4%"
+          Q5: "conf 59-87, win 73.9%"
+        delta_q5_q1: "+33.0pp"
+        verdict: "CALIBRATED - confidence predicts decision quality"
+        interpretation: |
+          THIS IS THE KEY FINDING. Guardian's confidence score is
+          CALIBRATED to actual decision quality:
+            Q1-Q2 (low confidence): 31-41% win rate
+            Q4-Q5 (high confidence): 74-86% win rate
+            Delta: +33pp (far exceeds 10pp gate)
+
+          Guardian KNOWS when it is reliable. This means:
+            1. Confidence can drive Exposure Controller (Phase 2 is viable)
+            2. The Exp0C early signal (failures have lower confidence) is CONFIRMED at N=111
+            3. Guardian is SELF-AWARE - its confidence encodes reliability
+
+          NOTE: Q4 (86.4%) > Q5 (73.9%). The highest confidence (Q5)
+          slightly underperforms Q4. This may be an overconfidence effect
+          at the extreme, or a small-sample artifact (Q5 N=23). Needs
+          monitoring at larger N.
+
+    # ═══════════════════════════════════════════════════════════
+    # Evidence Level Upgrade
+    # ═══════════════════════════════════════════════════════════
+    evidence_upgrade:
+      guardian_confidence_calibration:
+        old_level: "DISCOVERY (6-S.19.2, N=8)"
+        new_level: "REPLICATION (N=111, +33pp delta)"
+        next_for_stability: "OOS validation on 2025-2026 holdout"
+        rule_6_compliance: "Has passed Discovery -> Replication. Needs OOS -> Stability for Architecture."
+      guardian_buy_alpha:
+        old_level: "DISCOVERY (6-S.19.2, N=8)"
+        new_level: "STILL DISCOVERY (N=8 unchanged, BUY data gap remains)"
+        note: "The 103 BLOCK counterfactuals don't help BUY alpha. Need more BUY episodes with candidates."
+      guardian_block_accuracy:
+        level: "NEW DISCOVERY (N=103, first measurement)"
+        finding: "54.4% correct, with PANIC over-blocking as failure mode"
+
+    # ═══════════════════════════════════════════════════════════
+    # What Autopsy v2 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_proved:
+      - "Guardian confidence IS CALIBRATED (+33pp Q5-Q1 delta, N=111). This is REPLICATION level evidence."
+      - "Guardian BLOCK is correct 54.4% of time (N=103). Not dominant, but with asymmetric payoff."
+      - "Guardian FAILS in PANIC (38.6% correct). Over-blocks - says don't buy but market recovers."
+      - "Guardian BLOCK is BEST in STABILIZING (69.2%). Knows when market is truly unstable."
+      - "Guardian BUY alpha = +1.10% (39.5% share, N=8). Directionally confirmed but still Discovery."
+      - "Confidence can drive Exposure Controller. Q4-Q5 (high conf) = 74-86% win. Q1-Q2 (low conf) = 31-41%."
+
+    what_did_not_prove:
+      - "BUY alpha at statistical significance (N=8, still Discovery)"
+      - "Whether Q4 > Q5 (overconfidence at extreme) is real or artifact"
+      - "OOS stability (needs 2025-2026 holdout analysis)"
+      - "Whether calibration holds in each market_state separately"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      CONFIDENCE CALIBRATION is the first finding to advance from
+      Discovery to Replication (N=111, +33pp delta). This validates
+      the v4.0 Exposure Controller direction: confidence CAN drive
+      position sizing.
+
+      BUT (Constitution Rule 6): Replication is NOT Stability.
+      Cannot write to genome yet. Must pass OOS (2025-2026 holdout)
+      before Architecture.
+
+      PANIC over-blocking is a NEW FAILURE MODE (Discovery level).
+      Guardian says BLOCK in PANIC but market recovers 61.4% of time.
+      This is the first concrete failure taxonomy entry. Exposure
+      Controller should REDUCE Guardian's blocking weight in PANIC
+      (or increase exposure despite BLOCK signal in PANIC).
+
+      Next steps (revised from 6-S.19.3):
+        1. OOS validation: split 111 episodes into train (2021-2024)
+           and test (2025-2026). Does calibration hold in test?
+        2. If OOS passes -> Stability -> confidence can drive Exposure
+        3. PANIC failure mode: design exposure override for PANIC state
+        4. BUY data: still N=8. Backfill more BUY episodes if possible.
+
+    # ═══════════════════════════════════════════════════════════
+    # Impact on v4.0 Roadmap
+    # ═══════════════════════════════════════════════════════════
+    roadmap_impact: |
+      The confidence calibration finding (+33pp, Replication level)
+      validates the Exposure Controller direction. Phase 2 is viable.
+
+      The PANIC failure mode (38.6% block accuracy) is the first
+      concrete failure taxonomy entry. This directly feeds Exposure
+      Controller design: in PANIC state, reduce blocking weight.
+
+      The BUY alpha gap (N=8) remains. But for Exposure Controller,
+      the BLOCK counterfactual (N=103) is equally important - it
+      tells us when NOT to deploy capital. The Exposure Controller
+      needs both BUY and BLOCK calibration, and BLOCK is now at N=103.
+
+      Revised priority:
+        Step 1: OOS validation of confidence calibration (2025-2026 holdout)
+        Step 2: If OOS passes -> design Exposure Controller with confidence
+        Step 3: PANIC failure mode -> exposure override logic
+        Step 4: Continue BUY backfill for BUY-side calibration
+
+    next_phase: "OOS validation: split 111 episodes into train (2021-2024) / test (2025-2026), verify confidence calibration holds out-of-sample. If PASS -> Stability -> Exposure Controller design."

@@ -3819,3 +3819,299 @@ freeze_history:
       philosophy.
 
     next_phase: "v4.0 Market Guardian + Recovery Regime Portfolio Engine (NOT v3.6 selection). Focus: timing alpha conversion to stable compounding curve."
+
+  v4_0_recovery_regime_intelligence_contract_freeze:
+    freeze_date: "2026-07-21"
+    commit: "6-S.19.0"
+    tag: "stock-sieve-v4.0-recovery-regime-intelligence-contract"
+    scope: "v4.0 Contract Freeze - paradigm shift from Stock Picker to Capital Allocation Intelligence"
+    freeze_status: "DESIGN FROZEN (research contract + 4-layer architecture + Evolution v4 redefinition)"
+    production: false
+
+    # ═══════════════════════════════════════════════════════════
+    # Paradigm Shift (what 6-S.18.0 achieved)
+    # ═══════════════════════════════════════════════════════════
+    paradigm_shift: |
+      6-S.18.0 completed a research paradigm migration:
+
+        OLD question: "Which stocks produce alpha?"
+        NEW question: "What market states allow alpha to appear?"
+
+      These two questions have completely different search spaces.
+      The v2-v3.5 chain searched the first and found nothing (exhaustively
+      disproved). The v4.0 chain searches the second.
+
+      This is the shift from Stock Picker to Capital Allocation
+      Intelligence System - closer to how top macro/multi-asset funds
+      actually work.
+
+      6-S.18.0's greatest significance is NOT 'we found stock selection
+      useless.' It is: Stock Sieve now knows WHAT PROBLEM it should solve.
+
+    # ═══════════════════════════════════════════════════════════
+    # System Identity (frozen)
+    # ═══════════════════════════════════════════════════════════
+    system_identity:
+      name: "Recovery Regime Intelligence System"
+      objective: "maximize risk-adjusted exposure to recovery cycles"
+      not_objective: "stock_selection_alpha"
+      philosophy: |
+        The system does not find winners. It identifies when the market
+        allows winners to appear, and adjusts exposure accordingly.
+
+        From: "which stocks to buy"
+        To:   "when to hold recovery asset exposure, and how much"
+
+    # ═══════════════════════════════════════════════════════════
+    # Four-Layer Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture:
+      layer_1_market_guardian:
+        status: "FROZEN (v1.1, 1204 episodes, P<=0=0.00%)"
+        role: "Market state detection (PANIC/STABILIZING/EARLY_RECOVERY/CONFIRMED_RECOVERY/EUPHORIA)"
+        alpha_source: "Timing - the ONLY validated alpha source"
+        constraint: "Parameters frozen. v4.0 does NOT modify Guardian itself."
+
+      layer_2_recovery_state_model:
+        status: "NEW (replaces Security Analyst selection layer)"
+        role: "FRM transition detection (deteriorating -> stable -> improving)"
+        key_insight: |
+          Alpha may come from STATE TRANSITIONS, not state values.
+          Example: -10% -> -5% -> +2% -> +8% (the SPEED of transition)
+          This is like temperature: 25°C doesn't matter; 20°C -> 25°C -> 30°C matters.
+          NOT a stock ranker - a regime transition detector.
+        prohibited: "MUST NOT use FRM score as a ranking variable (6-S.18.0)"
+
+      layer_3_exposure_controller:
+        status: "NEW (the largest opportunity in v4.0)"
+        role: "Dynamic exposure sizing based on Guardian confidence + Recovery state"
+        rationale: |
+          Since selection alpha ≈ 0 (6-S.18.0), returns come from
+          position management, not stock picking. Moving from 10% to
+          80% exposure may matter 10x more than which stocks to hold.
+        research_questions:
+          - "Guardian confidence 90% -> 80% equity; 50% -> 30% equity?"
+          - "Kelly calibration for recovery episodes"
+          - "Drawdown control during regime transitions"
+          - "Regime-based allocation (how much recovery exposure per state)"
+
+      layer_4_bayesian_portfolio:
+        status: "FROZEN (prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0)"
+        role: "Final portfolio construction"
+        constraint: "Parameters frozen until v4.0C research completes"
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Research Phases (frozen priority order)
+    # ═══════════════════════════════════════════════════════════
+    research_phases:
+      phase_0_guardian_autopsy:
+        priority: "HIGHEST (before any optimization)"
+        principle: "DO NOT optimize. DECOMPOSE first."
+        objective: "Answer: WHY does Guardian work? What alpha source does it capture?"
+        method: |
+          Build guardian_state_snapshot table. For each of 1204 episodes,
+          save market state features at signal time:
+            - valuation (PE, PB percentiles)
+            - volatility (realized vol, VIX-equivalent)
+            - liquidity (credit spread, volume)
+            - breadth (advancing/declining ratio)
+            - earnings_revision (aggregate FRM direction)
+            - sentiment (if available)
+          Classify episodes: Guardian wins vs Guardian loses.
+          Find what distinguishes success environments from failure.
+        deliverables:
+          - "guardian_state_snapshot table (1204 episodes x 6+ features)"
+          - "Guardian Attribution Report: which alpha source (risk premium / liquidity / earnings / policy)"
+          - "Guardian Regime Map: success environments vs failure environments"
+          - "Guardian failure mode taxonomy"
+        gate: "Must identify >= 1 alpha source before Phase 1"
+        why_first: |
+          Guardian's P<=0=0.00% is strong evidence, but fund-grade
+          systems need to know WHY. Without decomposition, we cannot:
+            - detect when Guardian will fail
+            - know which environments to trust it in
+            - build exposure policy on top of it
+          Decomposition BEFORE optimization is the discipline.
+
+      phase_1_frm_transition_model:
+        priority: "SECOND"
+        objective: "Test whether alpha comes from state TRANSITIONS vs state values"
+        method: |
+          Instead of FRM score = 70, track:
+            FRM transition: deteriorating -> stable -> improving
+          Compute transition SPEED (how fast state changes across periods).
+          Test if transition speed predicts regime alpha better than state value.
+        hypothesis: "Alpha is in the CHANGE (transition), not the LEVEL (state)"
+        prohibited: "MUST NOT rank stocks by FRM score (6-S.18.0). This is regime detection, not stock selection."
+        gate: "Transition model must explain > 50% of Guardian alpha to proceed"
+
+      phase_2_exposure_engine:
+        priority: "THIRD (largest opportunity)"
+        objective: "Convert timing alpha into stable compounding curve via exposure management"
+        rationale: |
+          Selection alpha ≈ 0 (proven). Returns must come from:
+            - WHEN to be in the market (Guardian, proven)
+            - HOW MUCH to be in the market (Exposure, NEW)
+          This is where Stock Sieve's product form emerges.
+        research:
+          - "Dynamic exposure: Guardian confidence -> equity allocation %"
+          - "Kelly criterion calibration for recovery episodes"
+          - "Drawdown control: max DD target per regime"
+          - "Regime-based allocation matrix (5 states x exposure %)"
+        deliverables:
+          - "Exposure Controller module"
+          - "Backtested compounding curve with dynamic exposure"
+          - "Risk-adjusted return comparison (static vs dynamic exposure)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Redefinition (NOT disabled - redefined)
+    # ═══════════════════════════════════════════════════════════
+    evolution_v4_redefined:
+      status: "ACTIVE (redefined, not disabled)"
+      rationale: |
+        6-S.18.0 said 'DISABLED'. This was too conservative. Evolution's
+        greatest value is NOT finding stocks - it is finding better
+        market state judgment. Disabling it entirely wastes that capability.
+
+        The constitution (6-S.18.0) prohibits stock selection evolution.
+        It does NOT prohibit regime/timing/exposure evolution. The
+        correct response is to CONSTRAIN Evolution's scope, not disable it.
+      allowed_scope:
+        - "regime_detection (Guardian parameter tuning)"
+        - "timing_model (state transition optimization)"
+        - "exposure_policy (allocation % per state)"
+        - "risk_control (drawdown management)"
+      forbidden_scope:
+        - "stock_ranking (6-S.18.0: all ranking variables disproved)"
+        - "alpha_factor_generation (6-S.18.0: all factors disproved)"
+        - "security_selection (6-S.18.0: selection alpha ≈ 0)"
+      constitution_validator: |
+        Every Evolution v4 candidate genome MUST pass the Constitution
+        Validator before backtest:
+          1. Does it use any PROHIBITED belief? -> REJECT
+          2. Does it treat a state variable as ranking variable? -> REJECT
+          3. Does it add a stock selection factor? -> REJECT
+          4. Does it operate within allowed scope? -> ACCEPT
+
+        This prevents the AI's greatest risk: forgetting what it already
+        knows is wrong. Without the validator, Evolution might re-invent
+        FRM score ranking, RS gate, or sustainability filter - all disproved.
+
+    # ═══════════════════════════════════════════════════════════
+    # Negative Knowledge Base (frozen asset)
+    # ═══════════════════════════════════════════════════════════
+    negative_knowledge_base: |
+      The v2-v3.5 chain produced a Negative Knowledge Base - knowledge
+      about what does NOT work. This is more valuable than an alpha
+      factor library because:
+        - Alpha factors decay (market adapts)
+        - Negative knowledge is permanent (mathematical proofs don't decay)
+        - It prevents wasted engineering on disproven approaches
+
+      The 7 rejected beliefs (6-S.18.0) ARE the asset. They are the
+      immune system that prevents the Investment Brain from being
+      infected by disproven ideas.
+
+      Many quantitative systems fail not because they lack alpha, but
+      because they accumulate 100 factors with 0 understanding. Stock
+      Sieve has 0 selection factors with complete understanding of why.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited Actions (frozen, extends 6-S.18.0)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_stock_selection_factors: "MUST NOT add new stock selection factors (6-S.18.0)"
+      no_ranking_models: "MUST NOT build ranking models using state variables (6-S.18.0)"
+      no_selection_personas: "MUST NOT create new stock selection personas (6-S.18.0)"
+      no_guardian_modification_before_autopsy: "MUST NOT modify Guardian parameters before Phase 0 Autopsy completes"
+      no_optimization_before_decomposition: "MUST NOT optimize Guardian before decomposing its alpha source"
+      no_evolution_without_constitution_validator: "MUST NOT run Evolution v4 without Constitution Validator"
+      no_market_guardian_changes: "MUST NOT modify StateTransitionEngine / RecoveryConfidence (v1.1 frozen)"
+      no_kill_uw_changes: "MUST NOT modify KillCriteria / DoctrineUnderwriter signatures"
+
+    # ═══════════════════════════════════════════════════════════
+    # Allowed Changes
+    # ═══════════════════════════════════════════════════════════
+    allowed_changes:
+      - "migrations/guardian_state_snapshot.sql: NEW table (episode-level market state features)"
+      - "scripts/run_guardian_autopsy.py: NEW (decompose Guardian alpha source)"
+      - "src/thesis/recovery_transition.py: NEW (FRM state transition model)"
+      - "src/thesis/exposure_controller.py: NEW (dynamic exposure sizing)"
+      - "src/evolution/constitution_validator.py: NEW (Evolution v4 gate)"
+      - "src/thesis/market_recovery.py: READ-ONLY analysis (no parameter changes until Phase 0 complete)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Validation Gates (frozen)
+    # ═══════════════════════════════════════════════════════════
+    validation_gates:
+      v4_0_a_guardian_alpha_source_identified:
+        test: "Phase 0 identifies >= 1 alpha source (risk premium / liquidity / earnings / policy)"
+        required: "Attribution report shows which source drives Guardian alpha"
+        failure: "Cannot proceed to Phase 1. Guardian remains black-box timing."
+      v4_0_b_transition_explains_alpha:
+        test: "FRM transition model explains > 50% of Guardian alpha"
+        required: "transition_speed R² > 0.50 vs Guardian episode alpha"
+        failure: "Transitions do not explain alpha. Keep state-value gate."
+      v4_0_c_exposure_beats_static:
+        test: "Dynamic exposure beats static (always-full) exposure on risk-adjusted return"
+        required: "Sharpe(dynamic) > Sharpe(static) AND maxDD(dynamic) < maxDD(static)"
+        failure: "Dynamic exposure does not help. Keep static allocation."
+
+    # ═══════════════════════════════════════════════════════════
+    # Decision Tree
+    # ═══════════════════════════════════════════════════════════
+    decision_tree:
+      all_three_pass:
+        action: "v4.0 Recovery Regime Intelligence System - production ready"
+        architecture: "Guardian -> Recovery Transition -> Exposure Controller -> Bayesian Portfolio"
+        implication: "Timing alpha converted to stable compounding curve. Product form achieved."
+      phase_0_fails:
+        action: "Guardian alpha source not identifiable. Keep as black-box."
+        fallback: "Accept timing alpha as empirical (not decomposed). Proceed to Phase 2 (exposure) directly."
+      phase_1_fails:
+        action: "Transitions do not explain alpha. State-value gate stays."
+        fallback: "FRM direction gate remains as-is. Proceed to Phase 2 (exposure)."
+      phase_2_fails:
+        action: "Dynamic exposure does not improve risk-adjusted return."
+        fallback: "Static allocation. Guardian timing + FRM gate + fixed exposure = final system."
+      all_fail:
+        action: "v4.0 does not improve beyond v1.1. Accept current system as final."
+        fallback: "Market Guardian (v1.1) + FRM gate + static portfolio = the product. No further optimization."
+
+    # ═══════════════════════════════════════════════════════════
+    # No-Touch Boundary (frozen)
+    # ═══════════════════════════════════════════════════════════
+    no_touch_boundary:
+      market_guardian: "StateTransitionEngine + RecoveryConfidence (v1.1 frozen) - READ-ONLY until Phase 0"
+      kill_criteria: "4 hard vetoes (frozen)"
+      doctrine_underwriter: "explanation_only mode"
+      bayesian_allocation: "prior_alpha=2.0, prior_beta=2.0, softmax_temperature=10.0 (frozen until Phase 2)"
+      constitution: "6-S.18.0 rejected beliefs are PERMANENT - no unfreezing"
+
+    # ═══════════════════════════════════════════════════════════
+    # What This Contract Achieves
+    # ═══════════════════════════════════════════════════════════
+    contract_summary: |
+      This contract formalizes Stock Sieve's transition from a stock
+      selection research system to a capital allocation intelligence system.
+
+      The search space has changed:
+        OLD: "which stocks produce alpha?" (exhaustively searched, nothing found)
+        NEW: "what market states allow alpha, and how much exposure?" (unsearched)
+
+      The architecture has changed:
+        OLD: Guardian + Security Analyst (selection) + Portfolio
+        NEW: Guardian + Recovery State + Exposure Controller + Portfolio
+
+      The evolution policy has changed:
+        OLD: disabled entirely (too conservative)
+        NEW: active but constrained by Constitution Validator
+
+      The negative knowledge base (7 rejected beliefs) is the permanent
+      asset that prevents regression. This is the immune system.
+
+      v4.0's goal: convert confirmed timing alpha into a stable
+      compounding curve. NOT to find new alpha, but to EXTRACT the
+      alpha we already have.
+
+    next_phase: "Phase 0: Guardian Autopsy - build guardian_state_snapshot table, decompose 1204 episodes, identify alpha source"

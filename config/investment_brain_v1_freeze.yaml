@@ -8283,3 +8283,173 @@ freeze_history:
       In investing, the former makes strategies. The latter makes systems.
 
     next_phase: "v4.0 DEFINITIVELY CLOSED. Phase 4 paper trading begins. The test is not intelligence - it is discipline. 6 months. One question: did it violate its own boundaries?"
+
+  v4_0_anti_rule_creep_and_absolute_closure:
+    freeze_date: "2026-07-22"
+    commit: "6-S.26.0"
+    tag: "stock-sieve-v4.0-absolute-final"
+    scope: "Anti-Rule-Creep Clause + Decision History as primary asset + Phase 4 three questions + absolute final closure"
+    freeze_status: "ABSOLUTE FINAL FREEZE (52 entries; no more rules; no more theory; Phase 4 execution only)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Anti-Rule-Creep Clause (frozen, the most important operational discipline)
+    # ═══════════════════════════════════════════════════════════
+    anti_rule_creep: |
+      v4.0's greatest achievement is STOPPING the infinite addition
+      of rules. 11 Constitution rules + 52 freeze entries = enough.
+
+      The most dangerous Phase 4 failure mode is NOT model failure.
+      It is RULE CREEP:
+
+        One bad trade -> 'add a new rule to prevent this'
+        Market crash -> 'add exception for extreme conditions'
+        MUS looks useful -> 'add MUS as soft signal'
+        Three months of boredom -> 'add optimization layer'
+
+      Each addition seems reasonable in isolation. Together, they
+      rebuild the complexity that v2-v3.5 died from.
+
+      FROZEN CLAUSE: No new Constitution rules without:
+        1. Discovery (observed pattern)
+        2. Replication (independent sample)
+        3. OOS validation (holdout period)
+        4. Stability (cross-regime)
+        5. Belief Audit review (is this a real need or anxiety?)
+
+      AND: any new rule must answer: 'what existing rule does this
+      replace?' (addition requires subtraction to prevent bloat).
+
+      The system is COMPLETE. The temptation to 'improve' it is the
+      greatest threat to its integrity.
+
+    # ═══════════════════════════════════════════════════════════
+    # Decision History as Primary Asset (frozen)
+    # ═══════════════════════════════════════════════════════════
+    decision_history_as_asset: |
+      The most valuable long-term data from Phase 4 is NOT:
+        - price history (available anywhere)
+        - factor history (decays)
+        - return history (noisy)
+
+      It IS: Decision History.
+
+      Each decision recorded with:
+        - action taken
+        - source (Guardian/FRM/Policy)
+        - forbidden influence check (MUS/emotion/news = none?)
+        - timestamp
+        - market context
+
+      Over years, this builds an INVESTMENT DECISION BEHAVIOR DATABASE.
+      This is closer to real institutional investment process than
+      traditional backtesting. It captures not just what happened,
+      but WHY each decision was made and whether the reasoning was
+      constitutionally valid.
+
+      This database is the system's long-term memory. It is what
+      future Evolution v4 (if ever activated) would learn from:
+        not 'which factors predicted returns'
+        but 'which decision patterns maintained discipline'
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 4 Three Questions (frozen, replace all other KPIs)
+    # ═══════════════════════════════════════════════════════════
+    phase_4_three_questions: |
+      After 6 months, ask ONLY these three questions (in order):
+
+      Q1: Did MUS ever change a trading action?
+          YES -> FAIL. Discipline broke. Not model failure - governance failure.
+          NO  -> Continue to Q2.
+
+      Q2: Did a market event trigger rule modification?
+          (e.g., 'crash happened, add exception rule')
+          YES -> FAIL. Rule creep. The system that 'stops infinite rules'
+                 was itself adding rules.
+          NO  -> Continue to Q3.
+
+      Q3: Did a single bad trade trigger a new rule?
+          YES -> Re-enter Belief Audit. The system is reverting to
+                 'add complexity to fix outcomes' mode.
+          NO  -> PASS. The system maintained discipline under pressure.
+
+      If all three are NO: Stock Sieve transitioned from research
+      code to system. Not because it was smart, but because it was
+      disciplined.
+
+      Returns are NOT asked. v4.0 is not an alpha engine.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Architecture Is Closer to Investment Committee Than Trading Robot (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture_identity: |
+      The final architecture resembles CIO + Risk Committee + Portfolio
+      Construction, NOT an automated trading robot.
+
+      State Layer (MUS): like a risk dashboard on CIO's screen
+      Timing Layer (Guardian): like CIO's market view
+      Recovery Layer (FRM): like investment committee's filter
+      Capital Layer (Portfolio): like portfolio construction team
+
+      The system does NOT auto-trade. It advises, flags, and allocates
+      statically. The human retains override authority BUT every
+      override is logged and audited.
+
+      This is governance architecture, not trading architecture.
+
+    # ═══════════════════════════════════════════════════════════
+    # Negative Knowledge Base Is the Uncopyable Asset (frozen)
+    # ═══════════════════════════════════════════════════════════
+    negative_knowledge_is_uncopyable: |
+      Competitors can copy:
+        - Guardian indicator (published in v1.1)
+        - FRM formula (in source code)
+        - Bayesian Portfolio (standard)
+
+      Competitors CANNOT copy:
+        - Why MUS must not be used as a trading signal (requires
+          running Gate 1.5 and seeing Test 4 fail)
+        - Why Mid×Mid was an artifact (requires N=194 falsification)
+        - Why stock selection has no value (requires entire v3 chain)
+        - Why dynamic exposure is prohibited (requires Belief Audit)
+
+      This knowledge was paid for in failed experiments, statistical
+      falsification, and architectural contraction. It is embedded in
+      52 freeze entries and 11 Constitution rules. It cannot be
+      extracted by reading code alone - it requires understanding
+      WHY each rule exists.
+
+      This is Stock Sieve's moat. Not a better model. A deeper
+      understanding of what models cannot do.
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Status (absolute final)
+    # ═══════════════════════════════════════════════════════════
+    absolute_final_status:
+      identity: "Self-Aware Market Timing System"
+      mission: "Recognize recovery states while preserving epistemic boundaries"
+      strength: "Knowing where signals stop being reliable"
+      weakness: "Human interpretation drift"
+      governance: "Constitution + Belief Audit + Anti-Rule-Creep"
+      research: "COMPLETE (52 freeze entries)"
+      operational: "Paper Trading Ready"
+      uncopyable_asset: "Negative Knowledge Base"
+      freeze_entries: 52
+
+    # ═══════════════════════════════════════════════════════════
+    # The Absolute Final Statement (frozen)
+    # ═══════════════════════════════════════════════════════════
+    absolute_final_statement: |
+      6-S.26.0's greatest significance:
+
+      NOT proving Stock Sieve found the answer.
+      PROVING it knows which answers should not be believed.
+
+      This is the dividing line between a research project and a system.
+
+      No more rules. No more theory. No more architecture.
+      Phase 4: observe whether a system that knows its boundaries
+      can maintain them under real market pressure.
+
+      The test is not intelligence. It is discipline.
+
+    next_phase: "ABSOLUTE FINAL. No further freeze entries. Phase 4 paper trading begins. 6 months. 3 questions. No rule additions."

@@ -7888,3 +7888,150 @@ freeze_history:
       That is the Belief Audit's gift to Stock Sieve.
 
     next_phase: "v4.0 COMPLETE. Ready for paper trading. v4.1 (Gate 1.6 State Decomposition) in research backlog. No further v4.0 work needed."
+
+  v4_0_research_heritage_and_operational_validation:
+    freeze_date: "2026-07-22"
+    commit: "6-S.23.0"
+    tag: "stock-sieve-v4.0-research-heritage"
+    scope: "Market State Non-Identifiability Principle + Operational Validation Phase design + final system label"
+    freeze_status: "RESEARCH HERITAGE FROZEN (system axiom defined; operational validation designed; v4.0 transitions from research to system phase)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Market State Non-Identifiability Principle (frozen axiom)
+    # ═══════════════════════════════════════════════════════════
+    market_state_non_identifiability_principle: |
+      THE RESEARCH HERITAGE. Stock Sieve's most important contribution.
+
+      When a variable primarily explains WHAT STATE the market is in,
+      rather than WHICH DIRECTION returns will go, that variable MUST
+      NOT be directly converted into a capital action.
+
+      Formal:
+        Signal S
+        If Information(S, Future State) is HIGH
+        but Information(S, Return Direction) is UNSTABLE
+        Then: S belongs to State Layer, NOT Allocation Layer.
+
+      This principle summarizes the entire v2-v4 chain:
+        - Every signal that identifies extremes (cheap, quality, gap,
+          FRM, ARS) carries high state information but unstable
+          directional information
+        - Every attempt to use these as allocation rules failed
+        - The failure is not model weakness - it is a market property:
+          extreme states contain both risk and opportunity
+
+      This is more durable than any alpha factor because it describes
+      a structural market property, not a statistical pattern that
+      can decay.
+
+      This axiom is the intellectual core of Stock Sieve. It is the
+      reason the system has boundaries. It is what makes the system
+      honest.
+
+    # ═══════════════════════════════════════════════════════════
+    # Architecture Diagram (corrected, frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture_diagram: |
+      MUS is NOT in the capital flow. It is a SIDEBAR - parallel
+      information that influences ATTENTION, not transactions.
+
+            Market State Layer (sidebar, not capital flow)
+
+                        MUS
+                         |
+           (influences attention, not transactions)
+
+      Timing Layer    Recovery Layer
+      Guardian  --------  FRM
+                         |
+      ------------------ |
+                         v
+                   Capital Layer
+              Static Bayesian Portfolio
+
+      MUS is like a pressure gauge on a fund manager's screen:
+      market stress index, volatility state, liquidity state.
+      It affects WHERE the manager looks, not WHAT they buy.
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 4: Operational Validation (frozen design)
+    # ═══════════════════════════════════════════════════════════
+    phase_4_operational_validation:
+      purpose: |
+        v4.0's research is complete. The next question is NOT 'more
+        intelligence' but 'does the system maintain discipline under
+        real market pressure?'
+
+        The most dangerous failure mode is not the model. It is:
+          MUS high -> human thinks 'this time is special' ->
+          secretly uses MUS as trading signal -> old path returns
+
+        Operational Validation tests whether the SYSTEM (including
+        the human) can maintain constitutional discipline.
+
+      three_validations:
+        validation_1_guardian_stability:
+          question: "Does Guardian maintain signal frequency and accuracy in live conditions?"
+          metrics: ["signal_frequency", "false_recovery_count", "detection_latency"]
+          concern: "Historical stability does not guarantee future stability"
+
+        validation_2_frm_incremental_value:
+          question: "Does FRM still reduce wrong recovery judgments (not 'FRM high -> up')?"
+          metrics: ["deteriorating_rejection_rate", "improving_accuracy"]
+          concern: "FRM is a gate, not a ranker. Verify it gates correctly."
+
+        validation_3_constitution_compliance:
+          question: "Does the human/system resist the temptation to misuse state descriptors as allocation rules?"
+          metrics: ["constitution_violation_count", "manual_override_frequency", "mus_as_signal_attempts"]
+          concern: "This is the easiest failure point. The human will be tempted to 'optimize' by using MUS for trading. The Constitution must hold."
+          enforcement: "Monthly Constitution audit. Any violation logged and reviewed."
+
+      success_criteria:
+        paper_trading_duration: ">= 6 months"
+        guardian_stable: "signal frequency within historical range +/- 20%"
+        frm_effective: "deteriorating stocks still rejected at >= 90% rate"
+        constitution_held: "zero unauthorized use of MUS/ARS as capital signal"
+        no_dynamic_exposure: "allocation remains static throughout"
+
+      failure_scenarios:
+        guardian_drift: "Guardian signal frequency changes > 50% -> investigate regime shift"
+        frm_degradation: "FRM stops rejecting deteriorating -> revalidate FRM"
+        constitution_breach: "MUS used for trading -> STOP. Review why discipline broke."
+        human_override: "Manual position adjustment based on MUS -> Constitution violation. Log and correct."
+
+    # ═══════════════════════════════════════════════════════════
+    # Final System Label (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_label:
+      name: "Stock Sieve v4.0"
+      type: "Recovery Timing Intelligence System"
+      primary_capability: "Market regime recognition"
+      secondary_capability: "Uncertainty awareness"
+      capital_authority: "Static only"
+      forbidden: ["Alpha ranking", "Dynamic exposure", "Risk filtering"]
+      research_status: "Validated boundaries"
+      operational_status: "Paper Trading Ready"
+      deepest_knowledge: "Extreme states contain both risk and opportunity. No single signal can separate them."
+      research_heritage: "Market State Non-Identifiability Principle"
+
+    # ═══════════════════════════════════════════════════════════
+    # Why This Is a Success (frozen, final)
+    # ═══════════════════════════════════════════════════════════
+    why_success: |
+      v4.0's greatest success is NOT finding a 'money-making formula'.
+      It is building an investment system that does not easily deceive itself.
+
+      The system completed a rare evolution:
+        From: 'find patterns that make money'
+        To:   'know which patterns cannot be used to make money'
+
+      This is the sign of a maturing investment research process.
+
+      The next phase is not more intelligence. It is testing whether
+      a system that knows what it doesn't know can maintain that
+      discipline under real market pressure.
+
+      That is the true dividing line between a research project
+      and a system.
+
+    next_phase: "Phase 4: Operational Validation (paper trading >= 6 months). Verify Guardian stability, FRM effectiveness, and Constitution compliance under real conditions. The test is not intelligence - it is discipline."

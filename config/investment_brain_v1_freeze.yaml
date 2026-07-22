@@ -6105,3 +6105,161 @@ freeze_history:
       no_evolution_without_10_rules: "MUST NOT run Evolution v4 without 10-rule Constitution Validator"
 
     next_phase: "Gate 1: Implement and run Exp0E (4 sub-tests) - the Self-Knowledge Gate. If PASS, proceed to Gate 2 (Capital Translation simulation)."
+
+  v4_0_gate1_exp0e_execution_contract:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.0"
+    tag: "stock-sieve-v4.0-gate1-exp0e-execution"
+    scope: "Gate 1 Execution Contract - Data Integrity Check + ordered subtests + modified success criteria"
+    freeze_status: "EXECUTION CONTRACT FROZEN (the Self-Knowledge Gate - does the system know when it is wrong?)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Purpose (frozen)
+    # ═══════════════════════════════════════════════════════════
+    purpose: |
+      Gate 1 answers: does the system possess stable self-cognition?
+
+      NOT: 'Does Guardian make money?' (answered: v1.1, 1204 episodes)
+      BUT: 'Does confidence predict when Guardian is reliable?'
+
+      The evidence body is NOT BUY returns alone. It is the confidence
+      ranking -> outcome reliability mapping, which uses the FULL
+      decision ledger (103 BLOCK counterfactuals + 8 BUY actuals = 111).
+
+      BLOCK counterfactuals are equally valuable: they answer 'when
+      Guardian chose not to bet, did it know why?' This is a CIO-level
+      question.
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 0: Data Integrity Check (frozen, runs before Exp0E)
+    # ═══════════════════════════════════════════════════════════
+    gate_0_data_integrity:
+      principle: "Do NOT optimize evidence. First judge whether existing evidence can answer the question."
+      checks:
+        decision_ledger_completeness:
+          buy_episodes: "all 150 exist in shadow_episode (yes)"
+          block_counterfactual: "103 with non-zero market_return (sufficient for analysis)"
+          buy_with_return: "8 with non-zero portfolio_return (LIMITATION, not blocker)"
+          total_usable: "111 (meets Data Readiness N>=100)"
+        confidence_temporal_purity:
+          rule: "Rule 8: all confidence inputs must have timestamp <= decision timestamp"
+          status: "Guardian confidence computed at signal time from market data available at that time. No future leakage identified in v1.1 architecture."
+          action: "verify programmatically before Exp0E"
+        outcome_horizon:
+          standard: "T+20 trading days (consistent across all episodes)"
+          check: "all non-zero outcomes use same horizon"
+        market_state:
+          coverage: "all 111 episodes have market_state field populated"
+      verdict_rules:
+        pass: "All checks met -> proceed to Exp0E"
+        buy_limitation: "If BUY N<30, mark as Gate 1 limitation (not blocker). BLOCK counterfactuals (N=103) carry the primary calibration evidence."
+        blocker: "If temporal purity violation found -> BLOCKER. Fix before Exp0E."
+      current_assessment: "PASS with BUY limitation (N=8 BUY, N=103 BLOCK). BLOCK counterfactuals are the primary evidence body."
+
+    # ═══════════════════════════════════════════════════════════
+    # Subtest Order (frozen, by information value)
+    # ═══════════════════════════════════════════════════════════
+    subtest_order:
+      rationale: |
+        Do NOT run all 4 simultaneously. Order by information value:
+        1. Stability (is it real at all?)
+        2. Regime Conditional (where does it work/fail?)
+        3. Curve Shape (what is the shape? only if stable)
+        4. Half-life (how long does it last? only if shape known)
+
+        If stability fails, the others are irrelevant.
+
+      exp0e_1_stability:
+        order: 1
+        question: "Is +33pp calibration stable across years, or a period artifact?"
+        method: "For each year (2021-2026), compute (high_conf_win - low_conf_win)."
+        output: "Yearly calibration delta series"
+        minimum_n_per_year: 5
+
+      exp0e_3_regime_conditional:
+        order: 2
+        question: "Does calibration hold in each market_state separately?"
+        method: "For each regime, compute confidence quintile -> win rate."
+        output: "Per-regime calibration delta"
+        minimum_n_per_regime: 10
+        why_second: "v4's biggest risk: confidence may only work in one regime. This tells Exposure Controller WHERE confidence is reliable."
+
+      exp0e_2_curve_shape:
+        order: 3
+        question: "Is confidence->outcome linear or inverted-U?"
+        method: "10-bin confidence -> actual win rate. Test linearity vs inverted-U."
+        output: "Calibration curve shape classification"
+        why_third: "Q4>Q5 is interesting but only worth studying if stability holds. If 2025 shows Q5>Q4, the inversion was sampling noise."
+
+      exp0e_4_half_life:
+        order: 4
+        question: "How long does calibration remain valid?"
+        method: "Rolling 24m train / 6m test, fit exponential decay."
+        output: "Confidence half-life in months"
+        why_last: "Half-life of a non-stable signal is meaningless. Depends on 1-3."
+
+    # ═══════════════════════════════════════════════════════════
+    # Modified Success Criteria (frozen, stricter than 6-S.19.7)
+    # ═══════════════════════════════════════════════════════════
+    modified_success_criteria:
+      rationale: "delta > 0 is too loose. Need multi-dimensional checks."
+
+      criterion_1_overall_delta:
+        test: "High confidence - Low confidence >= 15pp (overall)"
+        required: ">= 15pp (was +33pp at N=111, but OOS may be lower)"
+
+      criterion_2_temporal_stability:
+        test: "At least 4 of 6 years have delta > 0"
+        required: "4/6 years positive"
+        failure: "calibration is period-specific (like Mid×Mid)"
+
+      criterion_3_regime_coverage:
+        test: "At least 2 of 3 major regimes have positive delta"
+        required: "2/3 regimes positive (PANIC/STABILIZING/CONFIRMED_RECOVERY)"
+        failure: "confidence only works in one regime. Must condition exposure."
+
+      criterion_4_no_catastrophic_reversal:
+        test: "No year where high_conf win < low_conf win - 20pp"
+        required: "no catastrophic inversion"
+        failure: "confidence is anti-predictive in some period. Dangerous to use."
+
+      overall_verdict:
+        all_pass: "Gate 1 PASS. Confidence advances: Replication -> Stability candidate."
+        partial: "Gate 1 PARTIAL. Some criteria fail. Analyze which and whether fixable."
+        fail: "Gate 1 FAIL. Confidence is not self-knowledge. No Exposure Controller."
+
+      important_note: |
+        'Stability candidate' is NOT final Stability. Gate 2 (Capital
+        Translation) must also pass before Architecture-level evidence.
+        Per Rule 10: Capital Cannot Exceed Evidence. Current evidence
+        chain is ★★★☆☆. Cannot deploy ★★★★★ capital.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited (frozen)
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_exposure_optimization: "MUST NOT design or optimize Exposure Controller during Gate 1. Gate 2 is blocked until Gate 1 passes."
+      no_buy_data_as_blocker: "MUST NOT block Gate 1 on BUY data. BLOCK counterfactuals (N=103) are primary evidence. BUY limitation is noted, not blocking."
+      no_identity_before_gate1: "MUST NOT assign 'self-cognition' identity before Gate 1 passes."
+      no_simultaneous_subtests: "MUST NOT run all 4 subtests simultaneously. Run in order (1->3->2->4)."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_10_rules: "MUST NOT run Evolution without 10-rule Validator."
+
+    # ═══════════════════════════════════════════════════════════
+    # The Core Question (frozen)
+    # ═══════════════════════════════════════════════════════════
+    core_question: |
+      Stock Sieve's most important discipline remains:
+
+        Do NOT prove it is smart.
+        First prove it knows when it is NOT smart.
+
+      Gate 1 tests exactly this. The system does not need to prove
+      it always predicts correctly. It needs to prove it knows when
+      it might be wrong, and that this knowledge is STABLE (not a
+      period artifact).
+
+      The question is not 'Guardian会不会赚钱' but:
+        '这个系统是否拥有资格管理自己的错误。'
+
+    next_phase: "Implement run_gate1_exp0e.py: Gate 0 (data integrity check) then Exp0E-1 (stability), Exp0E-3 (regime), Exp0E-2 (curve), Exp0E-4 (half-life) in order."

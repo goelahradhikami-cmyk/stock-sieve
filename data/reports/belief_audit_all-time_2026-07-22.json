@@ -1,0 +1,93 @@
+{
+  "audit_date": "2026-07-22",
+  "period": "all-time",
+  "n_episodes": 1204,
+  "section_a": {
+    "violations": 0,
+    "verdict": "PASS",
+    "buy_count": 150,
+    "block_count": 1054,
+    "within_band_results": {
+      "normal": {
+        "n": 111,
+        "corr": 0.0,
+        "constant_target": 0.6
+      },
+      "full": {
+        "n": 39,
+        "corr": 0.0,
+        "constant_target": 1.0
+      }
+    }
+  },
+  "section_b": {
+    "verdict": "PASS",
+    "forbidden_reasons": [],
+    "reason_counts": {
+      "LOW_CONFIDENCE": 559,
+      "VOL_NOT_REPAIRING": 239,
+      "TREND_NOT_CONFIRMED": 139,
+      "no_reason_code": 470,
+      "RECOVERY_CONFIRMED": 150
+    }
+  },
+  "section_c": {
+    "verdict": "PASS",
+    "cross_band_corr": 0.8693371121198429,
+    "max_within_band_corr": 0.0,
+    "monthly_trend": [
+      {
+        "month": "2022-07",
+        "n": 19,
+        "cross_corr": 0.7601439842758085
+      },
+      {
+        "month": "2023-01",
+        "n": 15,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2024-04",
+        "n": 5,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2024-07",
+        "n": 6,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2025-05",
+        "n": 17,
+        "cross_corr": 0.5361150554252906
+      },
+      {
+        "month": "2025-06",
+        "n": 18,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2025-07",
+        "n": 23,
+        "cross_corr": 0.9399865017444181
+      },
+      {
+        "month": "2025-08",
+        "n": 11,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2026-01",
+        "n": 11,
+        "cross_corr": 0.0
+      },
+      {
+        "month": "2026-05",
+        "n": 7,
+        "cross_corr": 0.0
+      }
+    ]
+  },
+  "overall": "PASS",
+  "violations": 0
+}

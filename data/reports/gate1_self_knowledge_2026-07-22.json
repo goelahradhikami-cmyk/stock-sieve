@@ -1,0 +1,98 @@
+{
+  "commit": "6-S.20.1",
+  "experiment": "gate1_self_knowledge",
+  "date": "2026-07-22",
+  "evidence_ladder": {
+    "gate_0": "PASS",
+    "gate_0_5": "INCONSISTENT",
+    "exp0e_1": "FAIL",
+    "exp0e_1_evidence": "Replication (unchanged)",
+    "exp0e_3": "SKIPPED (Exp0E-1 failed)",
+    "exp0e_2": "SKIPPED",
+    "exp0e_4": "SKIPPED",
+    "architecture_permission": {
+      "exposure_controller": "BLOCKED"
+    }
+  },
+  "gate_0": {
+    "total_episodes": 111,
+    "block_count": 103,
+    "buy_count": 8,
+    "confidence_coverage": "111/111",
+    "confidence_pass": true,
+    "market_state_coverage": "108/111",
+    "ms_pass": true,
+    "outcome_coverage": "111/111",
+    "outcome_pass": true,
+    "buy_limitation": true,
+    "buy_limitation_note": "BUY N=8 (limitation, not blocker). BLOCK N=103 is primary evidence.",
+    "verdict": "PASS"
+  },
+  "gate_0_5": {
+    "BUY": {
+      "n": 8,
+      "median_conf": 69.11419478592262,
+      "high_conf_win_rate": 75.0,
+      "low_conf_win_rate": 75.0,
+      "delta": 0.0
+    },
+    "BLOCK": {
+      "n": 103,
+      "median_conf": 45.54274279592967,
+      "high_conf_win_rate": 71.15384615384616,
+      "low_conf_win_rate": 37.254901960784316,
+      "delta": 33.898944193061844
+    },
+    "consistent": false,
+    "verdict": "INCONSISTENT"
+  },
+  "exp0e_1": {
+    "overall_delta": 33.00395256916997,
+    "yearly": {
+      "2021": {
+        "n": 4,
+        "skipped": true,
+        "note": "high=1, low=2"
+      },
+      "2022": {
+        "n": 36,
+        "high_wr": 50.0,
+        "low_wr": 40.0,
+        "delta": 10.0
+      },
+      "2023": {
+        "n": 14,
+        "skipped": true,
+        "note": "high=6, low=0"
+      },
+      "2024": {
+        "n": 31,
+        "skipped": true,
+        "note": "high=5, low=0"
+      },
+      "2025": {
+        "n": 17,
+        "high_wr": 57.142857142857146,
+        "low_wr": 0.0,
+        "delta": 57.142857142857146
+      },
+      "2026": {
+        "n": 9,
+        "high_wr": 50.0,
+        "low_wr": 100.0,
+        "delta": -50.0
+      }
+    },
+    "criteria": {
+      "c1_overall_delta_15": true,
+      "c2_temporal_4of6": false,
+      "c2_positive_years": "2/3",
+      "c4_no_catastrophe": false,
+      "verdict": "FAIL",
+      "evidence_level": "Replication (unchanged)"
+    }
+  },
+  "exp0e_3": null,
+  "exp0e_2": null,
+  "exp0e_4": null
+}

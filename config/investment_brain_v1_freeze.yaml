@@ -6263,3 +6263,199 @@ freeze_history:
         '这个系统是否拥有资格管理自己的错误。'
 
     next_phase: "Implement run_gate1_exp0e.py: Gate 0 (data integrity check) then Exp0E-1 (stability), Exp0E-3 (regime), Exp0E-2 (curve), Exp0E-4 (half-life) in order."
+
+  v4_0_gate1_contract_amendment:
+    amend_date: "2026-07-22"
+    commit: "6-S.20.0a"
+    tag: "stock-sieve-v4.0-gate1-amendment"
+    scope: "Gate 0.5 Decision Semantics + Evidence Ladder output format + calibration spread decay"
+    freeze_status: "AMENDMENT FROZEN (adds semantic consistency check and structured output)"
+
+    gate_0_5_decision_semantics:
+      purpose: |
+        Confidence is a meta-signal: 'predict the reliability of prediction'.
+        Its meaning MUST be consistent across BUY and BLOCK:
+
+          BUY high confidence -> higher forward return (more reliable buy)
+          BLOCK high confidence -> lower counterfactual return (more reliable block)
+
+        If BUY confidence is predictive but BLOCK confidence is anti-predictive
+        (or vice versa), confidence is NOT a meta-signal - it is an
+        action-dependent score. This would invalidate the entire v4.0 architecture.
+
+      check: "Compare confidence-outcome direction in BUY vs BLOCK subsets. Must be same direction."
+      failure_implication: "confidence is action-dependent, not a true meta-signal. Architecture invalid."
+
+    evidence_ladder_output:
+      purpose: "Avoid single experiment changing system identity. Output structured evidence levels."
+      format:
+        gate_0_data_integrity: "PASS / FAIL"
+        gate_0_5_semantics: "CONSISTENT / INCONSISTENT"
+        exp0e_1_stability: "PASS / FAIL -> evidence_level (Discovery/Replication/Stability_candidate)"
+        exp0e_3_regime: "PASS / FAIL -> boundary map"
+        exp0e_2_curve: "LINEAR / INVERTED_U / NOISE"
+        exp0e_4_half_life: "months (or N/A if unstable)"
+        architecture_permission:
+          exposure_controller: "ALLOWED / BLOCKED"
+
+    exp0e_1_enhanced_output:
+      addition: "Calibration Spread Decay curve (not just delta per year)"
+      output: "Spread(t) = HighConfAccuracy(t) - LowConfAccuracy(t), plotted 2021-2026"
+      focus: "average level, volatility, TREND (decaying?)"
+      why: "Overall +33pp may hide decay: 2021 +40pp, 2025 -5pp. Trend matters more than level."
+
+    next_phase: "Implement run_gate1_exp0e.py with Gate 0 + 0.5 + Exp0E 1/3/2/4, output Evidence Ladder"
+
+  v4_0_gate1_results:
+    gate_date: "2026-07-22"
+    commit: "6-S.20.1"
+    tag: "stock-sieve-v4.0-gate1-results"
+    scope: "Gate 1 Self-Knowledge Gate results - the qualification test"
+    freeze_status: "DIAGNOSTIC_BASELINE (Gate 1 FAIL - confidence is NOT stable self-knowledge; Exposure Controller BLOCKED)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Evidence Ladder (frozen output)
+    # ═══════════════════════════════════════════════════════════
+    evidence_ladder:
+      gate_0_data_integrity: "PASS"
+      gate_0_5_decision_semantics: "INCONSISTENT"
+      exp0e_1_stability: "FAIL"
+      exp0e_1_evidence_level: "Replication (unchanged, cannot advance to Stability)"
+      exp0e_3_regime: "SKIPPED (Exp0E-1 failed)"
+      exp0e_2_curve: "SKIPPED"
+      exp0e_4_half_life: "SKIPPED"
+      architecture_permission:
+        exposure_controller: "BLOCKED"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results Detail
+    # ═══════════════════════════════════════════════════════════
+    gate_0_results:
+      verdict: "PASS"
+      total_episodes: 111
+      block_count: 103
+      buy_count: 8
+      confidence_coverage: "111/111 (100%)"
+      buy_limitation: "N=8 BUY (limitation, not blocker). BLOCK N=103 is primary evidence."
+
+    gate_0_5_results:
+      verdict: "INCONSISTENT"
+      buy_delta: "+0.0pp (high conf = low conf = 75% win - no discrimination in BUY)"
+      block_delta: "+33.9pp (high conf 71.2% vs low conf 37.3% - strong discrimination in BLOCK)"
+      interpretation: |
+        Confidence discriminates in BLOCK but NOT in BUY. This means
+        confidence is NOT a true meta-signal (action-independent
+        reliability predictor). It is an action-dependent score:
+          BLOCK: confidence predicts reliability (high conf -> correct block)
+          BUY:   confidence does NOT predict reliability (high = low = 75%)
+
+        This is a fundamental finding. The +33pp calibration from 6-S.19.5
+        was driven ENTIRELY by BLOCK episodes. BUY confidence carries
+        zero discriminative information.
+
+        Possible explanations:
+          1. Guardian's confidence mechanism is designed for blocking decisions
+             (risk assessment) but not for buying decisions (opportunity assessment)
+          2. BUY N=8 is too small to show discrimination (but 75%=75% suggests
+             true non-discrimination, not just noise)
+          3. Guardian is better at knowing when NOT to act than when to act
+
+    exp0e_1_results:
+      verdict: "FAIL"
+      overall_delta: "+33.0pp (PASS criterion 1: >= 15pp)"
+      yearly:
+        "2021": "N=4, insufficient (high=1, low=2)"
+        "2022": "N=36, delta=+10.0pp (high 50%, low 40%)"
+        "2023": "N=14, insufficient (low=0)"
+        "2024": "N=31, insufficient (low=0)"
+        "2025": "N=17, delta=+57.1pp (high 57.1%, low 0%)"
+        "2026": "N=9, delta=-50.0pp (high 50%, low 100%) - CATASTROPHIC REVERSAL"
+      criteria:
+        c1_overall_delta: "PASS (+33.0pp >= 15pp)"
+        c2_temporal_stability: "FAIL (only 2/3 testable years positive, need 4/6)"
+        c4_no_catastrophe: "FAIL (2026 has -50pp reversal: high conf WORSE than low conf)"
+      interpretation: |
+        The +33pp overall delta is driven by 2025 (+57.1pp) and 2022
+        (+10.0pp). But 2026 shows a CATASTROPHIC REVERSAL: high
+        confidence episodes had 50% win rate while low confidence had
+        100%. This is not just noise - it is anti-predictive.
+
+        The calibration is NOT stable. It worked in some years and
+        reversed in others. This is the same pattern as Mid×Mid:
+          overall looks good -> specific periods show reversal.
+
+        Root cause may be the BLOCK/BUY inconsistency (Gate 0.5):
+          the +33pp is driven by BLOCK, and BLOCK calibration may
+          itself be unstable across years.
+
+    # ═══════════════════════════════════════════════════════════
+    # What Gate 1 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_gate1_proved:
+      - "Gate 0 PASS: data integrity is sufficient for analysis"
+      - "Gate 0.5 INCONSISTENT: confidence discriminates in BLOCK (+33.9pp) but NOT in BUY (+0.0pp)"
+      - "Exp0E-1 FAIL: calibration is NOT stable across years (2026 catastrophic reversal -50pp)"
+      - "The +33pp from 6-S.19.5 was driven entirely by BLOCK episodes, not BUY"
+      - "Confidence is action-dependent, not a true meta-signal"
+      - "Exposure Controller is BLOCKED (Rule 10: capital cannot exceed evidence)"
+
+    what_gate1_did_not_prove:
+      - "Whether BLOCK-only calibration could be stable (need more BLOCK data per year)"
+      - "Whether BUY discrimination would appear at larger N"
+      - "Curve shape, regime conditional, half-life (all skipped due to Exp0E-1 fail)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      GATE 1 FAIL. Confidence does NOT possess stable self-cognition.
+
+      Exposure Controller is BLOCKED. Cannot proceed to Gate 2.
+      Per Rule 10: Capital Cannot Exceed Evidence. Current evidence
+      is Replication (not Stability). Cannot deploy capital on
+      Replication-level evidence.
+
+      The +33pp calibration (6-S.19.5) was REAL but FRAGILE:
+        - Driven entirely by BLOCK (not BUY)
+        - Not stable across years (2026 reversal)
+        - Action-dependent (not a true meta-signal)
+
+      This is NOT a failure of the Belief Audit. This is the Audit
+      WORKING AS DESIGNED. It prevented beautiful +33pp from becoming
+      architecture without stability verification.
+
+      The v4.0 IOS framework remains a THEORY (not a product).
+      Confidence calibration needs more work before it can drive capital.
+
+    # ═══════════════════════════════════════════════════════════
+    # Impact on v4.0
+    # ═══════════════════════════════════════════════════════════
+    impact_on_v4:
+      confidence_evidence_level: "Replication (unchanged from 6-S.19.5, cannot advance)"
+      exposure_controller: "BLOCKED (Rule 10)"
+      gate_2_capital_translation: "BLOCKED (Gate 1 must pass first)"
+      ios_status: "Architecture ★★★★★ / Empirical ★★☆☆☆ / Capital ★☆☆☆☆"
+      guardian_status: "UNCHANGED (v1.1 STABILITY, 1204 episodes - Gate 1 tests confidence, not Guardian)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Next Steps (if any)
+    # ═══════════════════════════════════════════════════════════
+    next_steps:
+      option_a_more_data: |
+        Backfill more episodes (especially BUY with candidates and
+        BLOCK across more years). Re-run Gate 1 at N>=200 with
+        balanced year coverage. The 2026 reversal may be small-sample
+        noise (N=9).
+      option_b_block_only: |
+        Accept that confidence only works for BLOCK (not BUY).
+        Redefine: confidence = 'blocking reliability signal', not
+        'general meta-signal'. Use for risk control only, not
+        exposure sizing. This is a narrower but still useful role.
+      option_c_accept_limitation: |
+        Accept that confidence is not stable enough for Exposure
+        Controller. v4.0 IOS remains theoretical. Guardian (v1.1)
+        remains the only validated asset. System stays as:
+          Guardian -> FRM gate -> Bayesian Portfolio (static allocation)
+        No dynamic exposure. No confidence-driven position sizing.
+
+    next_phase: "Decision point: choose option A (more data), B (BLOCK-only confidence), or C (accept limitation). Guardian v1.1 remains frozen and validated regardless."

@@ -7742,3 +7742,149 @@ freeze_history:
       no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Validator."
 
     next_phase: "System operational at Guardian + FRM + Static Portfolio + MUS diagnostic flag. Optional: Gate 1.6 State Decomposition (if user wants to explore uncertainty decomposition). Otherwise: Stock Sieve v4.0 COMPLETE."
+
+  v4_0_complete:
+    freeze_date: "2026-07-22"
+    commit: "6-S.22.0"
+    tag: "stock-sieve-v4.0-complete"
+    scope: "v4.0 final closure - Rule 11 interpretation + v4.1 backlog + paper trading readiness"
+    freeze_status: "v4.0 COMPLETE (architecture done, empirical boundary defined, ready for paper trading)"
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Closure Statement (frozen)
+    # ═══════════════════════════════════════════════════════════
+    closure: |
+      Stock Sieve v4.0 is COMPLETE.
+
+      From v2 to v4.0, the system evolved through three phases:
+        Phase 1 (v2-v3.5): searched for ranking variables (alpha). All failed.
+        Phase 2 (6-S.18.0): established the Constitution (immune system).
+        Phase 3 (6-S.19-21): discovered that signals are state descriptors,
+                             not allocation rules.
+
+      The system now knows:
+        - WHAT it can do: timing (Guardian), recovery filtering (FRM),
+          uncertainty flagging (MUS)
+        - WHAT it cannot do: stock selection, dynamic exposure, risk filtering
+        - WHY: extreme states contain both risk and opportunity;
+               no single signal can separate them
+
+      This is a system that knows its own boundary. That is the
+      Belief Audit's ultimate goal.
+
+    # ═══════════════════════════════════════════════════════════
+    # Rule 11 Interpretation (frozen, not a new rule)
+    # ═══════════════════════════════════════════════════════════
+    rule_11_interpretation: |
+      Rule 11: 'Protection Cannot Destroy Participation'
+
+      Interpretation (frozen): Any signal detecting extreme conditions
+      must first be treated as a STATE DESCRIPTOR, not an ALLOCATION RULE.
+
+      This summarizes all v2-v4 failures:
+        - Mid×Mid: treated state descriptor as alpha selector -> failed
+        - EGE: treated state descriptor as ranking variable -> failed
+        - FRM score: treated state descriptor as quality ranker -> failed
+        - ARS: treated state descriptor as risk filter -> failed (Test 4)
+
+      The pattern: EVERY signal that identifies extremes, when used to
+      CONTROL CAPITAL, fails because extremes contain both risk and
+      opportunity. Signals can DESCRIBE state but cannot DIRECTIONALIZE
+      it (risk vs opportunity).
+
+      State descriptors are for ATTENTION and ANALYSIS, not for CAPITAL.
+      Capital allocation remains STATIC until a signal proves it can
+      directionalize (which none has).
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Architecture (frozen, operational)
+    # ═══════════════════════════════════════════════════════════
+    final_architecture_operational: |
+      Market Guardian (★★★★★ STABILITY, 1204 episodes)
+          v
+      FRM Direction Gate (★★★★☆ STABILITY candidate)
+          v
+      MUS / Uncertainty Flag (★★★☆☆ Replication, diagnostic only)
+          v
+      Static Bayesian Portfolio (★★★★☆ ACTIVE, frozen allocation)
+
+      Operational behavior:
+        1. Guardian detects recovery window -> BUY or BLOCK
+        2. FRM filters: improving/stable pass, deteriorating rejected
+        3. MUS flags abnormal states for review (does NOT control capital)
+        4. Static allocation: Bayesian portfolio with frozen weights
+
+      No dynamic exposure. No stock ranking. No risk filter.
+      Simple, honest, boundary-aware.
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Final Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_status:
+      architecture: "COMPLETE"
+      empirical_boundary: "DEFINED"
+      capital_rules: "CONSERVATIVE (static allocation only)"
+      unknowns: "EXPLICIT (cannot directionalize extremes)"
+      paper_trading_readiness: "READY"
+      dynamic_capital_readiness: "NOT READY (no validated signal)"
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.1 Research Backlog (frozen, NOT part of v4.0)
+    # ═══════════════════════════════════════════════════════════
+    v4_1_backlog:
+      gate_1_6_state_decomposition:
+        status: "v4.1 RESEARCH BACKLOG (not v4.0)"
+        question: "Does high MUS contain different TYPES of uncertainty (risk vs opportunity)?"
+        NOT_question: "Which high-MUS state makes money? (would re-enter alpha mining)"
+        method: "Cluster high-MUS episodes by state variables (Guardian, FRM, regime, liquidity, volatility). NO future return in clustering. Output = state classification, NOT return ranking."
+        if_pass: "MUS Decomposition Layer. NOT exposure control. State diagnostic only."
+        prohibition: "Even if decomposition succeeds: Cluster B (opportunity uncertainty) MUST NOT be used to increase exposure. That re-enters the old path."
+        priority: "LOW (v4.0 is complete and operational without it)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Complete v2-v4 Journey (frozen summary)
+    # ═══════════════════════════════════════════════════════════
+    complete_journey: |
+      v2:     cheap ≠ alpha (value traps exist)
+      v3.1:   FRM direction = portfolio filter (gate, not ranker)
+      v3.2:   RS gate destroys alpha
+      v3.3:   EGE monotonic gap falsified (market distrusts, not underreacts)
+      v3.4:   sustainability filter removes alpha
+      v3.5:   FRM score is uncertainty proxy (inverted-U, not quality)
+      v3.5.2: Mid×Mid falsified at N=194 (N=8 artifact)
+              MEF no portfolio improvement
+              Layer 2 search CONCLUDED
+      6-S.18: Investment Constitution (7 rejected beliefs, 11 rules)
+      6-S.19: Confidence calibration +33pp (Replication)
+              Gate 1 FAIL (unstable, action-dependent)
+              ARS -> asymmetric (BLOCK works, BUY doesn't)
+      6-S.20: Gate 1.5 Scenario B (Tests 1-3 pass, Test 4 fail)
+              ARS = uncertainty detector, not risk filter
+              Unified pattern: extremes contain risk AND opportunity
+      6-S.22: v4.0 COMPLETE
+
+      Deepest finding: extreme market states contain both risk and
+      opportunity. No single signal can separate them. Signals describe
+      state; they cannot control capital.
+
+    # ═══════════════════════════════════════════════════════════
+    # What Stock Sieve Ultimately Is (frozen)
+    # ═══════════════════════════════════════════════════════════
+    what_stock_sieve_is: |
+      A Recovery Timing System with Uncertainty Awareness.
+
+      It does not predict which stocks will rise.
+      It does not manage position sizes dynamically.
+      It does not filter risk from opportunity.
+
+      It detects when the market enters recovery windows (Guardian),
+      confirms recovery direction (FRM), flags abnormal states (MUS),
+      and allocates statically (Bayesian Portfolio).
+
+      Its deepest knowledge is negative: it knows that extreme states
+      cannot be directionalized by any single signal it has tested.
+
+      A system that knows what it doesn't know.
+      That is the Belief Audit's gift to Stock Sieve.
+
+    next_phase: "v4.0 COMPLETE. Ready for paper trading. v4.1 (Gate 1.6 State Decomposition) in research backlog. No further v4.0 work needed."

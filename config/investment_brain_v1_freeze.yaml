@@ -5626,3 +5626,257 @@ freeze_history:
       no_evolution_without_9_rules: "MUST NOT run Evolution v4 without 9-rule Constitution Validator"
 
     next_phase: "Implement and run Exp0E (3 sub-tests): calibration stability + curve shape + regime conditional. The first true architecture life-or-death test for v4.0."
+
+  v4_0_investment_operating_system_freeze:
+    freeze_date: "2026-07-22"
+    commit: "6-S.19.8"
+    tag: "stock-sieve-v4.0-investment-operating-system"
+    scope: "Confidence Profile + Exp0E-4 Half-life + Reflexivity Hypothesis + Evolution v4 risk committee + IOS identity"
+    freeze_status: "DESIGN FROZEN (theoretical framework complete: Quant Model -> Investment Operating System)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Watershed (frozen)
+    # ═══════════════════════════════════════════════════════════
+    watershed: |
+      6-S.19.7 completed product definition (AI Investment Committee).
+      6-S.19.8 completes the theoretical framework that makes it an
+      Investment Operating System (IOS), not just a model.
+
+      The difference:
+        Model: input -> prediction -> action
+        IOS:   input -> prediction -> self-assessment -> risk budget
+               -> regime check -> capital allocation -> feedback loop
+
+      Stock Sieve has crossed from Quant Model to Investment Operating
+      System. This is the watershed.
+
+    # ═══════════════════════════════════════════════════════════
+    # Confidence Profile (frozen design, replaces scalar confidence)
+    # ═══════════════════════════════════════════════════════════
+    confidence_profile: |
+      Confidence must evolve from a scalar (confidence=65) to a PROFILE
+      (multi-dimensional reliability assessment). This is the object
+      Exposure Controller actually needs.
+
+      NOT: 65 -> 70% position (scalar mapping)
+      BUT:  65 + historical analogs + current regime + tail risk
+            -> risk budget (multi-dimensional decision)
+
+      Profile schema (frozen):
+        confidence: 65 (scalar, from Guardian)
+        historical_accuracy:
+          win_rate: 72% (for similar confidence levels)
+          sample_size: 45
+        conditional_drawdown:
+          median: -8%
+          worst_5pct: -22% (tail risk when wrong)
+          recovery_time_days: 12
+        regime_dependency:
+          stabilizing: strong (calibration holds)
+          panic: weak (calibration breaks)
+          confirmed_recovery: moderate
+        calibration_status:
+          stable: yes (from Exp0E-1)
+          curve_shape: inverted_u (from Exp0E-2, if confirmed)
+          half_life: 18 months (from Exp0E-4, if measured)
+
+      Exposure Controller input = Confidence Profile (NOT scalar).
+      Rule 9 enforced: no capital without calibrated profile.
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp0E-4 Calibration Half-life (frozen, 4th sub-test)
+    # ═══════════════════════════════════════════════════════════
+    exp0e_4_calibration_half_life:
+      question: "How long does confidence calibration remain valid?"
+      why_critical: |
+        Financial markets' biggest enemy is not error - it is MODEL
+        CAPABILITY AGING. A calibration that was +33pp in 2021 may
+        decay to +10pp by 2025. If we don't know the half-life, we
+        don't know when to recalibrate or reduce trust.
+      method: |
+        Rolling window: train on past 24 months, test on next 6 months.
+        Compute calibration delta (high_conf_win - low_conf_win) for
+        each test window. Track decay over time:
+          2021 train -> 2022 test: delta = +30pp
+          2022 train -> 2023 test: delta = +25pp
+          ...
+        Fit exponential decay: delta(t) = delta_0 * exp(-t / half_life)
+        Output: confidence half-life in months.
+      decision_rules:
+        half_life_gt_24m: "Calibration is durable. No frequent recalibration needed."
+        half_life_12_24m: "Moderate decay. Schedule periodic recalibration."
+        half_life_lt_12m: "Fast decay. Calibration is ephemeral. May need Evolution v4 to maintain."
+        no_decay: "Calibration is stable. Confidence is a durable asset."
+      connects_to_evolution: "Half-life directly determines whether Evolution v4 is needed for recalibration (allowed scope: confidence_calibration)."
+
+    # ═══════════════════════════════════════════════════════════
+    # Reflexivity Hypothesis (frozen as research direction)
+    # ═══════════════════════════════════════════════════════════
+    reflexivity_hypothesis: |
+      The Q4 > Q5 saturation effect, combined with v3 chain findings,
+      suggests a unified market structure:
+
+        ALL extreme states produce risk:
+          - extreme cheapness (v2: deserved cheapness)
+          - extreme quality (v3.4: sustainability removes alpha)
+          - extreme disagreement (v3.3: high gap = distrust)
+          - extreme recovery score (Exp1: high FRM = worst alpha)
+          - extreme confidence (6-S.19.5: Q5 < Q4 reliability)
+
+      FIVE inverted-U patterns across different dimensions. This is
+      not coincidence. It may reflect a fundamental market law:
+
+        Market is a REFLEXIVE system (Soros).
+        When a state is confirmed by all participants:
+          information diffuses -> trades crowd -> return space shrinks
+          -> risk increases
+
+        Extreme certainty in ANY dimension = the market has reached
+        consensus = no one left to be the counterparty = risk.
+
+      This hypothesis is NOT actionable yet (Discovery level). But it
+      unifies the entire v2-v4 chain under one theoretical framework:
+        Stock Sieve's edge is not in finding extremes, but in identifying
+        where the market has NOT yet reached consensus (the middle zone)
+        AND knowing when its own assessment is reliable (confidence).
+
+      Future direction (if Exp0E confirms inverted-U in confidence):
+        The system should SELECT for calibrated moderate confidence
+        and REJECT extreme confidence (both high and low).
+        This is the meta-level version of v3's 'extremes are dangerous'.
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Final Scope (frozen)
+    # ═══════════════════════════════════════════════════════════
+    evolution_v4_final_scope: |
+      Evolution v4 is no longer a 'stock factor hunter'. It is a
+      'risk committee member' that optimizes risk decision policy.
+
+      ALLOWED evolution targets:
+        - confidence_calibration (improve reliability estimation)
+        - regime_detection (improve state classification)
+        - exposure_mapping (optimize confidence -> exposure curve)
+        - drawdown_control (optimize risk budget allocation)
+        - recalibration timing (from Exp0E-4 half-life)
+
+      FORBIDDEN evolution targets (permanent, 6-S.18.0):
+        - stock_alpha (selection disproved)
+        - ranking_factor (ranking disproved)
+        - selection_signal (selection disproved)
+
+      Evolution v4 optimizes HOW we bet, not WHAT we bet on.
+      The AI evolves from 'hunter' to 'risk committee member'.
+
+    # ═══════════════════════════════════════════════════════════
+    # Regime Override Layer - Dual System (frozen)
+    # ═══════════════════════════════════════════════════════════
+    regime_override_dual_system: |
+      The Regime Override Layer resolves the fundamental contradiction
+      in risk models:
+
+        Risk detector says: "danger high -> reduce exposure"
+        Opportunity detector says: "danger releasing -> increase exposure"
+
+      At market bottoms, these conflict. Traditional risk models die
+      here (2008/2020/2022). The Override Layer prevents the risk
+      control system from killing the opportunity system.
+
+      Two separate systems:
+        1. Risk Detector (Guardian): "Is there danger?"
+        2. Opportunity Detector (Regime Override): "Has the danger been released?"
+
+      In PANIC: Risk Detector says BLOCK, but Override says
+        "danger is releasing, allow early position".
+      In EUPHORIA: Risk Detector may say BUY, but Override says
+        "extreme certainty = consensus trap, reduce".
+
+      The Override is NOT a replacement for Guardian. It is a check
+      on Guardian's known failure modes. Guardian remains frozen (v1.1).
+      The Override operates on top of Guardian's output.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Closed Loop (frozen, final articulation)
+    # ═══════════════════════════════════════════════════════════
+    closed_loop_final: |
+      If Exp0E passes, Stock Sieve's moat is NOT any single model.
+      It is the closed loop of three capabilities:
+
+        1. Prediction ability (Guardian: find opportunity windows)
+        2. Self-knowledge (Confidence: know when prediction is reliable)
+        3. Bet sizing discipline (Exposure: scale capital by reliability)
+
+      Prediction + Self-knowledge + Bet sizing = Investment Operating System.
+
+      This is the watershed between a Quant Model and an IOS:
+        Quant Model: maximize prediction accuracy
+        IOS: maximize risk-adjusted capital deployment under uncertainty
+
+      The competitive barrier:
+        "knowing more clearly than others when we might be wrong"
+        + "sizing bets by that knowledge"
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Architecture (frozen, complete)
+    # ═══════════════════════════════════════════════════════════
+    final_architecture: |
+      Market
+        v
+      Market Guardian ("Is there an opportunity?")
+        v
+      Confidence Calibration Engine ("How reliable is this judgment?")
+        v
+      Regime Override Layer ("Are we in a model blind spot?")
+        v
+      Exposure Controller ("How much error cost to bear?")
+        v
+      Bayesian Portfolio
+        v
+      Capital
+
+      No Security Analyst. No stock picker. No alpha factor.
+      Confidence is a PROFILE, not a scalar.
+      Exposure optimizes ERROR COST, not return.
+      Evolution optimizes RISK POLICY, not stock selection.
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_status:
+      market_guardian: "★★★★★ STABILITY (1204 episodes)"
+      confidence_engine: "★★★★☆ REPLICATION (N=111, +33pp, pending OOS)"
+      regime_override: "★★★☆☆ Design validated (PANIC 38.6% failure identified)"
+      exposure_controller: "★★★☆☆ Architecture ready (error-cost principle frozen)"
+      stock_selection: "█████ PERMANENTLY RETIRED"
+      ai_investment_committee: "★★★★★ System identity frozen"
+      investment_operating_system: "★★★★★ Theoretical framework complete"
+
+    # ═══════════════════════════════════════════════════════════
+    # What Exp0E Actually Tests (frozen)
+    # ═══════════════════════════════════════════════════════════
+    what_exp0e_tests: |
+      Exp0E is not a regular experiment. It tests whether Stock Sieve
+      has formed SELF-COGNITION capability:
+
+        Exp0E-1: Is self-knowledge stable across time? (durability)
+        Exp0E-2: Is self-knowledge linear or bounded? (shape)
+        Exp0E-3: Is self-knowledge regime-dependent? (boundary)
+        Exp0E-4: Does self-knowledge decay? (half-life)
+
+      If all pass: Stock Sieve has genuine meta-cognitive ability.
+      The moat = prediction + self-knowledge + bet sizing (closed loop).
+      This is the watershed between Quant Model and Investment OS.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_scalar_confidence_for_exposure: "MUST NOT use scalar confidence for exposure. Must use Confidence Profile."
+      no_return_optimization: "MUST NOT optimize exposure for return. Optimize error cost."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_for_stock_factors: "PERMANENT (6-S.18.0)"
+      no_fixing_q4_gt_q5: "MUST NOT tune away saturation effect."
+      no_guardian_modification: "MUST NOT modify Guardian (v1.1 frozen)."
+      no_architecture_before_exp0e: "MUST NOT implement Exposure Controller before Exp0E 4 sub-tests pass."
+      no_evolution_without_9_rules: "MUST NOT run Evolution without 9-rule Validator."
+
+    next_phase: "Implement and run Exp0E (4 sub-tests): stability + curve shape + regime conditional + half-life. The test of whether Stock Sieve has genuine self-cognition."

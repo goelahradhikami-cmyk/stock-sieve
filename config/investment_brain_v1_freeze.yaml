@@ -7576,3 +7576,169 @@ freeze_history:
       stock_selection: "█████ PERMANENTLY RETIRED"
 
     next_phase: "Decision point: (A) design ARS v2 with better risk/opportunity separation, (B) accept ARS as diagnostic only, (C) system complete at Guardian + FRM + Static"
+
+  v4_0_ars_redefinition_and_unified_pattern:
+    freeze_date: "2026-07-22"
+    commit: "6-S.21.1"
+    tag: "stock-sieve-v4.0-ars-redefinition"
+    scope: "ARS -> MUS redefinition + unified pattern freeze + Gate 1.6 State Decomposition design"
+    freeze_status: "CONTRACT FROZEN (ARS redefined as uncertainty detector, not risk filter; unified pattern recognized across v2-v4)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Route B Chosen (with redefinition, not closure)
+    # ═══════════════════════════════════════════════════════════
+    route_b_chosen: |
+      B chosen. A rejected. C partially rejected.
+
+      A (ARS v2) rejected: the problem is NOT model complexity. The
+      target was wrong. ARS was designed as 'danger detector' but data
+      proves it is 'uncertainty detector'. Optimizing a wrong target
+      re-enters v3's cycle.
+
+      C (kill ARS) partially rejected: ARS has genuine information
+      (Tests 1-3 pass, CI excludes zero). Killing it discards real
+      evidence. But it cannot drive capital (Test 4 fail).
+
+      B (accept as diagnostic) chosen WITH redefinition: ARS is not a
+      failed risk filter. It is a validated uncertainty detector being
+      asked the wrong question.
+
+    # ═══════════════════════════════════════════════════════════
+    # ARS Redefinition (frozen)
+    # ═══════════════════════════════════════════════════════════
+    ars_redefinition: |
+      ARS captures 'high uncertainty state', NOT 'pure risk state'.
+
+      Evidence:
+        Tests 1-3: high ARS -> worse average outcomes (identifies abnormal)
+        Test 4: false blocks miss +3.86% (above-average upside)
+
+      Interpretation:
+        High ARS = market is in an abnormal/uncertain state
+        Abnormal states contain BOTH danger AND opportunity
+        ARS cannot directionalize: risk vs opportunity coexist
+
+      Renamed: ARS -> Market Uncertainty Score (MUS)
+      (retaining 'ARS' in code for continuity, but meaning = MUS)
+
+      MUS does NOT control capital. It controls ATTENTION BUDGET:
+        high MUS -> 'this opportunity is in an abnormal zone, review carefully'
+        low MUS -> 'normal conditions, proceed normally'
+
+      MUS is not a filter. It is a FLAG for committee review.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Unified Pattern (frozen - the deepest finding of v2-v4)
+    # ═══════════════════════════════════════════════════════════
+    unified_pattern: |
+      The entire v2-v4 chain reveals ONE consistent pattern:
+
+        The system can IDENTIFY market extremes but cannot
+        DIRECTIONALIZE them (risk vs opportunity).
+
+      v2: cheap stocks = could be opportunity OR value trap
+      v3 EGE: extreme recovery = could be underreaction OR distrust
+      v3.4: extreme quality = could be safe OR priced-in
+      v3.5: extreme FRM = could be best OR over-crowded
+      v4 ARS: high uncertainty = could be danger OR opportunity
+
+      Every signal that identifies extremes catches BOTH risk and
+      opportunity. No single signal can separate them. This is not
+      a model failure - it is a market property:
+
+        Extreme states are where risk and opportunity COEXIST.
+        (Consistent with reflexivity hypothesis, 6-S.19.8)
+
+      This unified pattern is Stock Sieve's most valuable discovery.
+      It is more durable than any alpha factor because it describes
+      a market STRUCTURE, not a statistical pattern.
+
+    # ═══════════════════════════════════════════════════════════
+    # Updated Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    updated_architecture: |
+      Market Guardian (timing, ★★★★★)
+          v
+      FRM Direction Gate (recovery filter, ★★★★☆)
+          v
+      MUS / ARS (uncertainty flag, ★★★☆☆)
+          |
+          | NOT a filter. NOT exposure control.
+          | A FLAG for committee/attention review:
+          |   "This opportunity is in an abnormal zone."
+          |
+          v
+      Static Bayesian Portfolio (allocation, ★★★★☆)
+
+      MUS does not control capital. It controls attention.
+      High MUS = review carefully. Low MUS = proceed normally.
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.6: State Decomposition Test (frozen design, if pursued)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_6_state_decomposition:
+      hypothesis: |
+        High MUS (ARS) contains TWO hidden sub-populations:
+          Cluster A: high MUS + deteriorating recovery -> negative (true danger)
+          Cluster B: high MUS + improving recovery -> positive (opportunity in uncertainty)
+
+        MUS alone cannot separate them. But MUS × Guardian_state × FRM_direction
+        might. This is NOT ARS v2 (more complex filter). It is using MUS
+        as a STATE CLASSIFIER input, not a filter.
+
+      test: "Within high-MUS episodes, cluster by recovery direction. Do negative-outcome and positive-outcome episodes have different state signatures?"
+
+      if_pass: "MUS has state decomposition value. Two-dimension state classification works. Not a filter, but a state diagnostic."
+
+      if_fail: "MUS is irreducibly ambiguous. Accept as uncertainty flag only. No further decomposition."
+
+      priority: "OPTIONAL. Only if user wants to explore. Not required for system operation."
+
+      note: "This is the ONLY remaining research direction that does NOT re-enter the v3 cycle (adding complexity to a wrong target). It changes the QUESTION (from 'filter?' to 'decompose?'), not the model."
+
+    # ═══════════════════════════════════════════════════════════
+    # Final System Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_system_status:
+      market_guardian: "★★★★★ STABILITY (1204 episodes, timing confirmed)"
+      frm_direction_gate: "★★★★☆ STABILITY candidate (recovery filter)"
+      mus_ars: "★★★☆☆ Replication (uncertainty detector, NOT risk filter, NOT capital control)"
+      risk_filter: "RETIRED (Test 4 failed, cannot drive capital)"
+      dynamic_exposure: "RETIRED (no validated signal for position sizing)"
+      stock_selection: "█████ PERMANENTLY RETIRED (6-S.18.0)"
+      static_portfolio: "★★★★☆ ACTIVE (Bayesian allocation, frozen)"
+      unified_pattern: "★★★★★ DEEPEST FINDING (extremes contain risk AND opportunity, no single signal can directionalize)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The System's Core Identity (frozen, final)
+    # ═══════════════════════════════════════════════════════════
+    core_identity: |
+      Stock Sieve is a Recovery Timing System with Uncertainty Awareness.
+
+      NOT: AI stock picker (retired, v2-v3.5 disproved)
+      NOT: AI risk committee (Test 4 failed, cannot manage capital)
+      NOT: AI investment operating system (architecture too ambitious)
+
+      IS: A market timing system (Guardian) with a recovery filter (FRM)
+          and an uncertainty flag (MUS) that marks abnormal states for
+          review. Static allocation. No dynamic exposure.
+
+      The system's deepest knowledge is NOT 'which stocks to buy' or
+      'how much to bet'. It is:
+        'Extreme market states contain both risk and opportunity,
+         and no single signal can separate them.'
+
+      This is a structural market property, not a model artifact.
+      It is more durable than any alpha factor.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_mus_as_filter: "MUST NOT use MUS/ARS as exposure filter or capital control. It is a flag only."
+      no_ars_v2_complexity: "MUST NOT add complexity to ARS to 'fix' Test 4. The target was wrong, not the model."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_dynamic_exposure: "No validated signal for position sizing. Static allocation only."
+      no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Validator."
+
+    next_phase: "System operational at Guardian + FRM + Static Portfolio + MUS diagnostic flag. Optional: Gate 1.6 State Decomposition (if user wants to explore uncertainty decomposition). Otherwise: Stock Sieve v4.0 COMPLETE."

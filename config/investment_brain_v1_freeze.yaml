@@ -6959,3 +6959,146 @@ freeze_history:
       no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Constitution Validator."
 
     next_phase: "Route A: expand BLOCK data. Then implement Gate 1.5 in order: Test 1 (avoided loss) -> Test 2 (regret + ulcer) -> Test 3 (crisis, all 5 regimes) -> Test 4 (opportunity cost + FPR). Stop if Test 1 fails."
+
+  v4_0_rrms_terminal_refinement_freeze:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.5"
+    tag: "stock-sieve-v4.0-rrms-terminal-refinement"
+    scope: "ARS anti-alpha-claim + FPR Cost + Expected Regret formula + Test 4 as terminal test"
+    freeze_status: "CONTRACT FROZEN (final Gate 1.5 design; ARS identity locked; terminal test designated)"
+
+    # ═══════════════════════════════════════════════════════════
+    # ARS Anti-Alpha-Claim Clause (frozen)
+    # ═══════════════════════════════════════════════════════════
+    ars_anti_alpha_claim: |
+      A successful risk filter can be mistaken for a successful predictor.
+      If ARS high -> BLOCK -> market falls, it LOOKS like directional alpha.
+      But it only proves: P(regret | ARS_high) > P(regret)
+      NOT: P(down | ARS_high) > P(up)
+
+      These are completely different claims. ARS claims error avoidance,
+      NOT directional prediction. If Evolution ever produces a candidate
+      that uses ARS for directional timing, it MUST be REJECTED.
+
+      FROZEN CLAUSE: ARS cannot claim directional alpha.
+      ARS proves: reduced error entry. NOT: predicted market direction.
+      This prevents ARS from silently becoming a 'low-frequency timing factor'.
+
+      Constitution enforcement: Rule 9 (no exposure without calibrated
+      confidence) + Rule 11 (protection cannot destroy participation)
+      + this anti-alpha-claim clause = triple lock on ARS identity.
+
+    # ═══════════════════════════════════════════════════════════
+    # FPR Cost (frozen, complements FPR from 6-S.20.4)
+    # ═══════════════════════════════════════════════════════════
+    fpr_cost:
+      problem: |
+        FPR alone is insufficient. Two systems with FPR=50% can be
+        completely different:
+          System A: blocks 10, wrong 5 (missed small gains)
+          System B: blocks 100, wrong 50 (missed large rallies)
+        Same ratio, different cost. Must measure MONEY missed, not COUNT.
+      metric: "False Protection Cost (FPC)"
+      formula: "FPC = Σ(missed_upside_i × exposure_weight_i) for all false blocks"
+      interpretation: |
+        FPC measures the actual capital cost of over-filtering.
+        A filter with FPR=40% but FPC near zero (missed only small gains)
+        is acceptable. A filter with FPR=40% but high FPC (missed top-decile
+        rallies) is an opportunity destroyer despite acceptable FPR.
+      joint_evaluation: "FPR + FPC + block_rate evaluated together per Rule 11"
+
+    # ═══════════════════════════════════════════════════════════
+    # Expected Regret Optimization Formula (frozen)
+    # ═══════════════════════════════════════════════════════════
+    expected_regret_formula: |
+      Evolution v4 optimization target (refined from 6-S.20.4):
+
+        Minimize: Expected Regret
+        = E[Loss avoided] - E[Opportunity lost]
+        = Σ P(crisis_i) × Loss_i × ARS_filter_i
+        - Σ P(opportunity_j) × Gain_j × (1 - ARS_filter_j)
+
+      NOT:
+        Minimize Loss (produces block-everything monster)
+        Maximize Avoidance (same)
+        Maximize Return (old alpha path, permanently retired)
+
+      The regret formula FORCES the trade-off: every block has a cost
+      (missed opportunity) and a benefit (avoided loss). Evolution must
+      find the filter that minimizes NET regret, not gross loss.
+
+      This is the mathematical expression of Rule 11:
+        Protection Cannot Destroy Participation.
+
+    # ═══════════════════════════════════════════════════════════
+    # Test 4 as Terminal Test (frozen)
+    # ═══════════════════════════════════════════════════════════
+    test_4_terminal_designation: |
+      Test 4 (Opportunity Cost) is designated the TERMINAL TEST of Gate 1.5.
+
+      Test 1 proves ARS has risk information (existence).
+      Test 2 proves it reduces pain paths (investment value).
+      Test 3 proves it works across regimes (robustness).
+      Test 4 proves it doesn't destroy participation (Rule 11).
+
+      Tests 1-3 are necessary but NOT sufficient. A filter that passes
+      1-3 but fails 4 is academically interesting but commercially
+      useless - it protects but kills returns.
+
+      Test 4 is the difference between:
+        'ARS is a risk metric' (Tests 1-3)
+        'ARS is an investment system component' (Tests 1-4)
+
+      Gate 1.5 pass requires ALL 4 (including Test 4).
+      But Test 4 failure alone is the most informative failure:
+        it means ARS works as analysis but not as policy.
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5 Terminal Question (frozen)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_5_terminal_question: |
+      Gate 1.5 answers:
+
+        NOT: 'Can ARS make money?' (retired question)
+        NOT: 'Can ARS predict direction?' (anti-alpha-claim)
+        BUT: 'Can ARS reduce error entries WITHOUT systematically
+              missing recoveries?'
+
+      If YES: ARS upgrades from risk metric to investment system
+      component. RRMS gains its first validated non-Guardian layer.
+      Stock Sieve's identity becomes: 'AI Risk Committee that answers
+      whether an opportunity is worth trusting.'
+
+      If NO: ARS is analysis, not policy. RRMS stays at Guardian +
+      FRM gate + static allocation. No risk filter. System is simpler
+      but honest.
+
+    # ═══════════════════════════════════════════════════════════
+    # Stock Sieve Identity if Gate 1.5 Passes (frozen)
+    # ═══════════════════════════════════════════════════════════
+    identity_if_pass: |
+      If Gate 1.5 passes, Stock Sieve is NOT:
+        AI Trader (predicts and buys)
+        AI Alpha System (finds excess returns)
+
+      It IS:
+        AI Risk Committee
+        Answers: 'This opportunity - do I have the right to trust it?'
+        Does NOT answer: 'Will this stock go up?'
+
+      This is a fundamentally different product from what v2-v3.5
+      tried to build. It is smaller, narrower, but potentially more
+      durable: risk committees don't decay the way alpha factors do.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_ars_directional_claim: "MUST NOT claim ARS predicts market direction. ARS predicts error probability. Permanent."
+      no_ars_as_timing_factor: "MUST NOT use ARS for directional market timing. It constrains max exposure only."
+      no_gate1_5_without_test_4: "MUST NOT declare Gate 1.5 pass without Test 4 (terminal test)."
+      no_minimize_loss_without_opportunity: "MUST NOT optimize for loss minimization without opportunity cost. (Rule 11 + Expected Regret formula)"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Validator."
+
+    next_phase: "Route A: expand BLOCK data -> Gate 1.5 (Test 1 -> 2 -> 3 -> 4 terminal). The question: can ARS reduce errors without destroying participation?"

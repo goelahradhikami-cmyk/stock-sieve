@@ -5412,3 +5412,217 @@ freeze_history:
       no_evolution_without_8_rules: "MUST NOT run Evolution v4 without 8-rule Constitution Validator"
 
     next_phase: "OOS validation + Exp0E drift test: verify confidence calibration holds in 2025-2026 holdout AND is stable across all years. If both PASS -> Stability -> Exposure Controller implementation begins."
+
+  v4_0_ai_investment_committee_freeze:
+    freeze_date: "2026-07-22"
+    commit: "6-S.19.7"
+    tag: "stock-sieve-v4.0-ai-investment-committee"
+    scope: "Rule 9 + error-cost optimization + Exp0E 3-subtest + Regime Override Layer + AI Investment Committee identity"
+    freeze_status: "DESIGN FROZEN (system identity finalized: AI Investment Committee, not prediction system)"
+
+    # ═══════════════════════════════════════════════════════════
+    # System Identity (frozen, final)
+    # ═══════════════════════════════════════════════════════════
+    system_identity_final: |
+      Stock Sieve is an AI Investment Committee.
+
+      NOT an AI stock selection system.
+      NOT an AI prediction system.
+
+      Structure:
+        Market -> Guardian ("Do I see an opportunity?")
+                    -> Confidence Engine ("How sure am I?")
+                       -> Risk Committee ("How much should I bet?")
+                          -> Portfolio
+
+      The competitive barrier is NOT 'predicting the market more accurately
+      than others'. It IS 'knowing more clearly than others when we might
+      be wrong'.
+
+      6-S.19.6's greatest significance: not discovering an effective
+      variable, but discovering that Stock Sieve's edge may be
+      meta-cognitive - knowing its own error probability.
+
+    # ═══════════════════════════════════════════════════════════
+    # Two-Model Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    two_model_architecture: |
+      First-order model (Guardian):
+        Input: market state
+        Output: BUY / BLOCK
+        Question: "Has the market entered a recovery window?"
+
+      Second-order model (Confidence Meta-Signal):
+        Input: Guardian's own state
+        Output: reliability estimate
+        Question: "When is Guardian likely to be wrong?"
+
+      This is prediction model + uncertainty estimation.
+      In ML: calibration / uncertainty estimation.
+      In fund management: risk budgeting system.
+
+    # ═══════════════════════════════════════════════════════════
+    # Exposure Controller: Error-Cost Optimization (frozen principle)
+    # ═══════════════════════════════════════════════════════════
+    exposure_error_cost_principle: |
+      Exposure Controller must NOT optimize returns. It must optimize
+      ERROR COST (expected loss when wrong).
+
+      WRONG (trading思维):
+        confidence up -> buy more
+
+      CORRECT (investment management):
+        confidence -> expected error distribution -> risk budget -> exposure
+
+      Example: Two situations with same confidence=80%:
+        Case A: mean return +10%, max DD -5%  -> high exposure OK
+        Case B: mean return +12%, max DD -40% -> LOWER exposure despite same conf
+
+      Same confidence, different error distributions, different exposures.
+      Exposure Engine input must be:
+        confidence + confidence_conditional_drawdown + regime
+      NOT confidence alone.
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 9 (frozen)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_9:
+      name: "Calibration Before Capital"
+      rule: |
+        Any exposure increase must be based on CALIBRATED confidence,
+        not unvalidated signal strength.
+
+        PROHIBITED: signal strong -> increase position
+        ALLOWED: confidence reliable -> increase risk budget
+
+      rationale: |
+        Signal strength without calibration is just volume, not information.
+        A loud signal that is often wrong is worse than a quiet signal that
+        is always right. Exposure must scale with RELIABILITY, not loudness.
+
+      full_constitution_rules:
+        rule_1: "Prohibited belief? -> REJECT"
+        rule_2: "State as ranking? -> REJECT"
+        rule_3: "Stock factor? -> REJECT"
+        rule_4: "Allowed scope? -> check"
+        rule_5: "Complexity > budget? -> REJECT"
+        rule_6: "Explanation before stability? -> REJECT"
+        rule_7: "Research without complete ledger? -> REJECT"
+        rule_8: "Temporal purity violation? -> REJECT"
+        rule_9: "NEW: Exposure without calibrated confidence? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # Exp0E Expanded (frozen, 3 sub-tests)
+    # ═══════════════════════════════════════════════════════════
+    exp0e_expanded:
+      exp0e_1_calibration_stability:
+        question: "Is confidence ranking stable across years?"
+        method: "For each year (2021-2026), compute (high_conf_win_rate - low_conf_win_rate). Must be positive in EVERY year."
+        success: "delta > 0 in every year with N >= 5"
+        failure: "calibration decays. confidence was period-specific artifact."
+
+      exp0e_2_calibration_curve_shape:
+        question: "Is the confidence-outcome relationship linear or inverted-U?"
+        method: "Plot confidence bucket (10 bins) vs actual win rate. Test linearity vs inverted-U."
+        importance: |
+          If inverted-U (Q4 > Q5 confirmed): exposure must use calibrated_curve(confidence),
+          NOT linear scaling. Example non-linear mapping:
+            confidence 50 -> 40% exposure
+            confidence 60 -> 80% exposure (peak)
+            confidence 70 -> 75%
+            confidence 85 -> 60% (saturation)
+          This connects to v3 chain: 'extremes are dangerous' applies to
+          META-reliability too, not just alpha.
+        success: "curve shape identified (linear or inverted-U) with N >= 10 per bin"
+
+      exp0e_3_regime_conditional_calibration:
+        question: "Does calibration hold in EACH market state separately?"
+        method: "For each market_state (PANIC/STABILIZING/EARLY_RECOVERY/CONFIRMED_RECOVERY), compute confidence quintile vs win rate."
+        importance: |
+          Confidence may be calibrated OVERALL but distorted in specific regimes.
+          Example: STABILIZING confidence is accurate, PANIC confidence is noise.
+          Exposure Controller must know WHICH regimes have reliable confidence.
+        success: "calibration delta > 0 in >= 2 of 3 testable regimes (with N >= 10 each)"
+        failure: "confidence only works in one regime. Must condition exposure on regime."
+
+    # ═══════════════════════════════════════════════════════════
+    # Regime Override Layer (frozen, renamed from PANIC adjustment)
+    # ═══════════════════════════════════════════════════════════
+    regime_override_layer:
+      renamed_from: "PANIC adjustment (6-S.19.6) -> Regime Override Layer (6-S.19.7)"
+      rationale: |
+        Not just PANIC. Future failure modes may include:
+          - liquidity crisis
+          - policy reversal
+          - credit freeze
+          - extreme valuation
+        All are 'normal model failure environments'. The override layer
+        handles ALL regimes where Guardian's default behavior is suboptimal.
+      design: |
+        Base Exposure = f(confidence, conditional_drawdown)
+        Final Exposure = Base + Regime Override
+
+        PANIC:    + recovery allowance (Guardian over-blocks, 38.6% correct)
+        STABILIZING: 0.0 (Guardian best, 69.2% block accuracy)
+        EARLY_RECOVERY: 0.0
+        CONFIRMED_RECOVERY: +0.05 (Guardian best at BUY)
+        EUPHORIA: -0.10 (extreme = risk)
+
+        The PANIC override is the most important: prevents classic
+        'risk model dies at the bottom' (2008/2020/2022).
+      principle: "In PANIC, FORBID excessive pessimism. The model's risk indicators worsen precisely when opportunity is highest."
+
+    # ═══════════════════════════════════════════════════════════
+    # Q4 > Q5 Three Hypotheses (frozen for investigation)
+    # ═══════════════════════════════════════════════════════════
+    q4_gt_q5_hypotheses:
+      principle: "DO NOT fix. The anomaly IS the research object."
+      hypothesis_a_extreme_overfitting:
+        description: "Highest confidence states are too rare. Model thinks 'super opportunity' but actually 'insufficient historical analogs'."
+      hypothesis_b_market_crowding:
+        description: "Extreme confidence = all recovery indicators confirmed = risk release phase ending = less upside remaining."
+      hypothesis_c_nonlinear_confidence:
+        description: "Confidence-reliability is inverted-U, not monotonic. Consistent with v3 chain: 'extremes are dangerous'."
+        connection: "If confirmed, this is the FIFTH inverted-U (gap, sustainability, FRM score, EA, now confidence-reliability). The universe is telling us something fundamental about markets."
+      action: "Exp0E-2 (curve shape) will distinguish these hypotheses. Monitor, do NOT tune."
+
+    # ═══════════════════════════════════════════════════════════
+    # Updated Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    status_updated:
+      market_guardian: "★★★★★ STABILITY (1204 episodes, P<=0=0.00%)"
+      confidence_meta_signal: "★★★★☆ REPLICATION (N=111, +33pp, needs OOS)"
+      calibration_stability: "⏳ NEXT: OOS + Exp0E (3 sub-tests)"
+      regime_override_layer: "★★★☆☆ Design validated (PANIC 38.6% failure identified)"
+      exposure_controller: "★★★☆☆ Architecture pending (error-cost principle frozen)"
+      stock_selection: "█████ PERMANENTLY RETIRED (6-S.18.0)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Closed Loop (frozen vision)
+    # ═══════════════════════════════════════════════════════════
+    closed_loop: |
+      If OOS passes, v4.0's core asset is NOT Guardian alone. It is:
+
+        Guardian + Confidence + Exposure Discipline
+
+      These three form a closed loop:
+        Guardian finds opportunity windows
+        Confidence estimates how reliable each window is
+        Exposure Discipline scales capital by reliability
+
+      This is no longer a 'model'. It is an asset management system.
+      The competitive barrier: 'knowing more clearly than others when
+      we might be wrong'.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_exposure_without_calibration: "MUST NOT increase exposure without calibrated confidence (Rule 9)"
+      no_return_optimization_in_exposure: "MUST NOT optimize Exposure for returns. Optimize for error cost."
+      no_linear_confidence_scaling: "MUST NOT assume confidence->exposure is linear. Use calibrated curve (Exp0E-2 will determine shape)."
+      no_fixing_q4_gt_q5: "MUST NOT tune away Q4>Q5 saturation. Preserve and investigate."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_9_rules: "MUST NOT run Evolution v4 without 9-rule Constitution Validator"
+
+    next_phase: "Implement and run Exp0E (3 sub-tests): calibration stability + curve shape + regime conditional. The first true architecture life-or-death test for v4.0."

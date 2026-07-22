@@ -7260,3 +7260,161 @@ freeze_history:
       no_ars_directional_claim: "PERMANENT (6-S.20.5)"
 
     next_phase: "Route A: expand BLOCK data coverage. Then execute Gate 1.5 with three guardrails active (scope limitation, freeze-before-test, horizon pre-registration)."
+
+  v4_0_route_a_execution_contract:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.7"
+    tag: "stock-sieve-v4.0-route-a-execution"
+    scope: "Route A execution contract - data expansion + ARS v1 freeze + Test 1 as first judge + expectation calibration"
+    freeze_status: "EXECUTION CONTRACT FROZEN (enters pure experiment phase; no more theory needed)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Why Execute Now (frozen)
+    # ═══════════════════════════════════════════════════════════
+    why_now: |
+      6-S.20.6 sealed all self-deception paths. Pausing here adds no
+      information. Only execution reduces uncertainty.
+
+      The design phase is OVER. No 12th rule needed. No more abstraction.
+      If ARS has value, data will prove it. If not, the best system
+      should kill it.
+
+    # ═══════════════════════════════════════════════════════════
+    # Route A Redefined (frozen)
+    # ═══════════════════════════════════════════════════════════
+    route_a_redefined: |
+      NOT: 'expand BLOCK data' (sounds like padding numbers)
+      BUT: 'expand Guardian Opportunity Set audit sample'
+
+      ARS claims are scoped to Guardian opportunity set (Guardrail 1).
+      Data expansion is NOT to make ARS look stronger. It is to answer:
+      'Across MORE Guardian-identified opportunities, does ARS
+      consistently identify high-regret-probability entries?'
+
+    # ═══════════════════════════════════════════════════════════
+    # Data Expansion Requirements (frozen)
+    # ═══════════════════════════════════════════════════════════
+    data_expansion:
+      current_block: 103
+      target: ">= 200 (ideal), >= 150 (minimum for Gate 1.5)"
+      consistency_requirements:
+        guardian_version: "same v1.1 (frozen)"
+        ars_version: "same v1 (frozen before test)"
+        horizon: "T+20 (frozen, Guardrail 3)"
+        regime_labels: "same 5-state taxonomy"
+      prohibited:
+        - "mixing Guardian versions (different state machines = incomparable)"
+        - "changing ARS computation between data collection and testing"
+        - "using different horizon for new data vs old data"
+
+    # ═══════════════════════════════════════════════════════════
+    # ARS v1 Freeze Protocol (frozen)
+    # ═══════════════════════════════════════════════════════════
+    ars_v1_freeze_protocol:
+      step_1: "Commit ARS computation code to git with tag 'ars_v1_gate15_freeze'"
+      step_2: "Commit Gate 1.5 test script with T+20 hardcoded"
+      step_3: "Record git commit hash in freeze YAML"
+      step_4: "Run Gate 1.5 using EXACTLY this committed code"
+      post_test_rule: |
+        If Gate 1.5 FAILS:
+          - Analyze failure (which test, what pattern)
+          - Design ARS v2 based on failure analysis (NOT test-fitting)
+          - ARS v2 gets FRESH Gate 1.5 (no peeking at v1 results)
+        If Gate 1.5 PASSES:
+          - ARS v1 advances to Replication
+          - Still needs OOS before Architecture
+
+    # ═══════════════════════════════════════════════════════════
+    # Expectation Calibration (frozen, critical)
+    # ═══════════════════════════════════════════════════════════
+    expectation_calibration: |
+      DO NOT expect +33.9pp to reproduce.
+
+      6-S.20.1 showed +33.9pp was likely driven by BLOCK + 2025 regime.
+      The 2026 reversal (-50pp) showed it was unstable.
+
+      Gate 1.5's correct target is NOT 'replicate +33pp'. It is:
+        'find a STABLE SMALL advantage'
+
+      Example of GOOD result (stable, small):
+        2021: +5pp
+        2022: +8pp
+        2023: +4pp
+        2024: +6pp
+        2025: +12pp
+        -> Average +7pp, ALL positive, no catastrophic reversal
+
+      This is MORE valuable than:
+        Average +33pp but 2026 has -50pp reversal.
+
+      A stable +7pp with no reversal is an asset.
+      A volatile +33pp with reversals is a liability.
+
+    # ═══════════════════════════════════════════════════════════
+    # Test 1 as First Judge (frozen)
+    # ═══════════════════════════════════════════════════════════
+    test_1_first_judge:
+      question: "Do high-ARS BLOCK episodes have more negative counterfactual returns than low-ARS BLOCK?"
+      comparison: "mean(T+20 market return) for high-ARS BLOCK vs low-ARS BLOCK"
+      success: "high-ARS return < low-ARS return by >= 2pp (high ARS blocks are MORE correct)"
+      failure_action: "STOP immediately. ARS has no risk information. No point testing regret, regime, or opportunity cost."
+      rationale: "If ARS cannot rank risk (Test 1), it cannot reduce regret (Test 2) or manage opportunity cost (Test 4). Foundation first."
+
+    # ═══════════════════════════════════════════════════════════
+    # Identity Ladder (frozen, no skipping)
+    # ═══════════════════════════════════════════════════════════
+    identity_ladder:
+      steps: ["Discovery", "Replication", "Validated Risk Filter", "Portfolio Constraint Component", "AI Risk Committee Candidate"]
+      rule: "MUST NOT skip steps. Even if Gate 1.5 passes all 4 tests, ARS only reaches 'Replication'. Not 'AI Risk Committee'."
+      current: "Discovery"
+      gate_1_5_pass_advances_to: "Replication"
+      next_after_replication: "OOS validation -> Validated Risk Filter"
+      final: "AI Risk Committee Candidate (only after OOS + stability confirmed)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Three Scenarios After Gate 1.5 (frozen)
+    # ═══════════════════════════════════════════════════════════
+    three_scenarios:
+      scenario_a_full_pass:
+        tests: "1+2+3+4 all PASS"
+        result: "ARS = effective risk filter. Upgrades to Replication."
+        identity: "AI Risk Committee candidate (but needs OOS first)"
+        next: "OOS validation on 2025-2026 holdout"
+
+      scenario_b_partial:
+        tests: "1+2+3 PASS, 4 FAIL"
+        result: "ARS has risk information but destroys participation. Risk indicator, NOT portfolio component."
+        identity: "Observation variable. Useful for analysis, not for policy."
+        next: "Keep as diagnostic. Do NOT use for exposure constraint."
+
+      scenario_c_fail:
+        tests: "1 FAIL (or multiple fail)"
+        result: "ARS is historical description, not decision tool."
+        identity: "None. ARS retired."
+        next: "System returns to Guardian + FRM gate + Static Portfolio. Simple but honest."
+
+    # ═══════════════════════════════════════════════════════════
+    # Execution Sequence (frozen, final)
+    # ═══════════════════════════════════════════════════════════
+    execution_sequence: |
+      1. Data expansion: BLOCK episodes 103 -> >=150 (same Guardian v1.1, same ARS v1)
+      2. ARS v1 freeze: git commit + tag
+      3. Gate 1.5 Test 1 (Avoided Loss): high-ARS vs low-ARS BLOCK
+         -> FAIL: stop. Scenario C.
+         -> PASS: continue.
+      4. Gate 1.5 Test 2 (Regret Reduction + Ulcer Index)
+      5. Gate 1.5 Test 3 (Crisis Robustness, 5 regimes)
+      6. Gate 1.5 Test 4 (Opportunity Cost + FPC) - TERMINAL
+      7. Verdict: Scenario A, B, or C.
+      8. Freeze results with Evidence Ladder.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Final Discipline (frozen)
+    # ═══════════════════════════════════════════════════════════
+    final_discipline: |
+      If ARS has value, data will prove it.
+      If not, the best system should kill it.
+
+      No more theory. Let data judge.
+
+    next_phase: "Execute Route A: expand BLOCK data -> ARS v1 freeze commit -> Gate 1.5 Test 1. Pure experiment phase begins."

@@ -1,0 +1,76 @@
+{
+  "commit": "6-S.21.0",
+  "experiment": "gate1_5_avoidance_calibration",
+  "date": "2026-07-22",
+  "n_block": 1043,
+  "scope": "Guardian opportunity set only (Guardrail 1)",
+  "ars_version": "v1 (frozen, Guardian v1.1 confidence score)",
+  "horizon": "T+20 (Guardrail 3)",
+  "evidence": {
+    "test_1": {
+      "n_high": 209,
+      "n_low": 208,
+      "high_mean": -1.081312961156972,
+      "low_mean": 1.78265244607213,
+      "delta": -2.8639654072291023,
+      "ci": [
+        -3.725994165408167,
+        -1.9622084405697018
+      ],
+      "high_correct_pct": 69.85645933014354,
+      "low_correct_pct": 33.17307692307692,
+      "verdict": "PASS"
+    },
+    "test_2": {
+      "ulcer_high": 13.876906664942396,
+      "ulcer_low": 10.828888555999512,
+      "ulcer_all": 13.505466191905862,
+      "delta_ui": 3.048018108942884,
+      "verdict": "PASS"
+    },
+    "test_3": {
+      "regimes": {
+        "CONFIRMED_RECOVERY": {
+          "n": 64,
+          "skipped": true
+        },
+        "EARLY_RECOVERY": {
+          "n": 318,
+          "n_high": 117,
+          "n_low": 14,
+          "high_mean": -0.3824975143500443,
+          "low_mean": 1.4750445335096751,
+          "delta": -1.8575420478597193,
+          "ars_works": true
+        },
+        "PANIC": {
+          "n": 127,
+          "skipped": true
+        },
+        "STABILIZING": {
+          "n": 475,
+          "n_high": 48,
+          "n_low": 65,
+          "high_mean": -3.5154099768669305,
+          "low_mean": 2.8077876421195627,
+          "delta": -6.323197618986493,
+          "ars_works": true
+        }
+      },
+      "positive_regimes": 2,
+      "total_regimes": 2,
+      "verdict": "PASS"
+    },
+    "test_4": {
+      "fpr": 0.3014354066985646,
+      "fpc": 243.20797677048205,
+      "block_rate": 0.20038350910834132,
+      "missed_upside": 3.8604440757219374,
+      "overall_mean": -0.1136297280943761,
+      "catastrophic": false,
+      "verdict": "FAIL"
+    },
+    "n_pass": 3,
+    "overall": "PARTIAL (Scenario B) - ARS is risk indicator, NOT portfolio component"
+  }
+}

@@ -7418,3 +7418,161 @@ freeze_history:
       No more theory. Let data judge.
 
     next_phase: "Execute Route A: expand BLOCK data -> ARS v1 freeze commit -> Gate 1.5 Test 1. Pure experiment phase begins."
+
+  v4_0_gate1_5_results:
+    gate_date: "2026-07-22"
+    commit: "6-S.21.0"
+    tag: "stock-sieve-v4.0-gate1-5-results"
+    scope: "Gate 1.5 Avoidance Calibration results - N=1043 BLOCK counterfactuals"
+    freeze_status: "DIAGNOSTIC_BASELINE (Scenario B: ARS is risk indicator, NOT portfolio component. Tests 1-3 PASS, Test 4 FAIL)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Evidence Ladder (frozen)
+    # ═══════════════════════════════════════════════════════════
+    evidence_ladder:
+      test_1_avoided_loss: "PASS"
+      test_2_regret_reduction: "PASS"
+      test_3_crisis_robustness: "PASS"
+      test_4_opportunity_cost: "FAIL (TERMINAL)"
+      n_pass: 3
+      overall: "PARTIAL (Scenario B) - ARS is risk indicator, NOT portfolio component"
+      ars_evidence_level: "Discovery -> Replication (Tests 1-3 pass, but Test 4 blocks advancement to Validated Risk Filter)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Results Detail (three-layer reporting)
+    # ═══════════════════════════════════════════════════════════
+    test_1_results:
+      layer_1_facts:
+        high_ars_n: 209
+        high_ars_mean_market_return: "-1.08%"
+        high_ars_correct_block_rate: "69.9% (market fell)"
+        low_ars_n: 208
+        low_ars_mean_market_return: "+1.78%"
+        low_ars_correct_block_rate: "33.2% (market fell)"
+      layer_2_statistics:
+        delta: "-2.86pp (high ARS more negative = more avoided loss)"
+        ci_95: "[-3.73pp, -1.96pp] (entirely below zero)"
+      layer_3_meaning: "ARS HAS risk information. High-ARS BLOCK correctly identifies worse outcomes. CI excludes zero. This is REAL, not noise."
+      verdict: "PASS"
+
+    test_2_results:
+      layer_1_facts:
+        strategy_a_buy_all: "mean -0.11%"
+        strategy_b_block_high_ars: "avoided mean -1.08%"
+        strategy_c_buy_low_ars: "mean +1.78%"
+        ulcer_high_ars: 13.88
+        ulcer_low_ars: 10.83
+      layer_2_statistics:
+        ulcer_delta: "+3.05 (high-ARS episodes have MORE pain)"
+      layer_3_meaning: "Blocking high-ARS avoids more pain than blocking low-ARS. ARS prioritizes pain avoidance correctly."
+      verdict: "PASS"
+
+    test_3_results:
+      layer_1_facts:
+        stabilizing: "N=475, delta=-6.32pp (ARS works STRONGLY)"
+        early_recovery: "N=318, delta=-1.86pp (ARS works)"
+        confirmed_recovery: "N=64, insufficient split"
+        panic: "N=127, insufficient split"
+      layer_2_statistics:
+        positive_regimes: "2/2 testable regimes (STABILIZING, EARLY_RECOVERY)"
+      layer_3_meaning: "ARS works in the two regimes with sufficient N. STABILIZING is strongest (-6.32pp). Cannot test PANIC/CONFIRMED (insufficient split)."
+      verdict: "PASS"
+      caveat: "PANIC (Guardian's known weakness) could not be tested due to insufficient high/low ARS split within PANIC episodes."
+
+    test_4_results:
+      layer_1_facts:
+        block_rate: "20.0% (209/1043 blocked as high-ARS)"
+        false_blocks: 63
+        fpr: "30.1% (30.1% of high-ARS blocks were wrong - market rose)"
+        fpc: "+243.21pp total missed upside"
+        missed_upside_mean: "+3.86%"
+        overall_mean: "-0.11%"
+      layer_2_statistics:
+        fpr_below_50: "PASS (30.1%)"
+        missed_upside_below_mean_plus_3: "FAIL (+3.86% > -0.11% + 3pp = +2.89%)"
+        block_rate_reasonable: "PASS (20.0%)"
+      layer_3_meaning: |
+        ARS over-filters. When ARS is wrong (30.1% of time), it misses
+        +3.86% average upside - significantly higher than overall mean.
+        The false blocks are not random: they systematically miss
+        ABOVE-AVERAGE opportunities. Protection destroys participation
+        (Rule 11 violation).
+
+        This means: ARS correctly identifies danger (Tests 1-3) BUT
+        also incorrectly blocks some of the best opportunities (Test 4).
+        The false blocks are not 'average misses' - they are 'top misses'.
+      verdict: "FAIL (TERMINAL)"
+
+    # ═══════════════════════════════════════════════════════════
+    # What Gate 1.5 Proved
+    # ═══════════════════════════════════════════════════════════
+    what_proved:
+      - "ARS HAS risk information: high-ARS BLOCK identifies -2.86pp worse outcomes (CI excludes zero, N=1043)"
+      - "ARS reduces pain: blocking high-ARS avoids more Ulcer Index pain than low-ARS"
+      - "ARS works in STABILIZING (-6.32pp) and EARLY_RECOVERY (-1.86pp)"
+      - "ARS is NOT a portfolio component: 30.1% false block rate with +3.86% missed upside"
+      - "False blocks systematically miss ABOVE-AVERAGE opportunities (not random misses)"
+      - "Scenario B: ARS is a risk INDICATOR, not a portfolio COMPONENT"
+
+    what_did_not_prove:
+      - "ARS as exposure policy (Test 4 failed)"
+      - "ARS in PANIC regime (insufficient split)"
+      - "Whether a different ARS threshold could pass Test 4 (would require ARS v2 + fresh Gate 1.5)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Frozen Decision
+    # ═══════════════════════════════════════════════════════════
+    frozen_decision: |
+      SCENARIO B. ARS is a risk indicator, NOT a portfolio component.
+
+      Tests 1-3 prove ARS has genuine risk information:
+        - It ranks risk correctly (-2.86pp, CI excludes zero)
+        - It reduces pain (Ulcer Index delta +3.05)
+        - It works in major regimes (STABILIZING, EARLY_RECOVERY)
+
+      Test 4 proves ARS cannot be used as exposure policy:
+        - 30.1% false blocks miss +3.86% upside (above-average misses)
+        - Protection destroys participation (Rule 11)
+        - False blocks are not random - they systematically catch good opportunities
+
+      ARS upgrades: Discovery -> Replication (Tests 1-3)
+      ARS does NOT advance to: Validated Risk Filter (Test 4 blocks)
+
+      IDENTITY: ARS is an observation variable / diagnostic indicator.
+      It can INFORM risk analysis but cannot DRIVE exposure policy.
+
+      The system remains:
+        Guardian -> FRM gate -> Static Bayesian Portfolio
+      ARS is available as a diagnostic readout, not as a policy input.
+
+    # ═══════════════════════════════════════════════════════════
+    # Why This Is Valuable
+    # ═══════════════════════════════════════════════════════════
+    why_valuable: |
+      Scenario B is the MOST INFORMATIVE outcome. It tells us:
+        1. Guardian's confidence DOES contain risk information (not noise)
+        2. But the information is not clean enough to drive capital
+        3. The false blocks reveal WHERE ARS is confused: it catches
+           danger AND opportunity, cannot distinguish them
+
+      This is exactly the v3 finding repeated at meta-level:
+        - v3: extreme signals catch both risk and opportunity (inverted-U)
+        - v4: ARS catches both danger and opportunity (Test 1-3 vs Test 4)
+
+      The unified pattern: the system can IDENTIFY extremes but cannot
+      DIRECTIONALIZE them (risk vs opportunity). This is consistent with
+      the reflexivity hypothesis (6-S.19.8): extreme states are where
+      risk and opportunity coexist.
+
+    # ═══════════════════════════════════════════════════════════
+    # Updated Status
+    # ═══════════════════════════════════════════════════════════
+    updated_status:
+      market_guardian: "★★★★★ STABILITY (unchanged)"
+      frm_direction_gate: "★★★★☆ STABILITY candidate"
+      ars: "★★★☆☆ Replication (risk indicator, NOT portfolio component)"
+      risk_filter: "☆☆☆☆☆ NOT VALIDATED (Test 4 failed)"
+      rrms: "★★☆☆☆ Architecture exists, risk filter not viable as policy"
+      stock_selection: "█████ PERMANENTLY RETIRED"
+
+    next_phase: "Decision point: (A) design ARS v2 with better risk/opportunity separation, (B) accept ARS as diagnostic only, (C) system complete at Guardian + FRM + Static"

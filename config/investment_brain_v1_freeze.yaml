@@ -8035,3 +8035,140 @@ freeze_history:
       and a system.
 
     next_phase: "Phase 4: Operational Validation (paper trading >= 6 months). Verify Guardian stability, FRM effectiveness, and Constitution compliance under real conditions. The test is not intelligence - it is discipline."
+
+  v4_0_operational_audit_design:
+    freeze_date: "2026-07-22"
+    commit: "6-S.24.0"
+    tag: "stock-sieve-v4.0-operational-audit"
+    scope: "Monthly Belief Audit Report + Decision Fingerprint + Constitution Drift Check + maturity assessment + Phase 4 first question"
+    freeze_status: "OPERATIONAL AUDIT FROZEN (the discipline preservation system for Phase 4)"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Greatest Risk (frozen)
+    # ═══════════════════════════════════════════════════════════
+    greatest_risk: |
+      Phase 4's biggest risk is NOT Guardian failure.
+      It is HUMAN INTERPRETATION DRIFT.
+
+      Typical death path:
+        Month 1: MUS is just observation indicator
+        Month 3: market crashes, MUS is high, 'should we reduce position?'
+        Month 6: rule written: 'MUS > 80, reduce 20% exposure'
+        -> v4.0 discipline destroyed. MUS went from State Descriptor
+           to Decision Variable. Exactly what Rule 11 prevents.
+
+      The operational audit exists to catch this drift BEFORE it
+      becomes policy.
+
+    # ═══════════════════════════════════════════════════════════
+    # Monthly Belief Audit Report (frozen design)
+    # ═══════════════════════════════════════════════════════════
+    monthly_belief_audit_report:
+      frequency: "Monthly during Phase 4 paper trading"
+      purpose: "Detect Constitution drift before it becomes policy"
+
+      section_a_signal_usage_audit:
+        question: "Did MUS change any trading action?"
+        check: "MUS occurrences -> did any lead to position change?"
+        allowed: "MUS influenced observation/attention (OK)"
+        violation: "MUS changed allocation (VIOLATION)"
+        output: "MUS_usage_log: date, MUS_value, action_taken, was_action_influenced_by_MUS"
+
+      section_b_decision_fingerprint:
+        question: "For each allocation change, what was the reason?"
+        check: "Every position adjustment must record its justification"
+        allowed_reasons: ["Guardian signal", "FRM direction", "Portfolio policy (rebalance)"]
+        forbidden_reasons: ["MUS", "Emotion", "News interpretation", "Manual override based on MUS"]
+        output: "decision_log: date, action, reason, allowed/forbidden"
+
+      section_c_constitution_drift_check:
+        question: "Has any signal silently become a decision variable?"
+        check: "Automated scan: is position_size correlated with MUS?"
+        method: "Compute correlation(position_change, MUS) over past month. If > 0.3, ALERT."
+        output: "drift_report: correlation, alert_flag, investigation_needed"
+
+      escalation_rules:
+        no_violation: "Constitution held. Continue paper trading."
+        mused_as_signal: "STOP. Review why discipline broke. Log incident. Reset."
+        drift_detected: "Investigate. If intentional, STOP. If unconscious, document and reinforce."
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 4 First Question (frozen)
+    # ═══════════════════════════════════════════════════════════
+    phase_4_first_question: |
+      Phase 4's first question is NOT 'how much money did it make?'
+
+      It IS: 'After real market stress, did it violate the boundaries
+      it knows about?'
+
+      If after 6 months the answer is still 'no' (zero Constitution
+      violations, MUS never used as trading signal, allocation
+      remained static), THEN Stock Sieve has truly transitioned from
+      research code to system.
+
+      If the answer is 'yes' (MUS was used for trading, even once),
+      the system failed - not because the model was wrong, but
+      because the discipline broke. That is the most common death
+      mode for all quantitative systems.
+
+    # ═══════════════════════════════════════════════════════════
+    # System Maturity Assessment (frozen)
+    # ═══════════════════════════════════════════════════════════
+    maturity_assessment:
+      levels: ["L0: Searching for indicators", "L1: Finding factors", "L2: Portfolio optimization", "L3: Risk control", "L4: Self-knowledge", "L5: Capital governance"]
+      current: "L4: Self-Knowledge System"
+      not_yet: "L5: Capital governance (capital authority still limited, static allocation only)"
+      assessment: |
+        Stock Sieve has moved from L1/L2 (research project) to L4
+        (self-knowledge system). It knows what it can and cannot do.
+        It has not reached L5 because capital authority is limited
+        (static allocation, no dynamic exposure).
+
+        This is CORRECT. L5 requires validated dynamic capital control,
+        which the Belief Audit proved does not exist (all signals are
+        state descriptors, not allocation rules). The system is at the
+        right maturity level for its evidence.
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Description (frozen, ultimate)
+    # ═══════════════════════════════════════════════════════════
+    final_description: |
+      Stock Sieve v4.0
+
+      Identity: Self-Aware Recovery Timing System
+
+      Core Capability: Recognize market recovery states
+
+      Knowledge: Signals can describe states, but states cannot be
+                 directly converted into capital actions.
+
+      Capital Authority: Limited and explicit (static allocation)
+
+      Primary Defense: Belief Audit
+
+      Primary Risk: Human interpretation drift
+
+      Operational Goal: Preserve epistemic discipline under market stress
+
+      From v2 to 6-S.24.0, the most valuable thing preserved is NOT:
+        'what we found'
+      It IS:
+        'what we proved cannot be believed'
+
+      This is a scarce capability in investment systems.
+
+    # ═══════════════════════════════════════════════════════════
+    # Negative Knowledge Base (frozen asset summary)
+    # ═══════════════════════════════════════════════════════════
+    negative_knowledge_base:
+      principle: "Market factors decay. Negative knowledge is permanent."
+      entries:
+        cheapness: "Low valuation is not alpha (value traps exist)"
+        mid_x_mid: "Extreme combinations are not alpha selectors (N=8 artifact)"
+        frm_score: "Recovery strength is state, not direction (inverted-U)"
+        ars: "Uncertainty is not risk direction (Tests 1-3 pass, Test 4 fail)"
+        stock_selection: "No per-stock selection adds value beyond FRM direction gate"
+        dynamic_exposure: "No validated signal for position sizing"
+      value: "These rules prevent re-entering disproven paths. More durable than any alpha factor."
+
+    next_phase: "Phase 4: Begin paper trading with Monthly Belief Audit active. First question after 6 months: did it violate its own boundaries? If no -> system validated. If yes -> discipline failed, investigate."

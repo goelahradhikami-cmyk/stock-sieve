@@ -7102,3 +7102,161 @@ freeze_history:
       no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Validator."
 
     next_phase: "Route A: expand BLOCK data -> Gate 1.5 (Test 1 -> 2 -> 3 -> 4 terminal). The question: can ARS reduce errors without destroying participation?"
+
+  v4_0_gate1_5_statistical_guardrails:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.6"
+    tag: "stock-sieve-v4.0-gate1-5-statistical-guardrails"
+    scope: "Three statistical guardrails for Gate 1.5 execution + scope limitation + horizon pre-registration"
+    freeze_status: "GUARDRAILS FROZEN (prevents the three statistical traps that could invalidate Gate 1.5)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Why These Guardrails Exist (frozen)
+    # ═══════════════════════════════════════════════════════════
+    rationale: |
+      Gate 1.5 design is complete (6-S.20.5). The remaining risk is
+      NOT in the design but in the EXECUTION. Three statistical traps
+      could invalidate results without being obvious:
+
+        1. Sample selection bias (BLOCK is pre-filtered by Guardian)
+        2. Training-to-test leakage (tuning ARS to pass tests)
+        3. Regret horizon ambiguity (finding the 'nicest' window)
+
+      These guardrails prevent each trap. They are frozen BEFORE
+      execution, not discovered after.
+
+    # ═══════════════════════════════════════════════════════════
+    # Guardrail 1: BLOCK Sample Scope Limitation (frozen)
+    # ═══════════════════════════════════════════════════════════
+    guardrail_1_scope_limitation:
+      trap: |
+        BLOCK episodes are NOT a random sample of the market. They are
+        episodes that Guardian ALREADY decided to block. Guardian has
+        pre-filtered: these are the episodes it found risky enough to
+        block. ARS is being tested ON Guardian's opportunity set, not
+        on the full market.
+
+        If we forget this, we might claim 'ARS works on the market'
+        when it only works on 'episodes Guardian already flagged'.
+
+      rule: |
+        All Gate 1.5 conclusions MUST be scoped:
+          'ARS is effective WITHIN Guardian's opportunity set'
+          NOT: 'ARS is effective across the market'
+
+        ARS is a SECOND-STAGE filter on a FIRST-STAGE filtered set.
+        It can only claim incremental value over Guardian, not
+        standalone market prediction.
+
+      enforcement: "Every Gate 1.5 report must state: 'Conclusions apply to Guardian opportunity set only. Generalization to full market is not claimed.'"
+
+    # ═══════════════════════════════════════════════════════════
+    # Guardrail 2: ARS Freeze-Before-Test (frozen)
+    # ═══════════════════════════════════════════════════════════
+    guardrail_2_freeze_before_test:
+      trap: |
+        The biggest temptation in Gate 1.5: see Test 1 result is weak,
+        adjust ARS threshold, re-run, see improvement, declare success.
+        This is training on the test set. It produces a result that
+        cannot generalize.
+
+      rule: |
+        ARS v1 (as currently computed by Guardian v1.1) is FROZEN
+        before Gate 1.5 execution. No parameter tuning during testing.
+
+        If Gate 1.5 FAILS:
+          1. Analyze WHY it failed (which test, what pattern)
+          2. Design ARS v2 based on failure analysis (not test-fitting)
+          3. ARS v2 gets its OWN Gate 1.5 (fresh, no peeking)
+
+        The flow:
+          ARS v1 (frozen) -> Gate 1.5 -> PASS or FAIL
+          -> if FAIL: ARS v2 (new design) -> Gate 1.5 v2 (fresh test)
+
+        NEVER: ARS v1 -> peek -> tweak -> ARS v1.1 -> re-test -> 'pass'
+
+      enforcement: "Git commit ARS computation code BEFORE running Gate 1.5. Any changes after = new version, new Gate 1.5."
+
+    # ═══════════════════════════════════════════════════════════
+    # Guardrail 3: Regret Horizon Pre-Registration (frozen)
+    # ═══════════════════════════════════════════════════════════
+    guardrail_3_horizon_pre_registration:
+      trap: |
+        FPC and Expected Regret depend on the time horizon:
+          T+20: missed 20-day return
+          T+60: missed 60-day return
+          max_30d: missed 30-day peak
+          max_180d: missed 6-month peak
+
+        If horizon is not pre-registered, researcher can cherry-pick
+        the horizon that makes ARS look best ('finding the nicest window').
+
+      pre_registered_horizons:
+        primary: "T+20 trading days (consistent with all prior analysis)"
+        secondary: "T+60 trading days (medium-term, for robustness check)"
+        prohibited: "max_peak_in_N_days (path-dependent, easily cherry-picked)"
+
+      rule: |
+        FPC and Expected Regret MUST use T+20 as primary horizon.
+        T+60 is allowed as secondary robustness check ONLY.
+        Max-peak metrics are PROHIBITED (path-dependent, cherry-pickable).
+
+        The horizon is chosen BEFORE seeing results, based on prior
+        consistency (all shadow_outcome uses T+20). Not chosen to
+        make ARS look good.
+
+      enforcement: "Gate 1.5 script must use T+20 for all FPC/Regret calculations. T+60 allowed in appendix only. No max-peak."
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5 Execution Checklist (frozen)
+    # ═══════════════════════════════════════════════════════════
+    execution_checklist:
+      pre_execution:
+        - "ARS computation code committed to git (freeze guardrail 2)"
+        - "T+20 horizon hardcoded in test script (guardrail 3)"
+        - "Scope limitation statement prepared (guardrail 1)"
+        - "BLOCK data coverage verified (Route A)"
+      during_execution:
+        - "Run Test 1 first. If FAIL, STOP. Document and analyze."
+        - "If Test 1 PASS, run Test 2, 3, 4 in order."
+        - "NO parameter tuning between tests."
+      post_execution:
+        - "Report includes scope limitation statement"
+        - "Report includes git commit hash of ARS code"
+        - "Report includes horizon used (T+20)"
+        - "If FAIL: failure analysis WITHOUT test-fitting. Design ARS v2 if warranted."
+
+    # ═══════════════════════════════════════════════════════════
+    # The Core Discipline (frozen)
+    # ═══════════════════════════════════════════════════════════
+    core_discipline: |
+      Do NOT prove RRMS is great. Verify ONE minimal question:
+
+        Can ARS reduce error entry cost without destroying participation?
+
+      Gate 1.5 is the sole judge. If it fails, accept the result.
+      Do NOT tune to pass. Do NOT cherry-pick horizons. Do NOT
+      generalize beyond Guardian's opportunity set.
+
+      Stock Sieve no longer tries to prove it knows the future.
+      It verifies whether it knows when NOT to trust itself.
+
+      Alpha factors decay because markets learn. Risk discipline
+      persists because self-knowledge doesn't expire the way
+      predictive edge does.
+
+      But this only holds if the verification is honest.
+      These guardrails ensure it is.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_scope_inflation: "MUST NOT claim ARS works on full market. Only on Guardian opportunity set."
+      no_tuning_during_test: "MUST NOT adjust ARS parameters during Gate 1.5. Freeze before test."
+      no_horizon_cherry_picking: "MUST NOT use max-peak or unspecified horizons. T+20 primary, T+60 secondary only."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Validator."
+      no_ars_directional_claim: "PERMANENT (6-S.20.5)"
+
+    next_phase: "Route A: expand BLOCK data coverage. Then execute Gate 1.5 with three guardrails active (scope limitation, freeze-before-test, horizon pre-registration)."

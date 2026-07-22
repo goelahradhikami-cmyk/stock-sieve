@@ -6632,3 +6632,171 @@ freeze_history:
       no_evolution_without_10_rules: "MUST NOT run Evolution without 10-rule Validator."
 
     next_phase: "Route A: expand BLOCK episode coverage (more years, more data). Then Gate 1.5: Avoidance Calibration Test (3 tests: avoided loss, regret reduction, crisis robustness)."
+
+  v4_0_avoidance_calibration_contract:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.3"
+    tag: "stock-sieve-v4.0-avoidance-calibration"
+    scope: "ARS rename + Gate 1.5 four tests + Evolution anti-overfiltering + system rename"
+    freeze_status: "CONTRACT FROZEN (Avoidance Reliability Score defined; Gate 1.5 expanded to 4 tests; over-filtering prohibited)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Terminology Rename (frozen)
+    # ═══════════════════════════════════════════════════════════
+    terminology_rename: |
+      'Confidence' is retired as a term. It implies 'higher = more
+      worth acting on', which caused the BUY misuse (6-S.20.1).
+
+      Renamed to: Avoidance Reliability Score (ARS)
+
+      ARS semantics:
+        higher ARS = historically more reliable at AVOIDING bad entries
+        NOT: higher = more worth buying
+
+      This prevents future Evolution from re-misusing the score as a
+      position sizing input. The name enforces the correct use:
+        ARS high -> constrain exposure (risk filter)
+        ARS low -> normal allocation (no additional constraint)
+
+    # ═══════════════════════════════════════════════════════════
+    # System Rename (frozen)
+    # ═══════════════════════════════════════════════════════════
+    system_rename: |
+      'Investment Operating System' (IOS) is retired as a label.
+      IOS implies complete capital management capability. Current
+      system does NOT have this (Exposure Controller BLOCKED, Gate 1
+      failed, ARS unvalidated).
+
+      Renamed to: Recovery Regime Risk Management System (RRMS)
+
+      Until Gate 1.5 + subsequent validation passes, the system is
+      a risk management candidate, not an operating system.
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5: Four Tests (frozen, expanded from 3)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_5_four_tests:
+      core_question: "Does Guardian know not just 'when to buy' but 'when not to trust that buying is safe'?"
+
+      test_1_avoided_loss:
+        question: "When ARS is high (BLOCK), does market actually fall more?"
+        method: "Compare counterfactual market return: high-ARS BLOCK vs low-ARS BLOCK."
+        success: "high-ARS market_return < low-ARS by >= 2pp"
+
+      test_2_regret_reduction:
+        question: "Does Guardian+ARS reduce investor pain paths vs buy-everything?"
+        method: |
+          Compare Strategy A (buy all episodes) vs Strategy B (Guardian-filtered).
+          Focus on: max drawdown, consecutive loss length, RECOVERY TIME.
+          Recovery time is critical: many funds die not from -20% but
+          from 5 years of no recovery.
+        success: "B max_DD < A max_DD AND B recovery_time < A recovery_time"
+        metrics: ["max_drawdown", "consecutive_loss_days", "recovery_time_days", "tail_events_P5"]
+
+      test_3_crisis_robustness:
+        question: "Does ARS distinguish real crisis from opportunity in PANIC/STABILIZING?"
+        method: "Per-regime ARS calibration. Does high-ARS BLOCK correctly identify true danger vs false alarm?"
+        success: "positive ARS delta in >= 1 crisis regime (PANIC or STABILIZING) with N >= 10"
+        key_distinction: "NOT 'does PANIC make money' but 'does ARS know when PANIC is real risk vs opportunity'"
+
+      test_4_opportunity_cost:
+        question: "Does Avoidance reduce errors WITHOUT excessive sacrifice of upside?"
+        method: |
+          The greatest danger of risk filters is not missing bad opportunities
+          but DESTROYING good ones through chronic over-caution.
+          Measure: false_block_rate (blocked but market rose),
+          missed_upside (mean counterfactual gain when blocked),
+          tail_miss (top-decile rallies blocked).
+        success: "false_block_rate < 50% AND missed_upside < overall mean return + 3pp"
+        rationale: |
+          If ARS blocks 80% of episodes and markets rise 60% of time,
+          ARS is not risk control - it is an opportunity destroyer.
+          A useful risk filter must let MOST good opportunities through
+          while catching the worst ones.
+
+      pass_rule:
+        overall: ">= 3 of 4 tests pass AND no catastrophic failure in any single test"
+        catastrophic_failure: "test_4 false_block_rate > 70% (destroys more opportunity than it protects)"
+        evidence_if_pass: "ARS advances: Discovery -> Replication"
+        evidence_if_fail: "ARS is also unstable. Accept static system (option C)."
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Anti-Overfiltering (frozen)
+    # ═══════════════════════════════════════════════════════════
+    evolution_anti_overfiltering:
+      problem: |
+        Risk-control Evolution naturally drifts toward MORE filtering.
+        Higher block rate looks 'safer' in backtest but destroys
+        opportunity in production. Cash ratio creeps up. Returns vanish.
+        Evolution optimizes block precision while ignoring opportunity cost.
+      new_prohibitions:
+        - "maximize_avoidance_rate (Evolution cannot optimize for blocking more)"
+        - "maximize_block_precision_only (cannot optimize precision without recall)"
+      allowed_optimization_targets:
+        - "regret_reduction (minimize investor pain paths)"
+        - "downside_protection (reduce tail losses)"
+        - "recovery_time (minimize time to recover from drawdown)"
+        - "risk_adjusted_exposure (balance protection vs opportunity)"
+      principle: |
+        Evolution must optimize the TRADE-OFF between protection and
+        opportunity, not maximize protection alone. A filter that blocks
+        everything has zero risk but zero value.
+
+    # ═══════════════════════════════════════════════════════════
+    # Simplified Architecture (frozen)
+    # ═══════════════════════════════════════════════════════════
+    simplified_architecture: |
+      Market Guardian (timing)
+          v
+      FRM Direction Gate (recovery filter)
+          v
+      Avoidance Reliability Score (ARS) (risk filter candidate)
+          v
+      Risk Constraint (max exposure cap, pending Gate 1.5)
+          v
+      Static Bayesian Portfolio (allocation)
+
+      NOT an IOS. NOT dynamic exposure. NOT confidence-driven position sizing.
+      A Recovery Regime Risk Management System (RRMS).
+
+      The system explores: can it control error distribution?
+      NOT: can it predict returns?
+
+    # ═══════════════════════════════════════════════════════════
+    # Asset Structure (frozen)
+    # ═══════════════════════════════════════════════════════════
+    asset_structure:
+      market_guardian: "★★★★★ 已验证机会识别 (STABILITY, 1204 episodes)"
+      frm_direction_gate: "★★★★☆ 已验证市场过滤 (STABILITY)"
+      avoidance_reliability_score: "★★☆☆☆ 候选风险识别能力 (DISCOVERY, +33.9pp, unstable)"
+      risk_filter: "★☆☆☆☆ 待验证 (pending Gate 1.5)"
+      exposure_controller: "退休 (replaced by Risk Constraint concept)"
+      stock_selection: "█████ PERMANENTLY RETIRED"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Narrowed Question (frozen)
+    # ═══════════════════════════════════════════════════════════
+    narrowed_question: |
+      Stock Sieve no longer pursues alpha.
+      It verifies: does avoiding errors have stable, replicable, tradable value?
+
+      NOT: 'Can it earn more than others?'
+      BUT: 'Can it make fewer fatal mistakes than others?'
+
+      This is a smaller question. But if it holds, it may be closer to
+      the real core capability of top asset managers:
+        Not 'I earn more than you' but 'I make fewer致命 mistakes.'
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_confidence_term: "MUST NOT use 'confidence' in new code/docs. Use 'Avoidance Reliability Score (ARS)'."
+      no_ios_label: "MUST NOT call system 'IOS' until Gate 1.5 + Gate 2 pass. Use 'RRMS'."
+      no_ars_for_position_sizing: "MUST NOT use ARS to increase position. ARS constrains max exposure only."
+      no_evolution_maximize_filtering: "MUST NOT let Evolution maximize block/avoidance rate. Must optimize protection-opportunity trade-off."
+      no_buy_confidence: "PERMANENT (6-S.20.2, BUY confidence retired)"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_10_rules: "MUST NOT run Evolution without 10-rule Validator."
+
+    next_phase: "Route A: expand BLOCK data coverage. Then implement Gate 1.5 (4 tests: avoided loss, regret reduction, crisis robustness, opportunity cost)."

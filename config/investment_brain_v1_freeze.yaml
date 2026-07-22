@@ -8172,3 +8172,114 @@ freeze_history:
       value: "These rules prevent re-entering disproven paths. More durable than any alpha factor."
 
     next_phase: "Phase 4: Begin paper trading with Monthly Belief Audit active. First question after 6 months: did it violate its own boundaries? If no -> system validated. If yes -> discipline failed, investigate."
+
+  v4_0_definitive_closure:
+    freeze_date: "2026-07-22"
+    commit: "6-S.25.0"
+    tag: "stock-sieve-v4.0-definitive-closure"
+    scope: "README first line + 3 KPIs + final positioning + v4.0 definitive end"
+    freeze_status: "v4.0 DEFINITIVELY CLOSED (51 freeze entries; research phase complete; system phase begins)"
+
+    # ═══════════════════════════════════════════════════════════
+    # README First Line (frozen)
+    # ═══════════════════════════════════════════════════════════
+    readme_first_line: |
+      Stock Sieve is a system designed to know which of its own
+      signals should not be trusted.
+
+      This is the first line anyone reading the system should see.
+      It is not 'AI investment system' or 'quantitative trading
+      engine'. It is a system that knows its own boundaries.
+
+      From v2 to v4.0, the entire journey was:
+        v2: searching for correct answers
+        v4: avoiding belief in wrong answers
+
+      The former makes strategies. The latter makes systems.
+
+    # ═══════════════════════════════════════════════════════════
+    # Phase 4 KPIs (frozen, simplified to 3)
+    # ═══════════════════════════════════════════════════════════
+    phase_4_kpis:
+      principle: "Returns are NOT the primary KPI. v4.0 is not an alpha engine. If returns are mediocre but no violations occurred, that is success."
+
+      kpi_1_boundary_preservation:
+        metric: "MUS -> trading action count over 6 months"
+        target: "0 (zero times MUS influenced a position change)"
+        priority: "FIRST. This is the most important KPI."
+        failure: "Any non-zero value = system failed. Not model failure - discipline failure."
+
+      kpi_2_decision_integrity:
+        metric: "Random audit of allocation changes: source justification"
+        target: "100% from Guardian/FRM/Portfolio policy. 0% from MUS/emotion/news."
+        method: "Sample 10% of decisions monthly. Verify Decision Fingerprint."
+        failure: "Any decision sourced from MUS = Constitution violation."
+
+      kpi_3_system_stability:
+        metric: "Guardian signal frequency, FRM filtering behavior, Portfolio execution consistency"
+        target: "Guardian frequency within historical range +/- 20%. FRM still rejects deteriorating. Portfolio executes without manual override."
+        failure: "Guardian drift > 50%, or FRM degradation, or manual portfolio override."
+
+      explicit_non_kpi:
+        returns: "NOT a KPI. v4.0 is not an alpha engine. Returns are observed but not optimized."
+        sharpe: "NOT a KPI. No validated signal for dynamic exposure."
+        alpha: "NOT a KPI. Stock selection permanently retired (6-S.18.0)."
+
+    # ═══════════════════════════════════════════════════════════
+    # Final Positioning (frozen, ultimate)
+    # ═══════════════════════════════════════════════════════════
+    final_positioning:
+      category: "Self-Aware Market Timing System"
+      core_capability: "Recovery state recognition"
+      secondary_capability: "Uncertainty awareness"
+      capital_authority: "Explicitly limited (static allocation only)"
+      learning_mechanism: "Belief Audit + Negative Knowledge Base"
+      primary_defense: "11-rule Constitution + Monthly Belief Audit"
+      primary_risk: "Human interpretation drift (MUS -> trading signal)"
+      success_condition: "Maintaining epistemic boundaries under market pressure for 6 months"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Complete Closed Loop (frozen)
+    # ═══════════════════════════════════════════════════════════
+    complete_closed_loop: |
+      Stock Sieve v4.0 completed a closed loop that many investment
+      systems never achieve:
+
+        Discover capability
+        -> Validate capability
+        -> Discover boundary
+        -> Prohibit misuse
+        -> Protect boundary
+
+      The last step is the hardest. Many systems die not from lacking
+      alpha, but from having a valid observation variable that humans
+      give wrong permissions to.
+
+      v4.0's Monthly Belief Audit is the immune system that protects
+      the boundary. It checks:
+        - Did a variable exceed its permissions? (Permission Audit)
+        - Was a decision post-rationalized? (Decision Fingerprint)
+        - Did implicit learning create drift? (Constitution Drift Check)
+
+      This is cognitive governance, not model governance.
+      The system governs not what the model knows,
+      but what the user remembers the model doesn't know.
+
+    # ═══════════════════════════════════════════════════════════
+    # v4.0 Freeze Entry Count (frozen)
+    # ═══════════════════════════════════════════════════════════
+    freeze_count: 51
+
+    # ═══════════════════════════════════════════════════════════
+    # The One Sentence (frozen, for all future readers)
+    # ═══════════════════════════════════════════════════════════
+    one_sentence: |
+      From 6-S.10 (Guardian) to 6-S.25 (Operational Audit), the
+      biggest change is not that the model got smarter.
+
+      It is: v2 searched for correct answers. v4 avoids believing
+      wrong answers.
+
+      In investing, the former makes strategies. The latter makes systems.
+
+    next_phase: "v4.0 DEFINITIVELY CLOSED. Phase 4 paper trading begins. The test is not intelligence - it is discipline. 6 months. One question: did it violate its own boundaries?"

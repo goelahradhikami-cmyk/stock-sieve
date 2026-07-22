@@ -5880,3 +5880,228 @@ freeze_history:
       no_evolution_without_9_rules: "MUST NOT run Evolution without 9-rule Validator."
 
     next_phase: "Implement and run Exp0E (4 sub-tests): stability + curve shape + regime conditional + half-life. The test of whether Stock Sieve has genuine self-cognition."
+
+  v4_0_two_gate_calibration_freeze:
+    freeze_date: "2026-07-22"
+    commit: "6-S.19.9"
+    tag: "stock-sieve-v4.0-two-gate-calibration"
+    scope: "Rule 10 + Two-Gate structure + status correction + reflexivity as hypothesis not law"
+    freeze_status: "CALIBRATION FREEZE (architecture recognized, identity NOT assigned - pending empirical validation)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Status Correction (the discipline)
+    # ═══════════════════════════════════════════════════════════
+    status_correction: |
+      6-S.19.8 declared 'IOS Framework Complete'. This is accurate for
+      ARCHITECTURE but NOT for IDENTITY. The correct status:
+
+        Architecture:        ★★★★★ COMPLETE
+        Empirical validation: ★★★☆☆ IN PROGRESS
+        Capital deployment:   ★★☆☆☆ PENDING
+
+      The core hypothesis (Confidence -> Risk Budget -> better risk-adjusted
+      return) has NOT been empirically validated. It has entered validation.
+
+      DO NOT assign 'Stock Sieve has meta-cognition' identity. That requires:
+        Gate 1 (Self-Knowledge): Exp0E proves confidence predicts reliability
+        Gate 2 (Capital Translation): dynamic exposure beats static on
+               risk-adjusted return
+
+      Until both gates pass, v4.0 is a THEORY, not a PRODUCT.
+
+      This is the Belief Audit discipline applied to v4.0 itself:
+        do not write unvalidated architecture into the genome.
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 10 (frozen)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_10:
+      name: "Capital Cannot Exceed Evidence"
+      rule: |
+        Exposure <= Evidence Strength of the WEAKEST link in the chain.
+
+        Capital allocation confidence = min(
+          Guardian evidence level,
+          Confidence calibration evidence level,
+          Risk model evidence level
+        )
+
+      rationale: |
+        A chain is only as strong as its weakest link. If Guardian is
+        STABILITY (★★★★★) but Confidence is only REPLICATION (★★★★☆),
+        capital deployment is limited to REPLICATION-level risk budget,
+        not STABILITY-level.
+
+        Example:
+          Guardian: ★★★★★ (validated, 1204 episodes)
+          Confidence: ★★★★☆ (replication, N=111, pending OOS)
+          Exposure: ★★★☆☆ (design only, not validated)
+          -> Max capital = ★★★☆☆ (weakest link = Exposure design)
+
+        Cannot deploy ★★★★★ capital on a ★★★☆☆ evidence chain.
+
+      full_constitution_rules:
+        rule_1: "Prohibited belief? -> REJECT"
+        rule_2: "State as ranking? -> REJECT"
+        rule_3: "Stock factor? -> REJECT"
+        rule_4: "Allowed scope? -> check"
+        rule_5: "Complexity > budget? -> REJECT"
+        rule_6: "Explanation before stability? -> REJECT"
+        rule_7: "Research without complete ledger? -> REJECT"
+        rule_8: "Temporal purity violation? -> REJECT"
+        rule_9: "Exposure without calibrated confidence? -> REJECT"
+        rule_10: "NEW: Capital exceeds weakest evidence link? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # Two-Gate Structure (frozen)
+    # ═══════════════════════════════════════════════════════════
+    two_gate_structure:
+      gate_1_self_knowledge:
+        name: "Self-Knowledge Gate"
+        question: "Does confidence actually predict reliability?"
+        method: "Exp0E (4 sub-tests): stability + curve shape + regime conditional + half-life"
+        success: "All 4 sub-tests pass"
+        failure: "Confidence is not self-knowledge. It is noise. No Exposure Controller."
+        evidence_level_if_pass: "STABILITY (Discovery -> Replication -> OOS -> Stability)"
+        what_it_proves: "Stock Sieve knows when it is reliable. Meta-cognition exists."
+        what_it_does_not_prove: "That this self-knowledge translates to better capital deployment."
+
+      gate_2_capital_translation:
+        name: "Capital Translation Gate"
+        question: "Does confidence-driven exposure beat static exposure on risk-adjusted return?"
+        method: |
+          Compare two strategies:
+            Strategy A: static 60% equity exposure (always same)
+            Strategy B: dynamic (Confidence Profile + Regime Override + Tail Risk)
+          Metrics: CAGR, Sharpe, Max DD, Recovery Time, Worst 5%
+          Test: B must beat A on risk-adjusted return (Sharpe), not just return.
+        success: "Sharpe(B) > Sharpe(A) AND MaxDD(B) < MaxDD(A)"
+        failure: "Confidence is beautiful analysis but NOT an investment asset. No dynamic exposure."
+        evidence_level_if_pass: "ARCHITECTURE (validated end-to-end)"
+        what_it_proves: "Self-knowledge translates to better capital deployment. IOS is real."
+        what_it_does_not_prove: "That it will persist forever (needs ongoing monitoring)."
+
+      gate_relationship: |
+        Gate 1 is NECESSARY but NOT SUFFICIENT.
+        Gate 2 is the terminal test.
+
+        Gate 1 PASS + Gate 2 FAIL = confidence is academically interesting
+        but commercially useless. Stock Sieve has self-knowledge but
+        cannot monetize it.
+
+        Gate 1 PASS + Gate 2 PASS = IOS validated. Stock Sieve has both
+        self-knowledge and the ability to translate it into better
+        risk-adjusted returns.
+
+        Gate 1 FAIL = stop. No Gate 2. Confidence is noise.
+
+      current_status:
+        gate_1: "NOT YET RUN (Exp0E implementation pending)"
+        gate_2: "BLOCKED (requires Gate 1 pass first)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Reflexivity Hypothesis Status Correction (frozen)
+    # ═══════════════════════════════════════════════════════════
+    reflexivity_status_correction: |
+      6-S.19.8 called it 'Reflexivity Hypothesis'. This is correct.
+      It is a HYPOTHESIS, not a Market Law.
+
+      Current evidence:
+        - Mid×Mid reversal: VERIFIED (N=194, falsified at larger N)
+        - Extreme quality failure: VERIFIED (v3.4, sustainability removes alpha)
+        - Extreme confidence risk (Q5<Q4): PENDING VERIFICATION (N=111, needs OOS)
+        - Reflexivity explanation: HYPOTHESIS (no causal proof)
+
+      Per Constitution Rule 6, this is at UNIFYING HYPOTHESIS level:
+        multiple observations suggest a pattern, but the pattern has
+        not been independently replicated across all dimensions.
+
+      It CANNOT be called 'Market Law' until:
+        1. Q5<Q4 confirmed in OOS (Exp0E-2)
+        2. Q5<Q4 confirmed across regimes (Exp0E-3)
+        3. Q5<Q4 confirmed across time (Exp0E-1)
+        4. Economic mechanism identified (reflexivity or alternative)
+
+      Until then, it remains the most ATTRACTIVE unifying hypothesis
+      in the Stock Sieve chain, but not an actionable rule.
+
+    # ═══════════════════════════════════════════════════════════
+    # The Optimization Target Shift (frozen)
+    # ═══════════════════════════════════════════════════════════
+    optimization_target_shift: |
+      The deepest change in v4.0 is NOT a new model. It is the shift
+      in optimization target:
+
+        v2-v3.5: maximize Return Prediction (f(X) -> return)
+        v4.0:    maximize Decision Quality under uncertainty
+                 (f(X) -> prediction + g(history) -> trust + h(risk) -> capital)
+
+      Traditional quant: factor -> predicted return -> buy
+      Stock Sieve v4:   prediction + reliability + loss distribution
+                        -> capital allocation
+
+      This is the shift from Return Function to Decision Function.
+      A CIO doesn't just ask 'will it go up?' They ask:
+        'In similar past situations, when I said it would go up,
+         what actually happened? If I was wrong, how wrong?
+         Is this a historically deceptive environment?'
+
+    # ═══════════════════════════════════════════════════════════
+    # Corrected Final Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    corrected_final_status:
+      market_guardian:
+        architecture: "★★★★★"
+        empirical: "★★★★★ STABILITY (1204 episodes)"
+        capital_readiness: "★★★★★ (frozen v1.1)"
+      confidence_engine:
+        architecture: "★★★★★"
+        empirical: "★★★☆☆ REPLICATION (N=111, pending Gate 1)"
+        capital_readiness: "★★☆☆☆ (cannot drive capital until Gate 1+2 pass)"
+      regime_override:
+        architecture: "★★★☆☆"
+        empirical: "★★☆☆☆ (PANIC failure identified, not validated)"
+        capital_readiness: "★☆☆☆☆ (design only)"
+      exposure_controller:
+        architecture: "★★★☆☆"
+        empirical: "★☆☆☆☆ (not tested)"
+        capital_readiness: "★☆☆☆☆ (pending Gate 2)"
+      stock_selection:
+        status: "█████ PERMANENTLY RETIRED (6-S.18.0)"
+      ios_framework:
+        architecture: "★★★★★ COMPLETE"
+        empirical: "★★★☆☆ IN PROGRESS"
+        capital_readiness: "★★☆☆☆ PENDING"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Terminal Test (frozen)
+    # ═══════════════════════════════════════════════════════════
+    terminal_test: |
+      The ultimate question for Stock Sieve is NOT:
+        'Can it predict the market correctly?'
+
+      It IS:
+        'Does it know when to reduce its bets?'
+
+      This is the difference between all great asset management systems
+      and ordinary prediction models. Stock Sieve doesn't need to prove
+      it is always right. It needs to prove it knows when it might be
+      wrong, and acts on that knowledge by reducing exposure.
+
+      Gate 1 tests: does it know when it might be wrong? (self-knowledge)
+      Gate 2 tests: does it act on that knowledge? (capital translation)
+
+      Both must pass for the IOS to be real.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_identity_before_gates: "MUST NOT assign 'meta-cognition' or 'IOS' identity before Gate 1+2 pass"
+      no_capital_above_weakest_link: "MUST NOT deploy capital exceeding weakest evidence link (Rule 10)"
+      no_reflexivity_as_law: "MUST NOT treat reflexivity as Market Law. It is Unifying Hypothesis."
+      no_gate2_before_gate1: "MUST NOT run Capital Translation Gate before Self-Knowledge Gate passes"
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_10_rules: "MUST NOT run Evolution v4 without 10-rule Constitution Validator"
+
+    next_phase: "Gate 1: Implement and run Exp0E (4 sub-tests) - the Self-Knowledge Gate. If PASS, proceed to Gate 2 (Capital Translation simulation)."

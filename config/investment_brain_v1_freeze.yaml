@@ -6459,3 +6459,176 @@ freeze_history:
         No dynamic exposure. No confidence-driven position sizing.
 
     next_phase: "Decision point: choose option A (more data), B (BLOCK-only confidence), or C (accept limitation). Guardian v1.1 remains frozen and validated regardless."
+
+  v4_0_asymmetric_confidence_contract:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.2"
+    tag: "stock-sieve-v4.0-asymmetric-confidence"
+    scope: "Asymmetric Confidence Reframing - BUY confidence retired, BLOCK confidence = Avoidance Risk Filter candidate, Gate 1.5 design"
+    freeze_status: "CONTRACT FROZEN (confidence split into two variables: BUY-retired, BLOCK-candidate; route A+B chosen, C rejected)"
+
+    # ═══════════════════════════════════════════════════════════
+    # Route Decision (A+B, not C)
+    # ═══════════════════════════════════════════════════════════
+    route_decision: |
+      Chosen: A (expand evidence) + B (redefine confidence scope).
+      Rejected: C (stop exploring).
+
+      Gate 1 FAIL did NOT falsify v4.0's core idea. It falsified a
+      STRONGER assumption:
+        ❌ 'Confidence is a unified meta-signal managing both entry and exit risk.'
+
+      But it left a WEAKER, more valuable hypothesis:
+        ✅ 'Guardian's confidence may be an Asymmetric Risk Signal:
+            it knows when NOT to trust an opportunity.'
+
+      This is a different asset. Not 'I know when I'll make money'
+      but 'I know when not to make a big mistake.' The latter is
+      more stable and closer to how top asset managers actually work.
+
+      C is rejected because it would discard the BLOCK +33.9pp finding
+      (high conf 71.2% vs low conf 37.3%). This is a discovered boundary
+      capability. Stopping would violate Belief Audit: don't discard
+      evidence, narrow the hypothesis.
+
+    # ═══════════════════════════════════════════════════════════
+    # Confidence Split (frozen)
+    # ═══════════════════════════════════════════════════════════
+    confidence_split:
+      confidence_buy:
+        status: "RETIRED"
+        evidence: "Gate 0.5: delta = +0.0pp (high=low=75%, zero discrimination)"
+        definition: "Predicts quality of buying opportunities"
+        prohibition: "MUST NOT use BUY confidence for exposure increase. Permanent."
+        interpretation: "Guardian does not know when its BUY signals are reliable. BUY is a binary gate, not a calibrated signal."
+
+      confidence_block:
+        status: "DISCOVERY (Asymmetric Risk Signal candidate)"
+        evidence: "Gate 0.5: delta = +33.9pp (high 71.2% vs low 37.3%)"
+        definition: "Predicts ability to AVOID bad bets (not to find good ones)"
+        renamed_to: "Avoidance Confidence"
+        caveat: "Exp0E-1 showed 2026 reversal (-50pp). BLOCK calibration is also unstable at current N. Cannot be used for capital yet."
+        interpretation: "Guardian may know when NOT to act. This is a narrower but more realistic self-knowledge."
+
+    # ═══════════════════════════════════════════════════════════
+    # Architectural Redefinition (frozen)
+    # ═══════════════════════════════════════════════════════════
+    architecture_redefinition: |
+      OLD (6-S.19.7): Confidence -> Exposure Controller (position sizing)
+      NEW (6-S.20.2): Avoidance Confidence -> Risk Filter (exposure constraint)
+
+      NOT: confidence high -> increase position (trading)
+      BUT: avoidance confidence high -> prevent over-allocation (risk control)
+
+      The role shifts from 'how much to bet' to 'how much to LIMIT betting'.
+
+      Architecture (revised):
+        Guardian
+           |
+           +--- BUY signal (binary gate, no confidence scaling)
+           |
+           +--- Avoidance Confidence (risk filter candidate)
+                    |
+                    v
+              Risk Filter (constrains max exposure)
+                    |
+                    v
+              Static Bayesian Portfolio
+
+      Note: Static allocation, NOT dynamic. Avoidance Confidence constrains
+      the UPPER BOUND, not the exact position. If avoidance confidence is
+      low, max exposure is reduced. If high, normal allocation proceeds.
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5: Avoidance Calibration Test (frozen design)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_5_avoidance_calibration:
+      purpose: "Test whether Avoidance Confidence (BLOCK-only) can reduce errors"
+      replaces: "Gate 1 (which tested unified confidence - failed)"
+
+      three_tests:
+        test_1_avoided_loss:
+          question: "When BLOCK confidence is high, does the market actually fall?"
+          method: "For high-confidence BLOCK episodes, compute counterfactual market return. High conf BLOCK should have more negative market returns."
+          success: "high_conf BLOCK market_return < low_conf BLOCK market_return by >= 2pp"
+
+        test_2_regret_reduction:
+          question: "Does Guardian BLOCK reduce worst-case losses vs buy-everything?"
+          method: "Compare: (A) buy all episodes vs (B) Guardian-filtered (BLOCK removed). Compute worst loss, max DD, tail events (P5)."
+          success: "Strategy B worst_loss < Strategy A worst_loss AND tail events reduced"
+
+        test_3_crisis_robustness:
+          question: "Does Avoidance Confidence work in PANIC and STABILIZING specifically?"
+          method: "Per-regime BLOCK confidence calibration (from Exp0E-3, now repurposed)."
+          success: "positive delta in >= 1 of PANIC/STABILIZING with N >= 10"
+          why: "PANIC is Guardian's known weakness (38.6% block accuracy). If avoidance confidence helps EVEN IN PANIC, it's valuable."
+
+      success_criteria:
+        overall: ">= 2 of 3 tests pass"
+        evidence_level_if_pass: "Avoidance Confidence advances: Discovery -> Replication"
+        failure: "Avoidance Confidence is also unstable. Accept C (static system)."
+
+      data_requirement: "Needs more BLOCK episodes per year (current 103 total, but uneven yearly distribution). Route A (expand data) supports this."
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Scope Narrowed (frozen)
+    # ═══════════════════════════════════════════════════════════
+    evolution_v4_narrowed:
+      removed_from_allowed:
+        - "confidence_calibration (was: general confidence, now split)"
+        - "exposure_mapping (was: confidence -> position, now BLOCKED)"
+      added_to_allowed:
+        - "risk_filter (avoidance confidence -> max exposure constraint)"
+        - "drawdown_control (tail risk management)"
+        - "avoidance_policy (when to block, not how much to buy)"
+      still_forbidden:
+        - "stock_alpha (6-S.18.0 permanent)"
+        - "ranking_factor (6-S.18.0 permanent)"
+        - "selection_signal (6-S.18.0 permanent)"
+        - "confidence_position_sizing (NEW: BUY confidence retired, BLOCK not yet validated)"
+      principle: "Evolution optimizes risk avoidance policy, not return prediction or position sizing."
+
+    # ═══════════════════════════════════════════════════════════
+    # Updated System Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    updated_status:
+      market_guardian: "★★★★★ STABILITY (unchanged, 1204 episodes)"
+      frm_direction_gate: "★★★★☆ STABILITY (portfolio filter)"
+      confidence_buy: "☆☆☆☆☆ RETIRED (zero discrimination, Gate 0.5)"
+      avoidance_confidence_block: "★★☆☆☆ DISCOVERY (+33.9pp but unstable, needs Gate 1.5)"
+      risk_filter: "★★☆☆☆ Design candidate (pending Gate 1.5)"
+      exposure_controller: "BLOCKED (Rule 10, replaced by Risk Filter concept)"
+      stock_selection: "█████ PERMANENTLY RETIRED"
+      ios_framework: "Architecture ★★★★☆ / Empirical ★★☆☆☆ / Capital ★☆☆☆☆"
+
+    # ═══════════════════════════════════════════════════════════
+    # The Deepest Finding (frozen)
+    # ═══════════════════════════════════════════════════════════
+    deepest_finding: |
+      6-S.20.1 completed a high-level model decomposition:
+
+      Before: Confidence = 'doesn't know when it's wrong' (unified, failed)
+      After:  Confidence = 'may know when not to trust opportunities' (asymmetric)
+
+      The scope narrowed, but realism increased.
+
+      Many top asset management systems ultimately possess NOT:
+        'ability to predict future gains'
+      BUT:
+        'ability to know when not to bet'
+
+      Gate 1's failure is not the absence of value. It is the discovery
+      that value is located in a NARROWER place than originally assumed.
+      This is exactly what Belief Audit should produce.
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_buy_confidence_for_exposure: "PERMANENT: BUY confidence has zero discrimination. Never use for position sizing."
+      no_avoidance_confidence_before_gate_1_5: "MUST NOT use BLOCK confidence for capital decisions before Gate 1.5 passes."
+      no_dynamic_exposure: "MUST NOT design dynamic exposure until Risk Filter is validated."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_10_rules: "MUST NOT run Evolution without 10-rule Validator."
+
+    next_phase: "Route A: expand BLOCK episode coverage (more years, more data). Then Gate 1.5: Avoidance Calibration Test (3 tests: avoided loss, regret reduction, crisis robustness)."

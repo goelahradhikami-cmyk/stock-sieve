@@ -6800,3 +6800,162 @@ freeze_history:
       no_evolution_without_10_rules: "MUST NOT run Evolution without 10-rule Validator."
 
     next_phase: "Route A: expand BLOCK data coverage. Then implement Gate 1.5 (4 tests: avoided loss, regret reduction, crisis robustness, opportunity cost)."
+
+  v4_0_rrms_core_hypothesis_freeze:
+    freeze_date: "2026-07-22"
+    commit: "6-S.20.4"
+    tag: "stock-sieve-v4.0-rrms-core-hypothesis"
+    scope: "Rule 11 + Ulcer Index + False Protection Ratio + RRMS core hypothesis + Gate 1.5 ordered execution"
+    freeze_status: "CONTRACT FROZEN (RRMS core hypothesis defined; Gate 1.5 metrics finalized; Rule 11 added)"
+
+    # ═══════════════════════════════════════════════════════════
+    # RRMS Core Hypothesis (frozen)
+    # ═══════════════════════════════════════════════════════════
+    rrms_core_hypothesis: |
+      Guardian finds opportunities. ARS identifies 'opportunities not
+      worth trusting'. RRMS manages error cost, NOT creates returns.
+
+      This is smaller than IOS (6-S.19.8) but the evidence chain is
+      stronger: each component has a narrower, more testable claim.
+
+      The question is NOT 'can it predict returns?' but 'can it
+      predict when betting would cause regret?'
+
+      This is closer to a real fund CIO's work: not always right,
+      but avoids unacceptable mistakes.
+
+    # ═══════════════════════════════════════════════════════════
+    # Constitution Rule 11 (frozen)
+    # ═══════════════════════════════════════════════════════════
+    constitution_rule_11:
+      name: "Protection Cannot Destroy Participation"
+      rule: |
+        Any risk filter MUST prove it reduces downside AND preserves
+        upside participation. A filter that blocks everything has
+        zero risk but zero value.
+
+        PROHIBITED: maximize avoided loss (pure protection)
+        ALLOWED: maximize regret reduction (protection + participation)
+
+      rationale: |
+        Risk management is NOT escaping the market. Many risk models
+        die from 'discovered crisis -> raised limits -> missed recovery
+        -> chronic underperformance'. The filter must catch the worst
+        while letting most good opportunities through.
+
+      full_constitution_rules:
+        rule_1: "Prohibited belief? -> REJECT"
+        rule_2: "State as ranking? -> REJECT"
+        rule_3: "Stock factor? -> REJECT"
+        rule_4: "Allowed scope? -> check"
+        rule_5: "Complexity > budget? -> REJECT"
+        rule_6: "Explanation before stability? -> REJECT"
+        rule_7: "Research without complete ledger? -> REJECT"
+        rule_8: "Temporal purity violation? -> REJECT"
+        rule_9: "Exposure without calibrated confidence? -> REJECT"
+        rule_10: "Capital exceeds weakest evidence link? -> REJECT"
+        rule_11: "NEW: Protection destroys participation? -> REJECT"
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5 Metrics Finalized (frozen)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_5_metrics_finalized:
+      test_2_addition_ulcer_index:
+        metric: "Ulcer Index"
+        formula: "sqrt(mean(drawdown_depth^2 * drawdown_duration))"
+        rationale: |
+          Two strategies with similar max DD can have completely different
+          pain profiles:
+            A: -40%, recovery 3 years (Ulcer Index high)
+            B: -20%, recovery 1 year (Ulcer Index low)
+          Max DD alone misses this. Ulcer Index captures depth AND
+          duration of drawdown - the real investor pain.
+        required_in_test_2: true
+
+      test_4_addition_false_protection_ratio:
+        metric: "False Protection Ratio (FPR)"
+        formula: "FPR = blocked_episodes_with_positive_return / total_blocked"
+        rationale: |
+          Cannot simply require FPR -> 0 because FPR=0 might mean
+          'never trade'. Must be evaluated jointly with Protection Gain:
+            FPR < 50% (most blocks are correct)
+            AND missed_upside < overall_mean + 3pp (not destroying top opportunities)
+          A filter with FPR=30% and good protection is useful.
+          A filter with FPR=10% but blocks 90% of episodes is an
+          opportunity destroyer despite low FPR.
+        joint_evaluation: "FPR + block_rate + protection_gain must be evaluated together"
+
+      test_3_expansion:
+        note: "Test all 5 regimes (PANIC/EARLY_RECOVERY/STABILIZING/CONFIRMED_RECOVERY/EUPHORIA), not just PANIC. ARS may distinguish 'looks like crisis' from 'real opportunity' in transition states."
+
+    # ═══════════════════════════════════════════════════════════
+    # Gate 1.5 Ordered Execution (frozen)
+    # ═══════════════════════════════════════════════════════════
+    gate_1_5_ordered_execution:
+      order: ["Test 1 (Avoided Loss)", "Test 2 (Regret Reduction)", "Test 3 (Crisis Robustness)", "Test 4 (Opportunity Cost)"]
+      stop_rule: "If Test 1 fails, ARS has no risk information. Stop. No point testing regret or opportunity cost."
+      rationale: "If ARS cannot distinguish dangerous from safe episodes (Test 1), it cannot reduce regret (Test 2) or manage opportunity cost (Test 4). Foundation must come first."
+
+    # ═══════════════════════════════════════════════════════════
+    # Evolution v4 Optimization Target (frozen)
+    # ═══════════════════════════════════════════════════════════
+    evolution_optimization_target: |
+      Evolution must optimize regret, not loss:
+
+        minimize: E(loss) + λ × TailRisk + μ × OpportunityCost
+
+      NOT:
+        maximize avoidance (produces a monster that never buys)
+        minimize loss (same - zero risk = zero value)
+
+      The difference between 'minimize regret' and 'minimize loss':
+        minimize loss: block everything -> zero loss, zero value
+        minimize regret: block only when blocking reduces pain paths
+          while preserving participation
+
+      This is the mathematical expression of Rule 11.
+
+    # ═══════════════════════════════════════════════════════════
+    # ARS Identity Enforcement (frozen)
+    # ═══════════════════════════════════════════════════════════
+    ars_identity_enforcement: |
+      ARS must NOT be allowed to silently become a 'low-frequency alpha'.
+      It must strictly remain an 'error cost manager'.
+
+      The distinction:
+        Alpha signal: high score -> buy more (return prediction)
+        ARS: high score -> constrain exposure (error prediction)
+
+      If Evolution ever produces a candidate where ARS is used to
+      INCREASE position, it must be REJECTED by the Constitution
+      Validator (Rule 9 + this enforcement).
+
+      ARS direction is ALWAYS:
+        high ARS -> risk constraint UP -> max exposure DOWN
+        low ARS -> risk constraint normal -> normal allocation
+
+      Never the reverse. This is permanent.
+
+    # ═══════════════════════════════════════════════════════════
+    # RRMS Status (frozen)
+    # ═══════════════════════════════════════════════════════════
+    rrms_status:
+      market_guardian: "★★★★★ STABILITY (1204 episodes)"
+      frm_direction_gate: "★★★★☆ STABILITY candidate"
+      ars: "★★☆☆☆ DISCOVERY (+33.9pp BLOCK, unstable, needs Gate 1.5)"
+      risk_constraint: "★☆☆☆☆ Design only (pending Gate 1.5)"
+      rrms: "★★★☆☆ Architecture candidate, empirical pending"
+
+    # ═══════════════════════════════════════════════════════════
+    # Prohibited
+    # ═══════════════════════════════════════════════════════════
+    prohibited:
+      no_ars_as_alpha: "MUST NOT use ARS to increase position. ARS constrains max exposure only. Permanent."
+      no_protection_without_participation: "MUST NOT implement a risk filter that doesn't preserve upside. (Rule 11)"
+      no_evolution_maximize_avoidance: "MUST NOT let Evolution maximize block rate. Must optimize regret reduction."
+      no_confidence_term: "MUST NOT use 'confidence'. Use ARS."
+      no_ios_label: "MUST NOT use 'IOS'. Use RRMS."
+      no_stock_selection: "PERMANENT (6-S.18.0)"
+      no_evolution_without_11_rules: "MUST NOT run Evolution without 11-rule Constitution Validator."
+
+    next_phase: "Route A: expand BLOCK data. Then implement Gate 1.5 in order: Test 1 (avoided loss) -> Test 2 (regret + ulcer) -> Test 3 (crisis, all 5 regimes) -> Test 4 (opportunity cost + FPR). Stop if Test 1 fails."

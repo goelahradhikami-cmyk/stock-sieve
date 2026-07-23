@@ -78,7 +78,7 @@
 
 4. ~~进化引擎双轨并存~~：**已完成**（见上方第三轮）——`genome.py` 抽取 + `engine.py`→`spec_engine.py` 重命名，职责边界：genome.py=数据类 / spec_engine.py=协议级季度机制 / engine_v1.py=生产级每日引擎。
 5. ~~三竞技场并存~~：**已完成**（见上方第四轮）——职责核实为「锦标赛 / 拥挤度 / 生存选择」三者分工，`arena.py`→`tournament.py`、`competitive_arena.py`→`crowding_arena.py` 重命名消歧，`survival_arena.py` 保留。遗留：`tournament.py` 与 `crowding_arena.py` 目前零代码调用，若长期无调用方可在下一轮评估归档。
-6. **数据层四文件边界**：`data/` 下 `evaluation_db.py` / `evaluation_crud.py` / `evaluation_schema.py` / `evaluation_migration.py` 职责边界需确认。
+6. ~~数据层四文件边界~~：**已核实，无需重构**（2026-07-23）——四文件已是清晰的 Facade + Mixin 结构：`evaluation_schema.py`=DDL 常量（391 行）、`evaluation_crud.py`=CRUD Mixin（663 行）、`evaluation_migration.py`=迁移 Mixin（424 行）、`evaluation_db.py`=门面（101 行，仅 `__init__`/`init_db`/`connect` + 再导出）。CRUD 与 Migration 两个 Mixin 零方法名冲突，全库 14 处导入均经门面路径，`test_evaluation_db_connections.py` + `test_db_connection_governance.py` 10 个测试覆盖有效。
 
 ### P2 — 工程卫生
 

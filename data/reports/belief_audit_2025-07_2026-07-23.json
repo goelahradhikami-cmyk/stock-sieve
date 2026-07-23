@@ -1,0 +1,39 @@
+{
+  "audit_date": "2026-07-23",
+  "period": "2025-07",
+  "n_episodes": 23,
+  "section_a": {
+    "violations": 0,
+    "verdict": "PASS",
+    "buy_count": 23,
+    "block_count": 0,
+    "within_band_results": {
+      "normal": {
+        "n": 17,
+        "corr": 0.0,
+        "constant_target": 0.6
+      }
+    }
+  },
+  "section_b": {
+    "verdict": "PASS",
+    "forbidden_reasons": [],
+    "reason_counts": {
+      "RECOVERY_CONFIRMED": 23
+    }
+  },
+  "section_c": {
+    "verdict": "PASS",
+    "cross_band_corr": 0.9399865017444181,
+    "max_within_band_corr": 0.0,
+    "monthly_trend": [
+      {
+        "month": "2025-07",
+        "n": 23,
+        "cross_corr": 0.9399865017444181
+      }
+    ]
+  },
+  "overall": "PASS",
+  "violations": 0
+}

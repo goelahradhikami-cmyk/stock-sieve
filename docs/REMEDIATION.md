@@ -77,6 +77,7 @@
 | 新增测试 | `tests/test_confidence_overlay.py`（19 个）：复合公式（0.10/0.50/0.40 权重）、55/65/75 全部档位边界（含 54.9/55、64.9/65、74.9/75 临界）、`allows_anomaly` 仅 normal/full 放行、三个子分数公式与中性默认值、MA20>MA60 的 +10 加成 |
 | **行为发现 1** | `confidence_overlay.py` 模块 docstring 描述的是**旧版**公式（0.4/0.3/0.3 权重、30/50/70 阈值），实际代码是 6-S.5.5b 版（0.10/0.50/0.40、55/65/75）。测试钉住的是**代码行为**。docstring 未改（冻结文件），建议解冻窗口修正文档 |
 | **行为发现 2** | `_compute_breadth_recovery` 的 try/finally **没有 except**——`stock_factor_snapshot` 表缺失时抛 `sqlite3.OperationalError`；而 `state_transition._get_breadth` 同类场景捕获异常回退 0.5。两个 Guardian 核心组件的错误处理不一致，已用测试分别钉住现状，留待解冻决策 |
+| 解冻候选清单 | 两条发现 + 三条行为观察已整理为独立文档 [GUARDIAN_THAW_CANDIDATES.md](GUARDIAN_THAW_CANDIDATES.md)（observability 性质，非 freeze entry） |
 | 验证 | **220 passed**（201 + 19 新），零回归；冻结文件 `confidence_overlay.py` 零改动 |
 
 ### 验证

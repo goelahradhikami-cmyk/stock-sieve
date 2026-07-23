@@ -276,7 +276,7 @@ Stock Sieve（筛股魔方）是一个多人格进化型AI选股引擎。核心�
 | `engine.py` | 756 | 原始进化引擎 | `EvolutionEngine`, `SelectionEngine`, `MutationEngine`(4突变源), `CrossoverEngine`(α∈[0.3,0.7]), `SandboxValidator`, `SurvivalCriteria` |
 | `engine_v1.py` | 342 | 生产级进化引擎 | `EvolutionEngineV1`(基于evaluation_results的fitness, 余弦距离多样性, 沙盒验证, dry-run) |
 | `sandbox.py` | 302 | 沙盒验证v2 | `SandboxValidator`(三层防护: 最小交易笔数≥10, fitness改善≥5%, 回撤恶化≤1.2×) |
-| `arena.py` | 335 | 进化竞技场 | `EvolutionArena`(多Agent同场竞赛, 真实交易模拟, 多维fitness排名), `PortfolioSimulator` |
+| `tournament.py` | 335 | 进化竞技场 | `EvolutionArena`(多Agent同场竞赛, 真实交易模拟, 多维fitness排名), `PortfolioSimulator`（2026-07-23 由 arena.py 重命名） |
 | `__init__.py` | 13 | | |
 
 ### 6. UI `src/ui/`（11 文件 · 1,073 行）
@@ -409,7 +409,7 @@ python -c "from src.evolution.engine_v1 import EvolutionEngineV1; \
   EvolutionEngineV1(dry_run=True).run_cycle()"
 
 # 竞技场锦标赛
-python -c "from src.evolution.arena import EvolutionArena; \
+python -c "from src.evolution.tournament import EvolutionArena; \
   r = EvolutionArena().run_tournament(cycle_id=1, start_date='2024-06-01', end_date='2026-06-30'); \
   [print(f'#{x[\"rank\"]} {x[\"agent_id\"]} fit={x[\"fitness\"]:.3f}') for x in r['rankings']]"
 

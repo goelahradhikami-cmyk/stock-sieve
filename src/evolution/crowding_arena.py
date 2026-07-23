@@ -1,5 +1,5 @@
 """
-Multi-Agent Competitive Arena - Commit 6-L.6 (补丁6).
+Multi-Agent Crowding Arena - Commit 6-L.6 (补丁6).
 
 Runs multiple agents' doctrines simultaneously over the same stock_factor_snapshot
 to compute competitive metrics:
@@ -10,8 +10,12 @@ to compute competitive metrics:
 This connects 6-K.1 Market Ecology - the sandbox is no longer isolated per-agent
 but models the reality that 100 agents compete for the same stocks.
 
+Note: single-date crowding measurement only. For tournaments see tournament.py;
+for doctrine survival selection see survival_arena.py; for the newer 4-dim
+competition matrix (6-N.2) see competition.py.
+
 Usage:
-    from src.evolution.competitive_arena import CompetitiveArena
+    from src.evolution.crowding_arena import CompetitiveArena
     arena = CompetitiveArena()
     result = arena.run_competition('2026-07-17', top_n=20)
 """

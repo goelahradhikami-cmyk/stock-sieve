@@ -1,9 +1,14 @@
 """
-Evolution Arena v1.1 — Real-market competitive tournament.
+Evolution Tournament v1.1 — Real-market competitive tournament.
 
 Runs all active agents against the same historical market dates,
 with real trading constraints (circuit breakers, suspensions).
 Ranks by multi-dimensional fitness, not just raw returns.
+
+Arena roles in this package (renamed 2026-07-23 to disambiguate):
+  - tournament.py     (this file) — multi-agent tournament + fitness ranking
+  - crowding_arena.py — single-date crowding / overlap / alpha-decay metrics
+  - survival_arena.py — doctrine backtest with return attribution + survival selection
 """
 
 from datetime import date, timedelta

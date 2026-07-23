@@ -45,6 +45,19 @@
 | 顺带修复 | 恢复 `test_integration.py` 中 14 个被以往 F401 自动修复清空的 import 冒烟测试（补 assert 防止再次被清空） |
 | 验证 | 重构前基线 168 passed → 重构后 **168 passed**，完全一致；`ruff check src/` 零错误；冻结兼容：未触碰选择/变异/沙盒/冻结任何逻辑，仅移动代码位置 |
 
+### 第四轮：三竞技场职责澄清（2026-07-23，先测试后重构）
+
+> 职责核实结论：三者**并非重复实现**——competitive_arena 测拥挤度、survival_arena 做归因生存选择、
+> arena 做锦标赛排名，但命名都含 "arena" 造成歧义。调用核实：`survival_arena` 被 3 个脚本
+> 活跃使用；`arena`/`competitive_arena` 零代码调用（仅交接文档示例）。
+
+| 项 | 内容 |
+|---|---|
+| 先补特征化测试 | 新增 `tests/test_evolution_arenas.py`（10 个测试）：固定锦标赛 fitness 排名公式、genome 评分公式、月度交易日生成（12 个月上限）、Jaccard 重叠率、因子偏向选股排序、拥挤度指标（stock_crowding/max_crowding/avg_overlap）、T+20 日历偏移、fitness_history 聚合、8 基身份向量形状 |
+| 重命名消歧 | `arena.py` → **`tournament.py`**（锦标赛排名）；`competitive_arena.py` → **`crowding_arena.py`**（单日拥挤度度量）；`survival_arena.py` 保留（生产活跃）；类名均不变 |
+| 文档同步 | `evolution/__init__.py` 模块地图补三竞技场职责；两个重命名模块 docstring 互相指认 + 标注与 `competition.py`（6-N.2 竞争矩阵）的边界；`PROJECT_HANDOVER.md` 两处引用更新 |
+| 验证 | 重构后 **178 passed**（168 + 10 新），零回归；`ruff check src/` 零错误；未触碰任何 tournament/crowding/survival 逻辑，仅移动与重命名 |
+
 ### 验证
 
 - `compileall` 全量通过（src + scripts）
@@ -64,7 +77,7 @@
 ### P1 — 模块冗余/演进残留
 
 4. ~~进化引擎双轨并存~~：**已完成**（见上方第三轮）——`genome.py` 抽取 + `engine.py`→`spec_engine.py` 重命名，职责边界：genome.py=数据类 / spec_engine.py=协议级季度机制 / engine_v1.py=生产级每日引擎。
-5. **三竞技场并存**：`arena.py` / `competitive_arena.py` / `survival_arena.py` 职责描述重叠，建议合并或重命名以体现差异（同样需先补特征化测试）。
+5. ~~三竞技场并存~~：**已完成**（见上方第四轮）——职责核实为「锦标赛 / 拥挤度 / 生存选择」三者分工，`arena.py`→`tournament.py`、`competitive_arena.py`→`crowding_arena.py` 重命名消歧，`survival_arena.py` 保留。遗留：`tournament.py` 与 `crowding_arena.py` 目前零代码调用，若长期无调用方可在下一轮评估归档。
 6. **数据层四文件边界**：`data/` 下 `evaluation_db.py` / `evaluation_crud.py` / `evaluation_schema.py` / `evaluation_migration.py` 职责边界需确认。
 
 ### P2 — 工程卫生

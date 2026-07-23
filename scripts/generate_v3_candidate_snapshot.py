@@ -22,10 +22,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
+import os
+import sqlite3
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -66,8 +66,10 @@ def generate(episode_filter: str | None = None):
     for i, ep in enumerate(episodes):
         try:
             candidates = gen.generate(
-                ep["trade_date"], ep["market_state"],
-                top_n=V3_TOP_N, episode_id=ep["episode_id"],
+                ep["trade_date"],
+                ep["market_state"],
+                top_n=V3_TOP_N,
+                episode_id=ep["episode_id"],
             )
         except Exception as e:
             logger.warning("v3 snapshot %s failed: %s", ep["episode_id"], e)
@@ -98,16 +100,24 @@ def generate(episode_filter: str | None = None):
                     business_strength, ab_group)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
-                    ep["episode_id"], ep["trade_date"], c.code, rank,
-                    v3.frm_direction, v3.frm_score, v3.earnings_acceleration,
+                    ep["episode_id"],
+                    ep["trade_date"],
+                    c.code,
+                    rank,
+                    v3.frm_direction,
+                    v3.frm_score,
+                    v3.earnings_acceleration,
                     v3.recovery_score,
                     1 if v3.liquidity_pass else 0,
                     None,  # volume_ratio not stored in features; could add
-                    v3.relative_strength, v3.sector_strength,
+                    v3.relative_strength,
+                    v3.sector_strength,
                     v3.rs_score,
                     1 if v3.relative_strength is not None else 0,
-                    c.divergence_score, c.price_drawdown_12m,
-                    c.market_pessimism, c.business_strength,
+                    c.divergence_score,
+                    c.price_drawdown_12m,
+                    c.market_pessimism,
+                    c.business_strength,
                     ab_group,
                 ),
             )
@@ -115,12 +125,16 @@ def generate(episode_filter: str | None = None):
 
         conn.commit()
         if (i + 1) % 20 == 0:
-            print(f"  ... {i+1}/{len(episodes)} processed "
-                  f"({total_candidates} candidates so far)", flush=True)
+            print(
+                f"  ... {i + 1}/{len(episodes)} processed ({total_candidates} candidates so far)",
+                flush=True,
+            )
 
     conn.commit()
-    print(f"\nDone: {episodes_with_candidates} episodes, "
-          f"{total_candidates} v3 candidates persisted", flush=True)
+    print(
+        f"\nDone: {episodes_with_candidates} episodes, {total_candidates} v3 candidates persisted",
+        flush=True,
+    )
 
     # Summary
     print("\n=== v3 Candidate Summary ===", flush=True)
@@ -128,24 +142,25 @@ def generate(episode_filter: str | None = None):
         "SELECT frm_direction, COUNT(*) c, AVG(recovery_score) avg_rec "
         "FROM shadow_candidates_v3 GROUP BY frm_direction ORDER BY c DESC"
     ).fetchall():
-        print(f"  {r['frm_direction']:14s}: {r['c']:5d}  "
-              f"avg_recovery={r['avg_rec']:.1f}", flush=True)
+        print(
+            f"  {r['frm_direction']:14s}: {r['c']:5d}  avg_recovery={r['avg_rec']:.1f}", flush=True
+        )
 
     # RS data availability
-    total = conn.execute(
-        "SELECT COUNT(*) FROM shadow_candidates_v3").fetchone()[0]
+    total = conn.execute("SELECT COUNT(*) FROM shadow_candidates_v3").fetchone()[0]
     with_rs = conn.execute(
-        "SELECT COUNT(*) FROM shadow_candidates_v3 "
-        "WHERE rs_data_available=1").fetchone()[0]
-    print(f"\n  RS data available: {with_rs}/{total} "
-          f"({with_rs/max(1,total)*100:.1f}%)", flush=True)
+        "SELECT COUNT(*) FROM shadow_candidates_v3 WHERE rs_data_available=1"
+    ).fetchone()[0]
+    print(
+        f"\n  RS data available: {with_rs}/{total} ({with_rs / max(1, total) * 100:.1f}%)",
+        flush=True,
+    )
 
     conn.close()
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate v3 Candidate Snapshot (6-S.13.6 Step 1)")
+    parser = argparse.ArgumentParser(description="Generate v3 Candidate Snapshot (6-S.13.6 Step 1)")
     parser.add_argument("--episode", type=str, default=None)
     args = parser.parse_args()
     generate(episode_filter=args.episode)

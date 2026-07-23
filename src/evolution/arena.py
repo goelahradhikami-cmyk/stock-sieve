@@ -14,6 +14,9 @@ import pandas as pd
 from src.data.db import managed_connect
 from src.data.index_provider import IndexDataProvider
 from src.data.provider import MarketDataProvider
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class PortfolioSimulator:
@@ -26,32 +29,30 @@ class PortfolioSimulator:
         if self.provider is None:
             try:
                 from src.data.local_provider import LocalDataProvider
+
                 lp = LocalDataProvider()
                 if lp.tdx_root:
                     self.provider = lp
                     return self.provider
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
             self.provider = MarketDataProvider()
         return self.provider
 
-    def simulate_order(self, code: str, trade_date: date,
-                        action: str = 'BUY') -> float | None:
+    def simulate_order(self, code: str, trade_date: date, action: str = "BUY") -> float | None:
         """Return effective fill price at next trading day's open, or None if untradeable."""
         provider = self._get_provider()
         next_date = trade_date + timedelta(days=1)
-        kline = provider.get_daily_kline(
-            code, next_date.isoformat(), next_date.isoformat()
-        )
+        kline = provider.get_daily_kline(code, next_date.isoformat(), next_date.isoformat())
         if kline.empty:
             return None
-        open_price = float(kline.iloc[0].get('open', 0))
+        open_price = float(kline.iloc[0].get("open", 0))
         if open_price is None or open_price <= 0:
             return None
         return open_price
 
     def simulate_sell(self, code: str, trade_date: date) -> float | None:
-        return self.simulate_order(code, trade_date, 'SELL')
+        return self.simulate_order(code, trade_date, "SELL")
 
 
 class EvolutionArena:
@@ -62,6 +63,7 @@ class EvolutionArena:
         # Try local TDX first, fallback to mootdx
         try:
             from src.data.local_provider import LocalDataProvider
+
             lp = LocalDataProvider()
             self.provider = lp if lp.tdx_root else MarketDataProvider()
         except Exception:
@@ -88,8 +90,11 @@ class EvolutionArena:
         """)
         self.db.commit()
 
-    def run_tournament(self, cycle_id: int, start_date: str, end_date: str,
-                        horizons: list[int] = [20, 60]) -> dict:
+    def run_tournament(
+        self, cycle_id: int, start_date: str, end_date: str, horizons: list[int] | None = None
+    ) -> dict:
+        if horizons is None:
+            horizons = [20, 60]
         agents = self._get_active_agents()
         if len(agents) < 2:
             print(f"   Need ≥2 agents, have {len(agents)}")
@@ -105,7 +110,9 @@ class EvolutionArena:
                 trade_dates.append(d)
                 d = d + timedelta(days=90)
 
-        print(f"   Tournament: {len(agents)} agents × {len(trade_dates)} dates × {len(horizons)} horizons")
+        print(
+            f"   Tournament: {len(agents)} agents × {len(trade_dates)} dates × {len(horizons)} horizons"
+        )
 
         results = []
         for trade_date in trade_dates:
@@ -113,63 +120,75 @@ class EvolutionArena:
             if len(universe) < 20:
                 # Fallback: use built-in list
                 from src.data.security_master import SecurityMaster
+
                 master = SecurityMaster()
                 df = master.get_active_universe()
-                universe = [f"{c}.{'SH' if c.startswith('6') else 'SZ'}" for c in df['code'].tolist()]
+                universe = [
+                    f"{c}.{'SH' if c.startswith('6') else 'SZ'}" for c in df["code"].tolist()
+                ]
 
             agent_picks = {}
             for agent in agents[:8]:  # Cap at 8 for speed
                 picks = self._select_stocks(agent, universe, trade_date, n=20)
                 if picks:
-                    agent_picks[agent['agent_id']] = picks
+                    agent_picks[agent["agent_id"]] = picks
 
             for horizon in horizons:
                 for agent_id, picks in agent_picks.items():
                     metrics = self._calc_forward_metrics(picks, trade_date, horizon)
                     if metrics:
-                        results.append({
-                            'cycle_id': cycle_id, 'agent_id': agent_id,
-                            'trade_date': trade_date, 'horizon': horizon,
-                            **metrics
-                        })
+                        results.append(
+                            {
+                                "cycle_id": cycle_id,
+                                "agent_id": agent_id,
+                                "trade_date": trade_date,
+                                "horizon": horizon,
+                                **metrics,
+                            }
+                        )
 
         if results:
             self._save_results(results)
 
         rankings = self._calculate_rankings(cycle_id)
         return {
-            'cycle_id': cycle_id,
-            'total_rounds': len(trade_dates) * len(horizons),
-            'agents': len(agents),
-            'rankings': rankings,
+            "cycle_id": cycle_id,
+            "total_rounds": len(trade_dates) * len(horizons),
+            "agents": len(agents),
+            "rankings": rankings,
         }
 
-    def _select_stocks(self, agent: dict, universe: list[str],
-                        trade_date: date, n: int = 20) -> list[tuple[str, float]]:
+    def _select_stocks(
+        self, agent: dict, universe: list[str], trade_date: date, n: int = 20
+    ) -> list[tuple[str, float]]:
         """Score stocks using agent's genome + 250-day factor data from local TDX."""
         import yaml
-        genome = yaml.safe_load(agent['genome_yaml']) or {}
+
+        genome = yaml.safe_load(agent["genome_yaml"]) or {}
         factor_start = trade_date - timedelta(days=365)
         scores = []
 
         # Try local provider first (years of data)
         try:
             from src.data.local_provider import LocalDataProvider
-            lp = LocalDataProvider() if not hasattr(self, '_local') else self._local
+
+            lp = LocalDataProvider() if not hasattr(self, "_local") else self._local
             self._local = lp
             use_local = lp.tdx_root is not None
         except Exception:
             use_local = False
 
-        sample = universe[:min(200, len(universe))]
+        sample = universe[: min(200, len(universe))]
 
         for security_id in sample:
-            code = security_id.split('.')[0] if '.' in security_id else security_id
+            code = security_id.split(".")[0] if "." in security_id else security_id
 
             if use_local:
                 kline = lp.get_daily_kline(code, factor_start.isoformat(), trade_date.isoformat())
             else:
-                kline = self.provider.get_daily_kline(code, factor_start.isoformat(), trade_date.isoformat())
+                kline = self.provider.get_daily_kline(
+                    code, factor_start.isoformat(), trade_date.isoformat()
+                )
 
             if kline.empty or len(kline) < 60:
                 continue
@@ -182,13 +201,13 @@ class EvolutionArena:
 
     def _calc_genome_score(self, genome: dict, kline: pd.DataFrame) -> float:
         """Score a stock using the agent's factor model weights."""
-        fm = genome.get('factor_model', {})
+        fm = genome.get("factor_model", {})
         weights = {}
         for family, config in fm.items():
             if isinstance(config, dict):
-                weights[family] = config.get('weight', 0)
+                weights[family] = config.get("weight", 0)
 
-        close = kline['close'].values if 'close' in kline.columns else []
+        close = kline["close"].values if "close" in kline.columns else []
         if len(close) < 20:
             return 0
 
@@ -196,26 +215,26 @@ class EvolutionArena:
         rets = np.diff(close) / close[:-1]
         mom_3m = close[-1] / close[-min(63, len(close))] - 1 if len(close) >= 63 else 0
         vol = np.std(rets[-20:]) * np.sqrt(252) if len(rets) >= 20 else 0.3
-        dd = (close.min() / close.max() - 1) if len(close) > 0 else 0
 
         score = 0
-        score += weights.get('momentum', 0) * (mom_3m * 100)
-        score += weights.get('quality', 0) * 30
-        score += weights.get('value', 0) * 25
-        score += weights.get('growth', 0) * 25
-        score -= weights.get('risk', 0) * (vol * 50)
-        score += weights.get('sentiment', 0) * 25
+        score += weights.get("momentum", 0) * (mom_3m * 100)
+        score += weights.get("quality", 0) * 30
+        score += weights.get("value", 0) * 25
+        score += weights.get("growth", 0) * 25
+        score -= weights.get("risk", 0) * (vol * 50)
+        score += weights.get("sentiment", 0) * 25
 
         return score
 
-    def _calc_forward_metrics(self, picks: list[tuple[str, float]],
-                               signal_date: date, horizon: int) -> dict | None:
+    def _calc_forward_metrics(
+        self, picks: list[tuple[str, float]], signal_date: date, horizon: int
+    ) -> dict | None:
         """Compute forward portfolio metrics with real trade simulation."""
         # Get buy prices
         valid = []
         for security_id, _ in picks:
-            code = security_id.split('.')[0] if '.' in security_id else security_id
-            buy_price = self.simulator.simulate_order(code, signal_date, 'BUY')
+            code = security_id.split(".")[0] if "." in security_id else security_id
+            buy_price = self.simulator.simulate_order(code, signal_date, "BUY")
             if buy_price is not None:
                 valid.append((code, buy_price))
 
@@ -244,23 +263,24 @@ class EvolutionArena:
 
         # Benchmark alpha
         bench_ret = self.index_provider.get_return(
-            '000300', signal_date.isoformat(), sell_date.isoformat()
+            "000300", signal_date.isoformat(), sell_date.isoformat()
         )
 
         return {
-            'portfolio_size': len(valid),
-            'avg_return': avg_ret,
-            'alpha_vs_market': avg_ret - bench_ret,
-            'sharpe': sharpe,
-            'sortino': sortino,
-            'max_drawdown': max_dd,
-            'win_rate': win_rate,
-            'avg_volatility': vol,
+            "portfolio_size": len(valid),
+            "avg_return": avg_ret,
+            "alpha_vs_market": avg_ret - bench_ret,
+            "sharpe": sharpe,
+            "sortino": sortino,
+            "max_drawdown": max_dd,
+            "win_rate": win_rate,
+            "avg_volatility": vol,
         }
 
     def _calculate_rankings(self, cycle_id: int) -> list[dict]:
         """Multi-dimensional fitness ranking (P0-4)."""
-        rows = self.db.execute("""
+        rows = self.db.execute(
+            """
             SELECT agent_id,
                 AVG(alpha_vs_market), AVG(sharpe), AVG(sortino),
                 AVG(max_drawdown), AVG(win_rate), COUNT(*)
@@ -268,25 +288,35 @@ class EvolutionArena:
             WHERE cycle_id = ?
             GROUP BY agent_id
             ORDER BY agent_id
-        """, (cycle_id,)).fetchall()
+        """,
+            (cycle_id,),
+        ).fetchall()
 
         agent_fitness = []
         for row in rows:
-            alpha = row[1] or 0; sharpe = row[2] or 0; sortino = row[3] or 0
-            dd = row[4] or 0; wr = row[5] or 0; rounds = row[6]
-            fitness = (
-                alpha * 0.35 + sharpe * 0.25 + sortino * 0.15 +
-                wr * 0.15 - abs(dd) * 0.10
+            alpha = row[1] or 0
+            sharpe = row[2] or 0
+            sortino = row[3] or 0
+            dd = row[4] or 0
+            wr = row[5] or 0
+            rounds = row[6]
+            fitness = alpha * 0.35 + sharpe * 0.25 + sortino * 0.15 + wr * 0.15 - abs(dd) * 0.10
+            agent_fitness.append(
+                {
+                    "agent_id": row[0],
+                    "avg_alpha": alpha,
+                    "avg_sharpe": sharpe,
+                    "avg_sortino": sortino,
+                    "avg_max_dd": dd,
+                    "avg_win_rate": wr,
+                    "rounds": rounds,
+                    "fitness": fitness,
+                }
             )
-            agent_fitness.append({
-                'agent_id': row[0], 'avg_alpha': alpha, 'avg_sharpe': sharpe,
-                'avg_sortino': sortino, 'avg_max_dd': dd,
-                'avg_win_rate': wr, 'rounds': rounds, 'fitness': fitness,
-            })
 
-        agent_fitness.sort(key=lambda x: x['fitness'], reverse=True)
+        agent_fitness.sort(key=lambda x: x["fitness"], reverse=True)
         for rank, a in enumerate(agent_fitness, 1):
-            a['rank'] = rank
+            a["rank"] = rank
         return agent_fitness
 
     # ── Helpers ────────────────────────────────────────────
@@ -297,13 +327,13 @@ class EvolutionArena:
             FROM agent_genome_snapshots WHERE status='active'
             ORDER BY agent_id
         """).fetchall()
-        return [{'agent_id': r[0], 'strategy_genus': r[1], 'genome_yaml': r[2]} for r in rows]
+        return [{"agent_id": r[0], "strategy_genus": r[1], "genome_yaml": r[2]} for r in rows]
 
     def _get_historical_universe(self, trade_date: date) -> list[str]:
         try:
             rows = self.db.execute(
                 "SELECT security_id FROM universe_snapshot WHERE trade_date=?",
-                (trade_date.isoformat(),)
+                (trade_date.isoformat(),),
             ).fetchall()
             return [r[0] for r in rows] if rows else []
         except Exception:
@@ -317,23 +347,31 @@ class EvolutionArena:
         while d <= end_d:
             dates.append(d)
             # Next month
-            if d.month == 12:
-                d = date(d.year + 1, 1, 1)
-            else:
-                d = date(d.year, d.month + 1, 1)
+            d = date(d.year + 1, 1, 1) if d.month == 12 else date(d.year, d.month + 1, 1)
         return dates[:12]
 
     def _save_results(self, results: list[dict]):
         for r in results:
-            self.db.execute("""
+            self.db.execute(
+                """
                 INSERT INTO evolution_arena_results
                 (cycle_id, agent_id, trade_date, horizon, portfolio_size,
                  avg_return, alpha_vs_market, sharpe, sortino, max_drawdown, win_rate, avg_volatility)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (r['cycle_id'], r['agent_id'], r['trade_date'].isoformat(),
-                  r['horizon'], r.get('portfolio_size', 20),
-                  r.get('avg_return', 0), r.get('alpha_vs_market', 0),
-                  r.get('sharpe', 0), r.get('sortino', 0),
-                  r.get('max_drawdown', 0), r.get('win_rate', 0),
-                  r.get('avg_volatility', 0)))
+            """,
+                (
+                    r["cycle_id"],
+                    r["agent_id"],
+                    r["trade_date"].isoformat(),
+                    r["horizon"],
+                    r.get("portfolio_size", 20),
+                    r.get("avg_return", 0),
+                    r.get("alpha_vs_market", 0),
+                    r.get("sharpe", 0),
+                    r.get("sortino", 0),
+                    r.get("max_drawdown", 0),
+                    r.get("win_rate", 0),
+                    r.get("avg_volatility", 0),
+                ),
+            )
         self.db.commit()

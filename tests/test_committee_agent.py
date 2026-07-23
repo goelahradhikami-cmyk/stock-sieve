@@ -38,16 +38,22 @@ from src.data.evaluation_db import EvaluationDB
 # 构造辅助
 # ───────────────────────────────────────────────────────────
 
+
 def make_thesis(**over):
     base = dict(
-        thesis_id="t1", family="value", pattern="quality_compound",
+        thesis_id="t1",
+        family="value",
+        pattern="quality_compound",
         claim="品牌护城河将持续创造超额回报",
-        evidence=[{"metric": "roe", "value": 0.25},
-                  {"metric": "gross_margin", "value": 0.55},
-                  {"metric": "fcf_yield", "value": 0.06}],
-        catalyst="", invalidation=[{"condition": "roe_ttm < 0.15"},
-                                    {"condition": "gross_margin < 0.25"}],
-        horizon="36_months", confidence_contribution=0.8,
+        evidence=[
+            {"metric": "roe", "value": 0.25},
+            {"metric": "gross_margin", "value": 0.55},
+            {"metric": "fcf_yield", "value": 0.06},
+        ],
+        catalyst="",
+        invalidation=[{"condition": "roe_ttm < 0.15"}, {"condition": "gross_margin < 0.25"}],
+        horizon="36_months",
+        confidence_contribution=0.8,
     )
     base.update(over)
     return ThesisObject(**base)
@@ -55,8 +61,11 @@ def make_thesis(**over):
 
 def make_sa(thesis=None, **over):
     base = dict(
-        agent_id="agent_alpha", stock_code="600519",
-        timestamp="2026-07-14T10:00:00", alpha_score=8.0, confidence=8.0,
+        agent_id="agent_alpha",
+        stock_code="600519",
+        timestamp="2026-07-14T10:00:00",
+        alpha_score=8.0,
+        confidence=8.0,
         thesis=thesis or make_thesis(),
         factor_profile={"quality_score": 80, "value_score": 70},
         risk_assessment={"expected_drawdown_12m": 0.15},
@@ -67,9 +76,15 @@ def make_sa(thesis=None, **over):
 
 def make_val(**over):
     base = dict(
-        thesis_id="t1", research_decision_id=1, evidence_score=90,
-        counter_evidence_risk=10, historical_score=85, complexity_penalty=2,
-        overall_score=88, verdict="PASS", effective_confidence=8.0,
+        thesis_id="t1",
+        research_decision_id=1,
+        evidence_score=90,
+        counter_evidence_risk=10,
+        historical_score=85,
+        complexity_penalty=2,
+        overall_score=88,
+        verdict="PASS",
+        effective_confidence=8.0,
         counter_warnings=[],
     )
     base.update(over)
@@ -79,6 +94,7 @@ def make_val(**over):
 # ───────────────────────────────────────────────────────────
 # 1. 角色评分
 # ───────────────────────────────────────────────────────────
+
 
 def test_valuation_clean():
     fs = {"pe_percentile": 0.5, "fcf_yield": 0.06}
@@ -175,35 +191,41 @@ def test_devil_advocate_high_severity_warning():
 # 2. 主席裁决
 # ───────────────────────────────────────────────────────────
 
+
 def test_chairman_fatal_reject_risk():
-    v, _, _ = chairman_decision({"valuation": 90, "industry": 90, "risk": 20,
-                                 "quant": 90, "devil_advocate": 90})
+    v, _, _ = chairman_decision(
+        {"valuation": 90, "industry": 90, "risk": 20, "quant": 90, "devil_advocate": 90}
+    )
     assert v == "REJECT"
 
 
 def test_chairman_fatal_reject_devil():
-    v, _, _ = chairman_decision({"valuation": 90, "industry": 90, "risk": 90,
-                                 "quant": 90, "devil_advocate": 25})
+    v, _, _ = chairman_decision(
+        {"valuation": 90, "industry": 90, "risk": 90, "quant": 90, "devil_advocate": 25}
+    )
     assert v == "REJECT"
 
 
 def test_chairman_return_for_revision():
     # 两个维度 < 50
-    v, _, _ = chairman_decision({"valuation": 40, "industry": 40, "risk": 90,
-                                 "quant": 90, "devil_advocate": 90})
+    v, _, _ = chairman_decision(
+        {"valuation": 40, "industry": 40, "risk": 90, "quant": 90, "devil_advocate": 90}
+    )
     assert v == "RETURN_FOR_REVISION"
 
 
 def test_chairman_approve():
-    v, _, _ = chairman_decision({"valuation": 90, "industry": 90, "risk": 90,
-                                 "quant": 90, "devil_advocate": 90})
+    v, _, _ = chairman_decision(
+        {"valuation": 90, "industry": 90, "risk": 90, "quant": 90, "devil_advocate": 90}
+    )
     assert v == "APPROVE"
 
 
 def test_chairman_conditional():
     # 加权 >= 60 但存在弱维度
-    v, _, _ = chairman_decision({"valuation": 90, "industry": 90, "risk": 40,
-                                 "quant": 90, "devil_advocate": 90})
+    v, _, _ = chairman_decision(
+        {"valuation": 90, "industry": 90, "risk": 40, "quant": 90, "devil_advocate": 90}
+    )
     assert v == "APPROVE_WITH_CONDITIONS"
 
 
@@ -211,11 +233,15 @@ def test_chairman_conditional():
 # 3. CommitteeAgent.review 端到端
 # ───────────────────────────────────────────────────────────
 
+
 def test_review_strong_approve():
     agent = CommitteeAgent(db=None)
-    dec = agent.review(make_sa(), make_val(),
-                       market_snapshot={"regime_type": "bull"},
-                       portfolio_state={"sector_weights": {}})
+    dec = agent.review(
+        make_sa(),
+        make_val(),
+        market_snapshot={"regime_type": "bull"},
+        portfolio_state={"sector_weights": {}},
+    )
     assert isinstance(dec, CommitteeDecision)
     assert dec.verdict == "APPROVE"
     assert dec.position_cap_modifier == 1.0
@@ -234,8 +260,13 @@ def test_review_fatal_reject():
     )
     val = make_val(counter_warnings=[{"rule_name": "valuation_overstretch", "severity": "high"}])
     agent = CommitteeAgent(db=None)
-    dec = agent.review(sa, val, market_snapshot={"sector_momentum": {"新能源": -0.2}},
-                       portfolio_state={"sector_weights": {"新能源": 0.35}}, sector="新能源")
+    dec = agent.review(
+        sa,
+        val,
+        market_snapshot={"sector_momentum": {"新能源": -0.2}},
+        portfolio_state={"sector_weights": {"新能源": 0.35}},
+        sector="新能源",
+    )
     assert dec.verdict == "REJECT"
     assert dec.devil_advocate_score < 30
     assert dec.position_cap_modifier == 0.0
@@ -247,7 +278,8 @@ def test_review_conditional_monitoring_flags():
     val = make_val(counter_warnings=[{"rule_name": "valuation_stretch", "severity": "medium"}])
     agent = CommitteeAgent(db=None)
     dec = agent.review(
-        sa, val,
+        sa,
+        val,
         market_snapshot={"regime_type": "bull"},
         portfolio_state={"sector_weights": {}},
         factor_snapshot={"pe_percentile": 0.95, "fcf_yield": 0.01},
@@ -263,15 +295,20 @@ def test_review_conditional_monitoring_flags():
 # 4. 仓位调整
 # ───────────────────────────────────────────────────────────
 
+
 def test_apply_committee_decision_reject_zero():
     dec = CommitteeDecision(committee_id="c", research_decision_id=1, verdict="REJECT")
     assert apply_committee_decision(dec, 0.10) == 0.0
 
 
 def test_apply_committee_decision_cap():
-    dec = CommitteeDecision(committee_id="c", research_decision_id=1,
-                            verdict="APPROVE_WITH_CONDITIONS",
-                            position_cap_modifier=0.5, confidence_modifier=-0.1)
+    dec = CommitteeDecision(
+        committee_id="c",
+        research_decision_id=1,
+        verdict="APPROVE_WITH_CONDITIONS",
+        position_cap_modifier=0.5,
+        confidence_modifier=-0.1,
+    )
     out = apply_committee_decision(dec, 0.10)
     # 0.10 * 0.5 * (1 - 0.1) = 0.045
     assert abs(out - 0.045) < 1e-9
@@ -281,6 +318,7 @@ def test_apply_committee_decision_cap():
 # 5. EvaluationDB 量化查询 + 持久化
 # ───────────────────────────────────────────────────────────
 
+
 def _seed_db(db):
     db.init_db()
     db.migrate_v2_1()
@@ -289,11 +327,28 @@ def _seed_db(db):
     conn.execute(
         "INSERT INTO research_decisions "
         "(agent_id, genome_hash, security_id, thesis_id, thesis_family, thesis_pattern, "
-         " thesis_claim, thesis_invalidation, alpha_score, confidence, factor_snapshot, "
-         " risk_assessment, decision_hash, input_hash, model_version, entry_price, entry_date) "
+        " thesis_claim, thesis_invalidation, alpha_score, confidence, factor_snapshot, "
+        " risk_assessment, decision_hash, input_hash, model_version, entry_price, entry_date) "
         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        ("agent_alpha", "gh", "600519", "t1", "value", "quality_compound",
-         "claim", "[]", 8.0, 8.0, "{}", "{}", "dh", "ih", "m", 100.0, "2026-07-14"),
+        (
+            "agent_alpha",
+            "gh",
+            "600519",
+            "t1",
+            "value",
+            "quality_compound",
+            "claim",
+            "[]",
+            8.0,
+            8.0,
+            "{}",
+            "{}",
+            "dh",
+            "ih",
+            "m",
+            100.0,
+            "2026-07-14",
+        ),
     )
     rid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     # 4 次正 alpha + 1 次负 alpha → persistence = 0.8
@@ -302,11 +357,23 @@ def _seed_db(db):
         conn.execute(
             "INSERT INTO evaluation_results "
             "(research_decision_id, horizon_days, eval_date, evaluated_at, stock_return, "
-             " market_return, sector_return, agent_top10_ew_return, max_drawdown_during, "
-             " max_profit_during, alpha_vs_market, verdict) "
+            " market_return, sector_return, agent_top10_ew_return, max_drawdown_during, "
+            " max_profit_during, alpha_vs_market, verdict) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (rid, 60, f"2026-0{m}-01", f"2026-0{m}-01", 0.1, 0.05, 0.04, 0.03,
-             -0.02, 0.1, a, "PASS"),
+            (
+                rid,
+                60,
+                f"2026-0{m}-01",
+                f"2026-0{m}-01",
+                0.1,
+                0.05,
+                0.04,
+                0.03,
+                -0.02,
+                0.1,
+                a,
+                "PASS",
+            ),
         )
     conn.commit()
     conn.close()
@@ -338,16 +405,22 @@ def test_db_persist_and_idempotent_migration():
         db.migrate_committee_decisions_v2_1_1()
 
         agent = CommitteeAgent(db=db)
-        dec = agent.review(make_sa(), make_val(),
-                           market_snapshot={"regime_type": "bull"},
-                           portfolio_state={"sector_weights": {}})
+        dec = agent.review(
+            make_sa(),
+            make_val(),
+            market_snapshot={"regime_type": "bull"},
+            portfolio_state={"sector_weights": {}},
+        )
         rid = db.insert_committee_decision(dec)
         assert rid > 0
         row = db.get_committee_decision(dec.committee_id)
         # 持久化 fidelity：落库后的裁决应与决策对象一致
         assert row["verdict"] == dec.verdict
         assert row["verdict"] in (
-            "APPROVE", "APPROVE_WITH_CONDITIONS", "REJECT", "RETURN_FOR_REVISION"
+            "APPROVE",
+            "APPROVE_WITH_CONDITIONS",
+            "REJECT",
+            "RETURN_FOR_REVISION",
         )
         assert row["devil_advocate_score"] is not None
         assert row["weighted_score"] is not None
@@ -363,6 +436,7 @@ def test_db_persist_and_idempotent_migration():
 # ───────────────────────────────────────────────────────────
 # 6. RuleOnlyLLMBridge (spec §8)
 # ───────────────────────────────────────────────────────────
+
 
 def test_rule_only_bridge_prefix_and_anchors():
     bridge = RuleOnlyLLMBridge(version="1.0")

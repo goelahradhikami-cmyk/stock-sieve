@@ -27,7 +27,6 @@ import requests
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
 # ── Try importing mootdx (may not be installed) ──
 try:
     from mootdx.quotes import Quotes

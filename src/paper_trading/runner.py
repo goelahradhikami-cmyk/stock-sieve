@@ -20,19 +20,18 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
-import argparse
-import numpy as np
 from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.thesis.state_transition import StateTransitionEngine
-from src.thesis.confidence_overlay import RecoveryConfidence
-from src.thesis.bayesian_allocation import BayesianAllocationEngine
-from src.paper_trading.recorder import record_episode
 from src.paper_trading.fingerprint import create_fingerprint
+from src.paper_trading.recorder import record_episode
+from src.thesis.bayesian_allocation import BayesianAllocationEngine
+from src.thesis.confidence_overlay import RecoveryConfidence
+from src.thesis.state_transition import StateTransitionEngine
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -61,9 +60,9 @@ def run_paper_day(trade_date: str | None = None) -> str | None:
     if trade_date is None:
         trade_date = date.today().isoformat()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Paper Trading Runner - {trade_date}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # ── 1. Guardian: State Transition Engine ──────────────
     print("\n1. Guardian (State Transition)...")
@@ -171,17 +170,17 @@ def run_paper_day(trade_date: str | None = None) -> str | None:
         decision_fingerprint_json=fingerprint_json,
     )
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Episode: {episode_id}")
     print(f"Decision: {decision}")
     print(f"Market state: {market_state}")
     print(f"Confidence: {confidence:.1f} ({confidence_band})")
     print(f"Position target: {position_target}")
     print(f"MUS (diagnostic): {mus_value:.1f}")
-    print(f"Fingerprint: capital sources = guardian + frm + static_policy")
-    print(f"             forbidden inputs used = NONE")
-    print(f"             mus_used = False")
-    print(f"{'='*60}")
+    print("Fingerprint: capital sources = guardian + frm + static_policy")
+    print("             forbidden inputs used = NONE")
+    print("             mus_used = False")
+    print(f"{'=' * 60}")
 
     return episode_id
 
@@ -195,7 +194,7 @@ def main():
     if episode_id:
         print(f"\n✅ Paper trading recorded: {episode_id}")
     else:
-        print(f"\n⏭️ No episode recorded (insufficient data)")
+        print("\n⏭️ No episode recorded (insufficient data)")
 
 
 if __name__ == "__main__":

@@ -15,22 +15,22 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
 import json
+import os
 import sqlite3
-from datetime import date, timedelta
+import sys
+from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.thesis.state_transition import StateTransitionEngine
-from src.thesis.confidence_overlay import RecoveryConfidence
-from src.thesis.market_anomaly import MarketAnomalyDetector
-from src.thesis.doctrine_underwriting import DoctrineUnderwriter
-from src.thesis.thesis_ledger import KillCriteria
-from src.factors.snapshot_builder import FactorSnapshotBuilder
-from src.data.local_provider import LocalDataProvider
 from src.data.index_provider import IndexDataProvider
+from src.data.local_provider import LocalDataProvider
+from src.factors.snapshot_builder import FactorSnapshotBuilder
+from src.thesis.confidence_overlay import RecoveryConfidence
+from src.thesis.doctrine_underwriting import DoctrineUnderwriter
+from src.thesis.market_anomaly import MarketAnomalyDetector
+from src.thesis.state_transition import StateTransitionEngine
+from src.thesis.thesis_ledger import KillCriteria
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -96,7 +96,8 @@ class ShadowEpisodeRecorder:
         # 4. Anomaly detection (run regardless of decision, for counterfactual)
         anomalies = self.detector.scan(trade_date, top_n=50, triage=False)
         significant = [
-            a for a in anomalies
+            a
+            for a in anomalies
             if a.price_drawdown_12m < -0.15
             and 0.02 < a.roe < 0.50
             and a.margin_change is not None
@@ -112,30 +113,36 @@ class ShadowEpisodeRecorder:
             consensus = self.uw.consensus(uw_results)
 
             is_selected = (
-                decision == "BUY"
-                and not kill_result.killed
-                and consensus["consensus"] == "PASS"
+                decision == "BUY" and not kill_result.killed and consensus["consensus"] == "PASS"
             )
             if is_selected:
                 selected_codes.append(a.code)
 
-            candidate_records.append({
-                "code": a.code,
-                "anomaly_type": a.divergence_type,
-                "price_drawdown_12m": a.price_drawdown_12m,
-                "roe": a.roe,
-                "margin_change": a.margin_change,
-                "market_pessimism": a.market_pessimism,
-                "business_strength": a.business_strength,
-                "divergence_score": a.divergence_score,
-                "confidence": a.confidence,
-                "killed": 1 if kill_result.killed else 0,
-                "kill_reason": kill_result.kill_reason if kill_result.killed else None,
-                "quality_verdict": uw_results.get("quality_compounder").verdict if uw_results.get("quality_compounder") else None,
-                "contrarian_verdict": uw_results.get("contrarian").verdict if uw_results.get("contrarian") else None,
-                "value_verdict": uw_results.get("value_purist").verdict if uw_results.get("value_purist") else None,
-                "selected": 1 if is_selected else 0,
-            })
+            candidate_records.append(
+                {
+                    "code": a.code,
+                    "anomaly_type": a.divergence_type,
+                    "price_drawdown_12m": a.price_drawdown_12m,
+                    "roe": a.roe,
+                    "margin_change": a.margin_change,
+                    "market_pessimism": a.market_pessimism,
+                    "business_strength": a.business_strength,
+                    "divergence_score": a.divergence_score,
+                    "confidence": a.confidence,
+                    "killed": 1 if kill_result.killed else 0,
+                    "kill_reason": kill_result.kill_reason if kill_result.killed else None,
+                    "quality_verdict": uw_results.get("quality_compounder").verdict
+                    if uw_results.get("quality_compounder")
+                    else None,
+                    "contrarian_verdict": uw_results.get("contrarian").verdict
+                    if uw_results.get("contrarian")
+                    else None,
+                    "value_verdict": uw_results.get("value_purist").verdict
+                    if uw_results.get("value_purist")
+                    else None,
+                    "selected": 1 if is_selected else 0,
+                }
+            )
 
         # 6. Doctrine explanations (for audit trail)
         q_explain = None
@@ -144,7 +151,11 @@ class ShadowEpisodeRecorder:
         if significant:
             first = significant[0]
             uw_all = self.uw.underwrite_all(first)
-            q_explain = uw_all.get("quality_compounder").verdict if uw_all.get("quality_compounder") else None
+            q_explain = (
+                uw_all.get("quality_compounder").verdict
+                if uw_all.get("quality_compounder")
+                else None
+            )
             c_explain = uw_all.get("contrarian").verdict if uw_all.get("contrarian") else None
             v_explain = uw_all.get("value_purist").verdict if uw_all.get("value_purist") else None
 
@@ -162,7 +173,8 @@ class ShadowEpisodeRecorder:
         sconn = sqlite3.connect(SHADOW_DB)
         try:
             # Insert episode
-            sconn.execute("""
+            sconn.execute(
+                """
                 INSERT OR REPLACE INTO shadow_episode
                 (episode_id, trade_date, market_state, confidence, confidence_band,
                  decision, position_target, vol_20d, vol_change, trend_ma60,
@@ -170,39 +182,59 @@ class ShadowEpisodeRecorder:
                  quality_explanation, contrarian_explanation, value_explanation,
                  brain_version, status)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (
-                episode_id, trade_date, market_state,
-                conf.confidence, conf.confidence_band,
-                decision, position_target,
-                state_rec.vol_20d if state_rec else None,
-                state_rec.vol_change if state_rec else None,
-                state_rec.trend if state_rec else None,
-                conf.breadth_recovery / 100,  # store as 0-1
-                conf.confidence / 100,
-                json.dumps(reasons),
-                q_explain, c_explain, v_explain,
-                "1.0-defensive-core",
-                "pending" if eval_date else "no_eval_date",
-            ))
+            """,
+                (
+                    episode_id,
+                    trade_date,
+                    market_state,
+                    conf.confidence,
+                    conf.confidence_band,
+                    decision,
+                    position_target,
+                    state_rec.vol_20d if state_rec else None,
+                    state_rec.vol_change if state_rec else None,
+                    state_rec.trend if state_rec else None,
+                    conf.breadth_recovery / 100,  # store as 0-1
+                    conf.confidence / 100,
+                    json.dumps(reasons),
+                    q_explain,
+                    c_explain,
+                    v_explain,
+                    "1.0-defensive-core",
+                    "pending" if eval_date else "no_eval_date",
+                ),
+            )
 
             # Insert candidates
             for c in candidate_records:
-                sconn.execute("""
+                sconn.execute(
+                    """
                     INSERT INTO shadow_candidates
                     (episode_id, stock_code, anomaly_type, price_drawdown_12m,
                      roe, margin_change, market_pessimism, business_strength,
                      divergence_score, confidence, killed, kill_reason,
                      quality_verdict, contrarian_verdict, value_verdict, selected)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    episode_id, c["code"], c["anomaly_type"],
-                    c["price_drawdown_12m"], c["roe"], c["margin_change"],
-                    c["market_pessimism"], c["business_strength"],
-                    c["divergence_score"], c["confidence"],
-                    c["killed"], c["kill_reason"],
-                    c["quality_verdict"], c["contrarian_verdict"],
-                    c["value_verdict"], c["selected"],
-                ))
+                """,
+                    (
+                        episode_id,
+                        c["code"],
+                        c["anomaly_type"],
+                        c["price_drawdown_12m"],
+                        c["roe"],
+                        c["margin_change"],
+                        c["market_pessimism"],
+                        c["business_strength"],
+                        c["divergence_score"],
+                        c["confidence"],
+                        c["killed"],
+                        c["kill_reason"],
+                        c["quality_verdict"],
+                        c["contrarian_verdict"],
+                        c["value_verdict"],
+                        c["selected"],
+                    ),
+                )
 
             sconn.commit()
         finally:
@@ -249,9 +281,12 @@ class ShadowEpisodeRecorder:
                 summary = self.record_episode(d)
                 results.append(summary)
                 status = "BUY" if summary["decision"] == "BUY" else "BLOCK"
-                print(f"  {d}: {status} conf={summary['confidence']:.1f} "
-                      f"candidates={summary['candidates']} selected={summary['selected']} "
-                      f"[{', '.join(summary['reasons'])}]", flush=True)
+                print(
+                    f"  {d}: {status} conf={summary['confidence']:.1f} "
+                    f"candidates={summary['candidates']} selected={summary['selected']} "
+                    f"[{', '.join(summary['reasons'])}]",
+                    flush=True,
+                )
             except Exception as e:
                 logger.warning("shadow_recorder: %s failed: %s", d, e)
 
@@ -260,6 +295,7 @@ class ShadowEpisodeRecorder:
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Shadow Trading Episode Recorder")
     parser.add_argument("--date", type=str, help="Single date (YYYY-MM-DD)")
     parser.add_argument("--range", type=str, help="Date range start:end")

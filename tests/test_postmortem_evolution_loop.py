@@ -23,6 +23,7 @@ from src.evaluation.post_mortem import (
     ErrorSubtype,
 )
 from src.evolution.engine_v1 import EvolutionEngineV1
+import contextlib
 
 
 class TestPostMortemPersistence(unittest.TestCase):
@@ -31,10 +32,8 @@ class TestPostMortemPersistence(unittest.TestCase):
         self.pm = PostMortemEngine(db_path=self.db_path)
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(Exception):
             self.pm.db.close()
-        except Exception:
-            pass
         if os.path.exists(self.db_path):
             try:
                 os.remove(self.db_path)
@@ -55,29 +54,36 @@ class TestPostMortemPersistence(unittest.TestCase):
         )
 
     def test_save_and_collect_dedupes(self):
-        vg = {"type": "add_filter", "target": "valuation_gate",
-              "filter": "pe_percentile_max", "threshold": 0.7}
-        pos = {"type": "tighten_constraint",
-               "target": "position_sizing.single_position"}
+        vg = {
+            "type": "add_filter",
+            "target": "valuation_gate",
+            "filter": "pe_percentile_max",
+            "threshold": 0.7,
+        }
+        pos = {"type": "tighten_constraint", "target": "position_sizing.single_position"}
 
         self.pm._save_post_mortem(
-            1, self._make_result(ErrorCategory.VALUATION_ERROR,
-                                 ErrorSubtype.MULTIPLE_COMPRESSION, [vg]))
+            1,
+            self._make_result(
+                ErrorCategory.VALUATION_ERROR, ErrorSubtype.MULTIPLE_COMPRESSION, [vg]
+            ),
+        )
         self.pm._save_post_mortem(
-            2, self._make_result(ErrorCategory.RISK_ERROR,
-                                 ErrorSubtype.POSITION_SIZE_ERROR, [vg, pos]))
+            2,
+            self._make_result(
+                ErrorCategory.RISK_ERROR, ErrorSubtype.POSITION_SIZE_ERROR, [vg, pos]
+            ),
+        )
 
         # two rows persisted
-        rows = self.pm.db.execute(
-            "SELECT COUNT(*) FROM post_mortem_analysis").fetchone()[0]
+        rows = self.pm.db.execute("SELECT COUNT(*) FROM post_mortem_analysis").fetchone()[0]
         self.assertEqual(rows, 2)
 
         # collection dedupes identical (type, target, filter) → 2 distinct
         collected = self.pm.collect_recent_mutations(lookback_months=6)
         self.assertEqual(len(collected), 2)
         targets = {m["target"] for m in collected}
-        self.assertEqual(targets, {"valuation_gate",
-                                   "position_sizing.single_position"})
+        self.assertEqual(targets, {"valuation_gate", "position_sizing.single_position"})
 
     def test_collect_empty_when_no_analysis_table(self):
         self.assertEqual(self.pm.collect_recent_mutations(), [])
@@ -90,8 +96,14 @@ class TestEvolutionMutationIngestion(unittest.TestCase):
 
     def _genome(self, **dims):
         base = {
-            "valuation": 50, "quality": 50, "growth": 50, "momentum": 50,
-            "macro": 50, "contrarian": 50, "patience": 50, "concentration": 50,
+            "valuation": 50,
+            "quality": 50,
+            "growth": 50,
+            "momentum": 50,
+            "macro": 50,
+            "contrarian": 50,
+            "patience": 50,
+            "concentration": 50,
         }
         base.update(dims)
         return {
@@ -110,31 +122,28 @@ class TestEvolutionMutationIngestion(unittest.TestCase):
         ]
         self.eng._apply_post_mortem_mutations(genome, mutations)
         d = genome["investment_identity"]["dimensions"]
-        self.assertEqual(d["valuation"], 58)       # +8
+        self.assertEqual(d["valuation"], 58)  # +8
         self.assertEqual(d["concentration"], 42)  # -8
-        self.assertEqual(d["patience"], 58)        # +8 (trailing_stop)
-        self.assertEqual(d["macro"], 58)           # +8
-        self.assertEqual(d["quality"], 50)         # untouched by these
+        self.assertEqual(d["patience"], 58)  # +8 (trailing_stop)
+        self.assertEqual(d["macro"], 58)  # +8
+        self.assertEqual(d["quality"], 50)  # untouched by these
         # input list itself is left intact
-        self.assertIn("unknown_subsystem",
-                      [m["target"] for m in mutations])
+        self.assertIn("unknown_subsystem", [m["target"] for m in mutations])
 
     def test_mutate_applies_pending_else_unchanged(self):
         genome = self._genome()
-        self.eng._mutate(
-            genome,
-            pending_mutations=[{"target": "market_regime_adapter"}])
+        self.eng._mutate(genome, pending_mutations=[{"target": "market_regime_adapter"}])
         self.assertEqual(genome["investment_identity"]["dimensions"]["macro"], 58)
         self.assertIn("value", genome["factor_model"])  # factor weights kept
 
         genome2 = self._genome()
         self.eng._mutate(genome2, pending_mutations=None)
         # no crash, dimensions unchanged from the 50 baseline
-        self.assertEqual(
-            genome2["investment_identity"]["dimensions"]["macro"], 50)
+        self.assertEqual(genome2["investment_identity"]["dimensions"]["macro"], 50)
 
     def test_run_cycle_accepts_pending_mutations_kwarg(self):
         import inspect
+
         sig = inspect.signature(EvolutionEngineV1.run_cycle)
         self.assertIn("pending_mutations", sig.parameters)
         self.assertIsNone(sig.parameters["pending_mutations"].default)

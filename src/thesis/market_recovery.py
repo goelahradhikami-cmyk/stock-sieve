@@ -33,11 +33,9 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
-import pandas as pd
 
 from src.data.local_provider import LocalDataProvider
 from src.utils.logger import get_logger
@@ -48,17 +46,18 @@ logger = get_logger(__name__)
 @dataclass
 class MarketState:
     """Multi-dimensional market state vector for one date."""
+
     date: str
     # Raw indicators
-    breadth_advance_ratio: float = 0.5   # fraction of stocks advancing
-    breadth_new_highs: float = 0.0       # fraction near 60d highs
-    liquidity_amount_change: float = 0.0 # 20d amount trend (%)
-    volatility_20d: float = 0.25         # 20d annualized vol
-    volatility_change: float = 0.0        # vol change vs 60d (negative = contracting)
-    trend_ma: float = 0.0                # price vs MA60 (-1 to +1)
+    breadth_advance_ratio: float = 0.5  # fraction of stocks advancing
+    breadth_new_highs: float = 0.0  # fraction near 60d highs
+    liquidity_amount_change: float = 0.0  # 20d amount trend (%)
+    volatility_20d: float = 0.25  # 20d annualized vol
+    volatility_change: float = 0.0  # vol change vs 60d (negative = contracting)
+    trend_ma: float = 0.0  # price vs MA60 (-1 to +1)
     # Composite
-    recovery_probability: float = 0.5    # 0-1 (1 = market recovering)
-    state_label: str = "neutral"         # recovering / panic / uncertain
+    recovery_probability: float = 0.5  # 0-1 (1 = market recovering)
+    state_label: str = "neutral"  # recovering / panic / uncertain
 
     def allows_anomaly_bets(self) -> bool:
         """Should we act on anomaly signals in this market state?
@@ -67,8 +66,9 @@ class MarketState:
         True recovery requires vol contraction (vol_change < -0.01).
         False recovery has vol_change >= 0 (volatility not subsiding).
         """
-        return (self.recovery_probability > 0.5
-                and self.volatility_change < -0.01)  # vol must be contracting
+        return (
+            self.recovery_probability > 0.5 and self.volatility_change < -0.01
+        )  # vol must be contracting
 
     def to_dict(self) -> dict:
         return {
@@ -95,8 +95,7 @@ class MarketRecoveryEngine:
     market environment is conducive to mispricing correction.
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.local = LocalDataProvider()
@@ -143,10 +142,7 @@ class MarketRecoveryEngine:
 
         # Weighted: breadth is most important (market-wide participation)
         recovery = (
-            0.35 * breadth_score
-            + 0.25 * liquidity_score
-            + 0.20 * vol_score
-            + 0.20 * trend_score
+            0.35 * breadth_score + 0.25 * liquidity_score + 0.20 * vol_score + 0.20 * trend_score
         )
 
         return max(0, min(1, recovery))
@@ -192,6 +188,7 @@ class MarketRecoveryEngine:
     def _compute_liquidity_trend(self, trade_date: str) -> float:
         """20-day amount change rate (positive = liquidity recovering)."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=40)).isoformat()
 
         conn = sqlite3.connect(self.cache_db)
@@ -221,6 +218,7 @@ class MarketRecoveryEngine:
     def _compute_volatility(self, trade_date: str) -> tuple[float, float]:
         """20d annualized vol + change vs 60d. Returns (vol_20d, vol_change)."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=90)).isoformat()
 
         conn = sqlite3.connect(self.cache_db)
@@ -249,6 +247,7 @@ class MarketRecoveryEngine:
     def _compute_trend(self, trade_date: str) -> float:
         """Price vs MA60 (normalized -1 to +1)."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=90)).isoformat()
 
         conn = sqlite3.connect(self.cache_db)

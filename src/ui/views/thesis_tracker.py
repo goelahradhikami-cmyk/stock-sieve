@@ -1,4 +1,5 @@
 """🔍 Thesis Tracker — Terminal-styled decision chain viewer."""
+
 import streamlit as st
 
 from ..components.decision_timeline import decision_timeline
@@ -11,12 +12,15 @@ from ..utils.theme import (
 
 def render():
     # ── Page header ──────────────────────────────────────
-    st.markdown("""
+    st.markdown(
+        """
     <div class="page-header">
         <h1>🔍 Thesis 追踪器</h1>
         <p>从 Research → Validator → Committee → Portfolio → 收益的完整决策链</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     db = get_db()
 
@@ -24,7 +28,8 @@ def render():
     col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
         stock_code = st.text_input(
-            "股票代码", "600519",
+            "股票代码",
+            "600519",
             placeholder="例如: 600519, 300308",
             key="thesis_stock_code",
         )
@@ -37,19 +42,22 @@ def render():
     with col3:
         st.markdown("")
         st.markdown("")
-        search = st.button("🔍 查询", use_container_width=True, type="primary")
+        st.button("🔍 查询", use_container_width=True, type="primary")
 
     # ── Stock name lookup (from security_master) ─────────
     stock_name = load_stock_name(stock_code)
 
     if stock_code:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         <div style="display:flex; align-items:baseline; gap:12px; margin:8px 0 4px;">
             <span style="font-size:1.2rem; font-weight:700; color:#e6edf3;">📈 {stock_name}</span>
             <span class="mono" style="color:{ACCENT_CYAN}; font-size:0.95rem;">{stock_code}</span>
             <span class="terminal-badge badge-info">{time_range}</span>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
 
     # ── Decision timeline ────────────────────────────────
     _days = {"全部": None, "近30天": 30, "近90天": 90, "近1年": 365}.get(time_range)
@@ -58,7 +66,9 @@ def render():
 
     # ── Summary stats ────────────────────────────────────
     if decisions:
-        alphas = [d.get("alpha_vs_market", 0) for d in decisions if d.get("alpha_vs_market") is not None]
+        alphas = [
+            d.get("alpha_vs_market", 0) for d in decisions if d.get("alpha_vs_market") is not None
+        ]
         returns = [d.get("stock_return", 0) for d in decisions if d.get("stock_return") is not None]
 
         if alphas or returns:

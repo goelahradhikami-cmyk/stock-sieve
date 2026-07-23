@@ -16,15 +16,16 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
+import sys
+from datetime import date
+
 import numpy as np
-from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.data.local_provider import LocalDataProvider
 from src.data.index_provider import IndexDataProvider
+from src.data.local_provider import LocalDataProvider
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -102,7 +103,7 @@ class OutcomeEvaluator:
         conn.close()
 
         # Summary
-        print(f"\n=== Outcome Evaluation Summary ===")
+        print("\n=== Outcome Evaluation Summary ===")
         print(f"Total evaluated: {stats['total']}")
         print(f"  SUCCESS_BUY:  {stats['success_buy']}")
         print(f"  FAILED_BUY:   {stats['failed_buy']}")
@@ -111,16 +112,22 @@ class OutcomeEvaluator:
 
         if stats["buy_alphas"]:
             alphas = np.array(stats["buy_alphas"])
-            print(f"\n  BUY Alpha: mean={np.mean(alphas):+.2%} median={np.median(alphas):+.2%} "
-                  f"win_rate={np.mean(alphas > 0):.0%}")
+            print(
+                f"\n  BUY Alpha: mean={np.mean(alphas):+.2%} median={np.median(alphas):+.2%} "
+                f"win_rate={np.mean(alphas > 0):.0%}"
+            )
 
         if stats["block_counterfactuals"]:
             cfs = np.array(stats["block_counterfactuals"])
-            print(f"\n  BLOCK Counterfactual: mean={np.mean(cfs):+.2%} median={np.median(cfs):+.2%}")
+            print(
+                f"\n  BLOCK Counterfactual: mean={np.mean(cfs):+.2%} median={np.median(cfs):+.2%}"
+            )
             print(f"  Avoided Loss (avg): {np.mean(stats['avoided_losses']):+.2%}")
             print(f"  Missed Gain (avg): {np.mean(stats['missed_gains']):+.2%}")
-            print(f"  Block Accuracy: {stats['success_block']}/{stats['success_block']+stats['false_block']} "
-                  f"({stats['success_block']/max(1,stats['success_block']+stats['false_block'])*100:.0f}%)")
+            print(
+                f"  Block Accuracy: {stats['success_block']}/{stats['success_block'] + stats['false_block']} "
+                f"({stats['success_block'] / max(1, stats['success_block'] + stats['false_block']) * 100:.0f}%)"
+            )
 
         return stats
 
@@ -164,9 +171,18 @@ class OutcomeEvaluator:
         selected = [c for c in candidates if c["selected"] == 1]
         if not selected:
             # No stocks selected despite BUY -> treat as no position
-            self._write_outcome(conn, ep["episode_id"], eval_date, "FAILED_BUY",
-                                portfolio_return=0.0, market_return=0.0, alpha=0.0,
-                                counterfactual_return=None, avoided_loss=None, missed_gain=None)
+            self._write_outcome(
+                conn,
+                ep["episode_id"],
+                eval_date,
+                "FAILED_BUY",
+                portfolio_return=0.0,
+                market_return=0.0,
+                alpha=0.0,
+                counterfactual_return=None,
+                avoided_loss=None,
+                missed_gain=None,
+            )
             return {"outcome_type": "FAILED_BUY", "alpha": 0.0}
 
         # Compute portfolio return (equal-weight)
@@ -193,14 +209,19 @@ class OutcomeEvaluator:
         # Max drawdown (simplified: min return in portfolio)
         max_dd = float(min(returns)) if returns else 0.0
 
-        self._write_outcome(conn, ep["episode_id"], eval_date, outcome_type,
-                            portfolio_return=portfolio_return,
-                            market_return=mkt_return,
-                            alpha=alpha,
-                            max_drawdown=max_dd,
-                            counterfactual_return=None,
-                            avoided_loss=None,
-                            missed_gain=None)
+        self._write_outcome(
+            conn,
+            ep["episode_id"],
+            eval_date,
+            outcome_type,
+            portfolio_return=portfolio_return,
+            market_return=mkt_return,
+            alpha=alpha,
+            max_drawdown=max_dd,
+            counterfactual_return=None,
+            avoided_loss=None,
+            missed_gain=None,
+        )
 
         # Update per-stock returns
         for c in selected:
@@ -217,11 +238,24 @@ class OutcomeEvaluator:
         """Evaluate a BLOCK episode with counterfactual."""
         if not candidates:
             # No candidates recorded -> can't evaluate counterfactual
-            self._write_outcome(conn, ep["episode_id"], eval_date, "SUCCESS_BLOCK",
-                                portfolio_return=0.0, market_return=0.0, alpha=0.0,
-                                counterfactual_return=0.0, avoided_loss=0.0, missed_gain=0.0)
-            return {"outcome_type": "SUCCESS_BLOCK", "counterfactual_return": 0.0,
-                    "avoided_loss": 0.0, "missed_gain": 0.0}
+            self._write_outcome(
+                conn,
+                ep["episode_id"],
+                eval_date,
+                "SUCCESS_BLOCK",
+                portfolio_return=0.0,
+                market_return=0.0,
+                alpha=0.0,
+                counterfactual_return=0.0,
+                avoided_loss=0.0,
+                missed_gain=0.0,
+            )
+            return {
+                "outcome_type": "SUCCESS_BLOCK",
+                "counterfactual_return": 0.0,
+                "avoided_loss": 0.0,
+                "missed_gain": 0.0,
+            }
 
         # Counterfactual: what if we had bought all candidates?
         returns = []
@@ -246,13 +280,18 @@ class OutcomeEvaluator:
             avoided_loss = 0.0
             missed_gain = counterfactual_return
 
-        self._write_outcome(conn, ep["episode_id"], eval_date, outcome_type,
-                            portfolio_return=0.0,  # didn't buy
-                            market_return=mkt_return,
-                            alpha=-mkt_return,  # opportunity cost
-                            counterfactual_return=counterfactual_return,
-                            avoided_loss=avoided_loss,
-                            missed_gain=missed_gain)
+        self._write_outcome(
+            conn,
+            ep["episode_id"],
+            eval_date,
+            outcome_type,
+            portfolio_return=0.0,  # didn't buy
+            market_return=mkt_return,
+            alpha=-mkt_return,  # opportunity cost
+            counterfactual_return=counterfactual_return,
+            avoided_loss=avoided_loss,
+            missed_gain=missed_gain,
+        )
 
         return {
             "outcome_type": outcome_type,
@@ -261,41 +300,63 @@ class OutcomeEvaluator:
             "missed_gain": missed_gain,
         }
 
-    def _write_outcome(self, conn, episode_id, eval_date, outcome_type,
-                        portfolio_return=0.0, market_return=0.0, alpha=0.0,
-                        max_drawdown=0.0,
-                        counterfactual_return=None,
-                        avoided_loss=None,
-                        missed_gain=None):
+    def _write_outcome(
+        self,
+        conn,
+        episode_id,
+        eval_date,
+        outcome_type,
+        portfolio_return=0.0,
+        market_return=0.0,
+        alpha=0.0,
+        max_drawdown=0.0,
+        counterfactual_return=None,
+        avoided_loss=None,
+        missed_gain=None,
+    ):
         """Write outcome to shadow_outcome and shadow_counterfactual tables."""
         # shadow_outcome
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO shadow_outcome
             (episode_id, portfolio_return_t20, market_return_t20,
              alpha_vs_hs300, win, alpha_positive, failure_type, evaluated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            episode_id, portfolio_return, market_return,
-            alpha,
-            1 if portfolio_return > 0 else 0,
-            1 if alpha > 0 else 0,
-            outcome_type,
-            eval_date,
-        ))
+        """,
+            (
+                episode_id,
+                portfolio_return,
+                market_return,
+                alpha,
+                1 if portfolio_return > 0 else 0,
+                1 if alpha > 0 else 0,
+                outcome_type,
+                eval_date,
+            ),
+        )
 
         # shadow_counterfactual
         if counterfactual_return is not None:
-            block_quality = "CORRECT_BLOCK" if outcome_type == "SUCCESS_BLOCK" else "INCORRECT_BLOCK"
-            conn.execute("""
+            block_quality = (
+                "CORRECT_BLOCK" if outcome_type == "SUCCESS_BLOCK" else "INCORRECT_BLOCK"
+            )
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO shadow_counterfactual
                 (episode_id, counterfactual_return, counterfactual_alpha,
                  avoided_loss, missed_gain, block_quality, evaluated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                episode_id, counterfactual_return,
-                counterfactual_return - market_return if market_return else None,
-                avoided_loss, missed_gain, block_quality, eval_date,
-            ))
+            """,
+                (
+                    episode_id,
+                    counterfactual_return,
+                    counterfactual_return - market_return if market_return else None,
+                    avoided_loss,
+                    missed_gain,
+                    block_quality,
+                    eval_date,
+                ),
+            )
 
         # Update episode status
         conn.execute(
@@ -333,13 +394,15 @@ def main():
 
         buy_alpha_median = float(np.median(stats["buy_alphas"])) if stats["buy_alphas"] else 0
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO shadow_metrics
             (metric_date, total_episodes, buy_episodes, block_episodes,
              avg_avoided_loss, avg_missed_gain, block_accuracy)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (today, stats["total"], buy_count, block_count,
-              avg_avoided, avg_missed, block_acc))
+        """,
+            (today, stats["total"], buy_count, block_count, avg_avoided, avg_missed, block_acc),
+        )
         conn.commit()
         conn.close()
 

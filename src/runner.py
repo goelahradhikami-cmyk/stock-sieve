@@ -21,7 +21,7 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.agents.committee_agent import CommitteeAgent, apply_committee_decision
+from src.agents.committee_agent import CommitteeAgent
 from src.agents.portfolio_agent import PortfolioAgent, PortfolioState
 from src.agents.research_agent import ResearchAgent
 from src.data.db import close_all
@@ -52,6 +52,7 @@ def get_universe() -> list[str]:
     try:
         from src.data.security_master import SecurityMaster
         from src.data.universe_filter import UniverseFilter
+
         master = SecurityMaster()
         df = master.get_active_universe()
         # NOTE: match daily_run's universe params. security_master has
@@ -65,33 +66,41 @@ def get_universe() -> list[str]:
         # Fallback to hardcoded sample
         logger.warning("runner: load active universe failed, using hardcoded sample: %s", e)
         return [
-            "600519", "000858", "300750", "601318", "000333",
-            "600036", "002415", "600276", "601888", "002594",
+            "600519",
+            "000858",
+            "300750",
+            "601318",
+            "000333",
+            "600036",
+            "002415",
+            "600276",
+            "601888",
+            "002594",
         ]
 
 
 def load_genomes() -> list[dict]:
     """Load all founder genome YAMLs."""
-    config_dir = os.path.join(
-        os.path.dirname(__file__), "..", "config", "personalities"
-    )
+    config_dir = os.path.join(os.path.dirname(__file__), "..", "config", "personalities")
     genomes = []
     for f in sorted(os.listdir(config_dir)):
         if f.endswith(".yaml"):
             with open(os.path.join(config_dir, f), encoding="utf-8") as fh:
                 genome = yaml.safe_load(fh)
-                genomes.append({
-                    "name": f.replace(".yaml", ""),
-                    "yaml": yaml.dump(genome, allow_unicode=True),
-                })
+                genomes.append(
+                    {
+                        "name": f.replace(".yaml", ""),
+                        "yaml": yaml.dump(genome, allow_unicode=True),
+                    }
+                )
     return genomes
 
 
 def run_single_stock(code: str):
     """Run full pipeline on a single stock — for testing/debugging."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🔬 Running full pipeline on {code}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     db = EvaluationDB()
     db.init_db()
@@ -112,20 +121,29 @@ def run_single_stock(code: str):
     # Financials
     fin_data = fin.get_financial_dict(code)
     print(f"   ROE: {fin_data.get('roe')}, Gross Margin: {fin_data.get('gross_margin')}")
-    print(f"   Revenue Growth: {fin_data.get('revenue_growth_1y')}, Net Margin: {fin_data.get('net_margin')}")
+    print(
+        f"   Revenue Growth: {fin_data.get('revenue_growth_1y')}, Net Margin: {fin_data.get('net_margin')}"
+    )
 
     if not fin_data.get("roe"):
         print("   ⚠️ No financial data available — mootdx may not be installed or data unavailable")
         print("   Install: pip install mootdx")
         print("   Falling back to mock financial data...")
         fin_data = {
-            "roe": 0.30, "roic": 0.25, "gross_margin": 0.92, "net_margin": 0.52,
-            "pe_ttm": snap.pe_ttm, "pb": snap.pb, "debt_to_equity": 0.3,
-            "revenue_growth_1y": 0.15, "earnings_growth_1y": 0.18,
+            "roe": 0.30,
+            "roic": 0.25,
+            "gross_margin": 0.92,
+            "net_margin": 0.52,
+            "pe_ttm": snap.pe_ttm,
+            "pb": snap.pb,
+            "debt_to_equity": 0.3,
+            "revenue_growth_1y": 0.15,
+            "earnings_growth_1y": 0.18,
         }
 
     # Price history — try real K-line first, fallback to mock
     from src.data.provider import MarketDataProvider
+
     mkt = MarketDataProvider()
     price_data = mkt.get_daily_kline(
         code,
@@ -134,19 +152,23 @@ def run_single_stock(code: str):
     )
     if price_data.empty:
         print("   ⚠️ No K-line data — using mock prices")
-        dates = pd.date_range(end=date.today(), periods=120, freq='B')
+        dates = pd.date_range(end=date.today(), periods=120, freq="B")
         if snap.price:
-            price_data = pd.DataFrame({
-                'date': dates,
-                'close': snap.price * (1 + np.random.normal(0.0005, 0.02, 120)).cumprod(),
-                'volume': np.random.uniform(1e6, 1e8, 120),
-            })
+            price_data = pd.DataFrame(
+                {
+                    "date": dates,
+                    "close": snap.price * (1 + np.random.normal(0.0005, 0.02, 120)).cumprod(),
+                    "volume": np.random.uniform(1e6, 1e8, 120),
+                }
+            )
         else:
-            price_data = pd.DataFrame({
-                'date': dates,
-                'close': 100 * (1 + np.random.normal(0.001, 0.02, 120)).cumprod(),
-                'volume': np.random.uniform(1e6, 1e7, 120),
-            })
+            price_data = pd.DataFrame(
+                {
+                    "date": dates,
+                    "close": 100 * (1 + np.random.normal(0.001, 0.02, 120)).cumprod(),
+                    "volume": np.random.uniform(1e6, 1e7, 120),
+                }
+            )
     else:
         print(f"   K-line: {len(price_data)} bars loaded")
 
@@ -162,19 +184,25 @@ def run_single_stock(code: str):
     print("\n3. Market state...")
     mb = MarketBrain()
     # Use real index K-line if available, fallback mock
-    idx_data = mkt.get_daily_kline('000905',  # CSI 500 works with mootdx
+    idx_data = mkt.get_daily_kline(
+        "000905",  # CSI 500 works with mootdx
         start_date=(date.today() - timedelta(days=365)).isoformat(),
-        end_date=date.today().isoformat())
+        end_date=date.today().isoformat(),
+    )
     if idx_data.empty:
-        idx_data = mkt.get_daily_kline('000852',
+        idx_data = mkt.get_daily_kline(
+            "000852",
             start_date=(date.today() - timedelta(days=365)).isoformat(),
-            end_date=date.today().isoformat())
+            end_date=date.today().isoformat(),
+        )
     if idx_data.empty:
-        idx_data = pd.DataFrame({
-            'date': pd.date_range(end=date.today(), periods=120, freq='B'),
-            'close': 3500 * (1 + np.random.normal(0.0003, 0.015, 120)).cumprod(),
-            'volume': np.random.uniform(1e10, 1e11, 120),
-        })
+        idx_data = pd.DataFrame(
+            {
+                "date": pd.date_range(end=date.today(), periods=120, freq="B"),
+                "close": 3500 * (1 + np.random.normal(0.0003, 0.015, 120)).cumprod(),
+                "volume": np.random.uniform(1e10, 1e11, 120),
+            }
+        )
         print("   Market index: mock (no real data)")
     else:
         print(f"   Market index: {len(idx_data)} bars loaded")
@@ -194,6 +222,7 @@ def run_single_stock(code: str):
     for g in genomes[:4]:  # Use first 4 agents for speed
         agent = ResearchAgent(g["yaml"])
         from src.data import MarketSnapshot, StockSnapshot
+
         market_snap = MarketSnapshot(
             date=date.today().isoformat(),
             regime_type=regime.regime_type,
@@ -210,7 +239,9 @@ def run_single_stock(code: str):
         sa = agent.analyze(market_snap, stock_snap, factors)
         if sa and sa.alpha_score > 3:
             analyses.append(sa)
-            print(f"   {g['name']}: α={sa.alpha_score:.1f}, conf={sa.confidence:.1f}, thesis={sa.thesis.pattern if sa.thesis else 'N/A'}")
+            print(
+                f"   {g['name']}: α={sa.alpha_score:.1f}, conf={sa.confidence:.1f}, thesis={sa.thesis.pattern if sa.thesis else 'N/A'}"
+            )
 
     if not analyses:
         print("   ⚠️ No agent produced a valid analysis (all alpha ≤ 3)")
@@ -262,20 +293,25 @@ def run_single_stock(code: str):
     validator = ThesisValidator(db, registry)
     val_result = validator.validate(rid)
     print(f"   Verdict: {val_result.verdict}, Overall: {val_result.overall_score:.0f}/100")
-    print(f"   Evidence: {val_result.evidence_score:.0f}, Counter-risk: {val_result.counter_evidence_risk:.0f}")
+    print(
+        f"   Evidence: {val_result.evidence_score:.0f}, Counter-risk: {val_result.counter_evidence_risk:.0f}"
+    )
     print(f"   Effective confidence: {best.confidence} → {val_result.effective_confidence}")
 
     # ── 7. Investment Committee ──────────────────────────
     print("\n7. Investment Committee...")
     committee = CommitteeAgent(db)
     decision = committee.review(
-        best, val_result, market_dict,
-        {"sector_weights": {}, "positions": []}
+        best, val_result, market_dict, {"sector_weights": {}, "positions": []}
     )
     print(f"   Verdict: {decision.verdict} (ws={decision.weighted_score:.1f})")
-    print(f"   Valuation:{decision.valuation_score:.0f} Industry:{decision.industry_score:.0f} Risk:{decision.risk_score:.0f}")
+    print(
+        f"   Valuation:{decision.valuation_score:.0f} Industry:{decision.industry_score:.0f} Risk:{decision.risk_score:.0f}"
+    )
     print(f"   Quant:{decision.quant_score:.0f} Devil:{decision.devil_advocate_score:.0f}")
-    print(f"   Position cap: {decision.position_cap_modifier}, Confidence mod: {decision.confidence_modifier}")
+    print(
+        f"   Position cap: {decision.position_cap_modifier}, Confidence mod: {decision.confidence_modifier}"
+    )
 
     # Save committee decision using built-in helper
     db.insert_committee_decision(decision)
@@ -329,36 +365,42 @@ def run_single_stock(code: str):
             fp = exec_result.get("fill_price", 0)
             tc = exec_result.get("total_cost", 0)
             print(f"   📊 Fill: ¥{fp:.2f} × {order_qty} shares | Cost: ¥{tc:.2f}")
-            print(f"      Slippage: {exec_result.get('slippage', 0):.4%} | Mode: {exec_result.get('execution_mode', 'PAPER')}")
+            print(
+                f"      Slippage: {exec_result.get('slippage', 0):.4%} | Mode: {exec_result.get('execution_mode', 'PAPER')}"
+            )
 
     # ── 9. Evaluation + Post-Mortem ──────────────────────
     print("\n9. Evaluation & Post-Mortem...")
     try:
         from src.evaluation.evaluation_engine import EvaluationEngine
+
         eval_engine = EvaluationEngine(db)
         eval_result = eval_engine.evaluate(rid, horizon_days=1)  # Immediate eval for demo
         if eval_result:
             eval_engine.save_to_db(eval_result)
-            print(f"   Return: {eval_result.gross_return:+.2%}, Alpha: {eval_result.alpha_vs_market:+.2%}")
+            print(
+                f"   Return: {eval_result.gross_return:+.2%}, Alpha: {eval_result.alpha_vs_market:+.2%}"
+            )
 
         from src.postmortem.engine import PostMortemEngine
+
         pm = PostMortemEngine()
         pm_count = pm.run_daily()
         print(f"   Post-mortem: {pm_count} patterns")
     except Exception as e:
         logger.warning("runner: evaluation/post-mortem skipped: %s", e)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"✅ Pipeline complete for {code} ({snap.name or code})")
     print("   View results: streamlit run src/ui/app.py")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 def run_batch(codes: list[str], top_n: int = 10):
     """Run pipeline on multiple stocks."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🔬 Running batch pipeline on {len(codes)} stocks")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     db = EvaluationDB()
     db.init_db()

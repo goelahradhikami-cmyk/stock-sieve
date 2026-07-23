@@ -1,4 +1,5 @@
 """Database connector for Streamlit UI — cached queries."""
+
 import os
 import sys
 

@@ -18,6 +18,10 @@ This does NOT change connection semantics — it only guarantees closure.
 import sqlite3
 import weakref
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 _REGISTRY: set = set()
 
 
@@ -26,8 +30,8 @@ def _safe_close(conn) -> None:
         return
     try:
         conn.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("operation failed (was silently ignored): %s", exc)
     _REGISTRY.discard(conn)
 
 
@@ -43,8 +47,8 @@ def managed_connect(owner, db_path: str, timeout: float = 5.0):
     finalizer = weakref.finalize(owner, _safe_close, conn)
     try:
         conn._managed_finalizer = finalizer  # keep finalizer alive for conn's life
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("operation failed (was silently ignored): %s", exc)
     return conn
 
 

@@ -35,10 +35,7 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
-
-import numpy as np
+from dataclasses import dataclass
 
 from src.utils.logger import get_logger
 
@@ -48,6 +45,7 @@ logger = get_logger(__name__)
 @dataclass
 class FRMResult:
     """Fundamental Recovery Momentum assessment for one stock."""
+
     code: str
     as_of_date: str
     market_state: str
@@ -58,12 +56,12 @@ class FRMResult:
     revenue_acceleration: float = 50.0
 
     # Raw signals
-    earnings_yoy_current: Optional[float] = None
-    earnings_yoy_previous: Optional[float] = None
-    revenue_yoy_current: Optional[float] = None
-    revenue_yoy_previous: Optional[float] = None
-    margin_current: Optional[float] = None
-    margin_previous: Optional[float] = None
+    earnings_yoy_current: float | None = None
+    earnings_yoy_previous: float | None = None
+    revenue_yoy_current: float | None = None
+    revenue_yoy_previous: float | None = None
+    margin_current: float | None = None
+    margin_previous: float | None = None
 
     # Diagnosis
     revision_direction: str = "unknown"  # improving / stable / deteriorating
@@ -117,8 +115,7 @@ class FundamentalRecoveryScorer:
     def __init__(self, cache_db: str = "data/cache.db"):
         self.cache_db = cache_db
 
-    def compute(self, code: str, as_of_date: str,
-                market_state: str = "unknown") -> FRMResult:
+    def compute(self, code: str, as_of_date: str, market_state: str = "unknown") -> FRMResult:
         """Compute FRM score for a stock at a given date.
 
         Args:
@@ -130,8 +127,7 @@ class FundamentalRecoveryScorer:
         Returns: FRMResult with score 0-100 + subscores + raw signals
         """
         code = str(code).zfill(6)
-        result = FRMResult(code=code, as_of_date=as_of_date,
-                           market_state=market_state)
+        result = FRMResult(code=code, as_of_date=as_of_date, market_state=market_state)
         result.market_state_weight = MARKET_STATE_WEIGHTS.get(market_state, 0.50)
 
         # Load vintage-aware last 2 reporting periods
@@ -155,19 +151,23 @@ class FundamentalRecoveryScorer:
 
         # Layer 1: earnings acceleration (50%)
         result.earnings_acceleration = self._score_earnings_acceleration(
-            result.earnings_yoy_current, result.earnings_yoy_previous)
+            result.earnings_yoy_current, result.earnings_yoy_previous
+        )
 
         # Layer 2: margin stabilization (30%)
         result.margin_stabilization = self._score_margin_stabilization(
-            result.margin_current, result.margin_previous)
+            result.margin_current, result.margin_previous
+        )
 
         # Layer 3: revenue acceleration (20%)
         result.revenue_acceleration = self._score_revenue_acceleration(
-            result.revenue_yoy_current, result.revenue_yoy_previous)
+            result.revenue_yoy_current, result.revenue_yoy_previous
+        )
 
         # Revision direction (for audit / shadow_candidates column)
         result.revision_direction = self._classify_revision(
-            result.earnings_yoy_current, result.earnings_yoy_previous)
+            result.earnings_yoy_current, result.earnings_yoy_previous
+        )
 
         # Composite: weighted sum, then market-state amplified, clamped 0-100
         base = (
@@ -186,8 +186,7 @@ class FundamentalRecoveryScorer:
     # Vintage-aware period loading
     # ------------------------------------------------------------------
 
-    def _load_vintage_periods(self, code: str, as_of_date: str,
-                              limit: int = 2) -> list[dict]:
+    def _load_vintage_periods(self, code: str, as_of_date: str, limit: int = 2) -> list[dict]:
         """Load the most recent `limit` reporting periods available as of date.
 
         Vintage-aware: only uses reports whose available_date <= as_of_date.
@@ -215,23 +214,26 @@ class FundamentalRecoveryScorer:
             net_margin = None
             if net_profit is not None and revenue and revenue != 0:
                 net_margin = net_profit / revenue
-            periods.append({
-                "report_date": r["report_date"],
-                "earnings_yoy": (r["earnings_yoy"] / 100.0)
-                                if r["earnings_yoy"] is not None else None,
-                "revenue_yoy": (r["revenue_yoy"] / 100.0)
-                               if r["revenue_yoy"] is not None else None,
-                "net_margin": net_margin,
-                "roe": r["roe"],
-            })
+            periods.append(
+                {
+                    "report_date": r["report_date"],
+                    "earnings_yoy": (r["earnings_yoy"] / 100.0)
+                    if r["earnings_yoy"] is not None
+                    else None,
+                    "revenue_yoy": (r["revenue_yoy"] / 100.0)
+                    if r["revenue_yoy"] is not None
+                    else None,
+                    "net_margin": net_margin,
+                    "roe": r["roe"],
+                }
+            )
         return periods
 
     # ------------------------------------------------------------------
     # Subscore computations
     # ------------------------------------------------------------------
 
-    def _score_earnings_acceleration(self, current: Optional[float],
-                                      previous: Optional[float]) -> float:
+    def _score_earnings_acceleration(self, current: float | None, previous: float | None) -> float:
         """Score earnings_yoy change (50% weight).
 
         revision = current_earnings_yoy - previous_earnings_yoy
@@ -264,8 +266,7 @@ class FundamentalRecoveryScorer:
         else:
             return 10.0
 
-    def _score_margin_stabilization(self, current: Optional[float],
-                                     previous: Optional[float]) -> float:
+    def _score_margin_stabilization(self, current: float | None, previous: float | None) -> float:
         """Score margin change (30% weight).
 
         Margin expansion = positive; margin contraction = negative.
@@ -288,8 +289,7 @@ class FundamentalRecoveryScorer:
         else:
             return 20.0
 
-    def _score_revenue_acceleration(self, current: Optional[float],
-                                     previous: Optional[float]) -> float:
+    def _score_revenue_acceleration(self, current: float | None, previous: float | None) -> float:
         """Score revenue_yoy change (20% weight)."""
         if current is None or previous is None:
             return 50.0
@@ -307,8 +307,7 @@ class FundamentalRecoveryScorer:
         else:
             return 20.0
 
-    def _classify_revision(self, current: Optional[float],
-                            previous: Optional[float]) -> str:
+    def _classify_revision(self, current: float | None, previous: float | None) -> str:
         """Classify the earnings revision direction.
 
         improving:     revision > +REVISION_THRESHOLD (meaningful improvement)

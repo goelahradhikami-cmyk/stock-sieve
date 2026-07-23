@@ -24,10 +24,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
+import os
+import sqlite3
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -41,7 +41,8 @@ CACHE_DB = "data/cache.db"
 
 SCHEMA_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "migrations", "earnings_sustainability.sql",
+    "migrations",
+    "earnings_sustainability.sql",
 )
 
 
@@ -52,7 +53,7 @@ def apply_schema(cache: sqlite3.Connection) -> None:
     schema_version row is recorded in shadow_trading.db (where
     schema_version lives), not cache.db (where this table resides).
     """
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
         cache.executescript(f.read())
     cache.commit()
     # Record version in shadow_trading.db (schema_version table location)
@@ -96,8 +97,7 @@ def backfill_v3_candidates() -> None:
 
         # Skip if already backfilled for this (code, as_of_date)
         existing = cache.execute(
-            "SELECT 1 FROM earnings_sustainability "
-            "WHERE security_id = ? AND as_of_date = ?",
+            "SELECT 1 FROM earnings_sustainability WHERE security_id = ? AND as_of_date = ?",
             (code, trade_date),
         ).fetchone()
         if existing:
@@ -114,14 +114,14 @@ def backfill_v3_candidates() -> None:
 
         if len(batch) >= 100:
             _commit_batch(cache, batch)
-            print(f"  ... {i+1}/{len(candidates)} processed, {written} written", flush=True)
+            print(f"  ... {i + 1}/{len(candidates)} processed, {written} written", flush=True)
 
     _commit_batch(cache, batch)
     cache.commit()
     cache.close()
     shadow.close()
 
-    print(f"\n=== Backfill Complete ===", flush=True)
+    print("\n=== Backfill Complete ===", flush=True)
     print(f"  candidates: {len(candidates)}", flush=True)
     print(f"  written:    {written}", flush=True)
     print(f"  skipped:    {skipped} (already backfilled)", flush=True)
@@ -152,15 +152,24 @@ def backfill_single(code: str, as_of_date: str = None) -> None:
     print(f"\n=== Sustainability for {code} @ {as_of_date} ===", flush=True)
     print(f"  available_date:        {result.available_date}", flush=True)
     print(f"  industry:              {result.industry}", flush=True)
-    print(f"  revenue_yoy / earn_yoy: {result.revenue_yoy_current} / {result.earnings_yoy_current}", flush=True)
+    print(
+        f"  revenue_yoy / earn_yoy: {result.revenue_yoy_current} / {result.earnings_yoy_current}",
+        flush=True,
+    )
     print(f"  profit_elasticity:     {result.profit_elasticity}", flush=True)
     print(f"  alignment_flag:        {result.alignment_flag}", flush=True)
-    print(f"  accel_q0/q1/q2:        {result.accel_q0} / {result.accel_q1} / {result.accel_q2}", flush=True)
+    print(
+        f"  accel_q0/q1/q2:        {result.accel_q0} / {result.accel_q1} / {result.accel_q2}",
+        flush=True,
+    )
     print(f"  accel_trend:           {result.accel_trend}", flush=True)
     print(f"  reversal_count:        {result.reversal_count}", flush=True)
     print(f"  consistency_flag:      {result.consistency_flag}", flush=True)
     print(f"  operating_margin:      {result.operating_margin_current}", flush=True)
-    print(f"  company_z / industry_z: {result.company_margin_zscore} / {result.industry_margin_zscore}", flush=True)
+    print(
+        f"  company_z / industry_z: {result.company_margin_zscore} / {result.industry_margin_zscore}",
+        flush=True,
+    )
     print(f"  margin_norm_flag:      {result.margin_normalization_flag}", flush=True)
     print(f"  sustainability_pass:   {result.sustainability_pass}", flush=True)
     print(f"  failure_reason:        {result.failure_reason}", flush=True)
@@ -185,18 +194,30 @@ def backfill_single(code: str, as_of_date: str = None) -> None:
 def _result_to_tuple(result, as_of_date: str) -> tuple:
     """Convert SustainabilityResult to INSERT tuple."""
     return (
-        result.security_id, result.report_date, result.available_date,
-        result.revenue_yoy_current, result.earnings_yoy_current,
-        result.profit_elasticity, result.alignment_flag,
-        result.accel_q0, result.accel_q1, result.accel_q2,
-        result.accel_trend, result.accel_volatility,
-        result.reversal_count, result.consistency_flag,
-        result.operating_margin_current, result.operating_margin_3q_median,
+        result.security_id,
+        result.report_date,
+        result.available_date,
+        result.revenue_yoy_current,
+        result.earnings_yoy_current,
+        result.profit_elasticity,
+        result.alignment_flag,
+        result.accel_q0,
+        result.accel_q1,
+        result.accel_q2,
+        result.accel_trend,
+        result.accel_volatility,
+        result.reversal_count,
+        result.consistency_flag,
+        result.operating_margin_current,
+        result.operating_margin_3q_median,
         result.operating_margin_3q_std,
-        result.company_margin_zscore, result.industry_margin_zscore,
+        result.company_margin_zscore,
+        result.industry_margin_zscore,
         result.margin_normalization_flag,
-        result.sustainability_pass, result.failure_reason,
-        result.industry, as_of_date,
+        result.sustainability_pass,
+        result.failure_reason,
+        result.industry,
+        as_of_date,
     )
 
 

@@ -25,9 +25,11 @@ import yaml
 # Data classes
 # ═══════════════════════════════════════════════════════════
 
+
 @dataclass
 class AgentGenome:
     """Parsed genome of a Research Agent."""
+
     agent_id: str
     strategy_genus: str
     strategy_species: str
@@ -55,8 +57,16 @@ class AgentGenome:
 
     def identity_distance(self, other: "AgentGenome") -> float:
         """Compute Euclidean distance between identity vectors."""
-        dims = ["valuation", "quality", "growth", "momentum",
-                "macro", "contrarian", "patience", "concentration"]
+        dims = [
+            "valuation",
+            "quality",
+            "growth",
+            "momentum",
+            "macro",
+            "contrarian",
+            "patience",
+            "concentration",
+        ]
         sq_sum = 0.0
         for d in dims:
             a = self.identity_vector.get(d, 50)
@@ -71,6 +81,7 @@ class AgentGenome:
 @dataclass
 class PerformanceRecord:
     """Quarterly performance for survival decisions."""
+
     agent_id: str
     strategy_genus: str
     period_end: str
@@ -83,23 +94,25 @@ class PerformanceRecord:
 @dataclass
 class MutationCandidate:
     """Proposed mutation for sandbox validation."""
+
     proposal_id: str
     parent_agent_id: str
     hypothesis: str
     affected_parameter: str
-    direction: str                    # "increase" / "decrease" / "add" / "remove"
-    specific_value: float | None   # Set by rule engine, NOT by LLM
+    direction: str  # "increase" / "decrease" / "add" / "remove"
+    specific_value: float | None  # Set by rule engine, NOT by LLM
     expected_effect: str
     confidence: float
-    source: str                       # factor_memory / post_mortem / thesis / regime
+    source: str  # factor_memory / post_mortem / thesis / regime
 
 
 @dataclass
 class SelectionResult:
     """Output of a selection cycle."""
-    eliminated: list[str]              # agent_ids to freeze
-    watchlist_additions: list[str]     # agent_ids to add to watchlist
-    watchlist_recoveries: list[str]    # agent_ids recovering from watchlist
+
+    eliminated: list[str]  # agent_ids to freeze
+    watchlist_additions: list[str]  # agent_ids to add to watchlist
+    watchlist_recoveries: list[str]  # agent_ids recovering from watchlist
     reproduction_pairs: list[tuple[str, str]]  # (parent_a, parent_b)
 
 
@@ -107,11 +120,12 @@ class SelectionResult:
 # Selection Engine
 # ═══════════════════════════════════════════════════════════
 
+
 class SelectionEngine:
     """Implements evolution_engine_spec §3 agent_selection."""
 
-    ELITE_THRESHOLD = 0.25       # top 25%
-    BOTTOM_PERCENTILE = 0.20     # bottom 20%
+    ELITE_THRESHOLD = 0.25  # top 25%
+    BOTTOM_PERCENTILE = 0.20  # bottom 20%
     MIN_LIFESPAN_MONTHS = 12
     MIN_DECISIONS = 100
     CONSECUTIVE_BOTTOM_QUARTERS = 2
@@ -121,16 +135,15 @@ class SelectionEngine:
     def __init__(self, db):
         self.db = db  # EvaluationDB instance
 
-    def run_selection_cycle(self, genomes: list[AgentGenome],
-                             performances: list[PerformanceRecord],
-                             watchlist: set[str]) -> SelectionResult:
+    def run_selection_cycle(
+        self, genomes: list[AgentGenome], performances: list[PerformanceRecord], watchlist: set[str]
+    ) -> SelectionResult:
         """Run one quarterly selection cycle.
 
         Returns decisions for elimination, watchlist, and reproduction.
         """
         result = SelectionResult(
-            eliminated=[], watchlist_additions=[],
-            watchlist_recoveries=[], reproduction_pairs=[]
+            eliminated=[], watchlist_additions=[], watchlist_recoveries=[], reproduction_pairs=[]
         )
 
         # Group performance by agent
@@ -162,18 +175,17 @@ class SelectionEngine:
             bottom_n = max(1, int(len(genus_scores) * self.BOTTOM_PERCENTILE))
             bottom_ids = {x[0] for x in genus_scores[:bottom_n]}
 
-            if aid in bottom_ids:
-                # Check consecutive quarters
-                if len(scores) >= self.CONSECUTIVE_BOTTOM_QUARTERS:
-                    all_bottom = all(
-                        self._is_bottom(s.personality_score, genus_scores)
-                        for s in scores[-self.CONSECUTIVE_BOTTOM_QUARTERS:]
-                    )
-                    if all_bottom:
-                        if aid in watchlist:
-                            result.eliminated.append(aid)
-                        else:
-                            result.watchlist_additions.append(aid)
+            # Check consecutive quarters
+            if aid in bottom_ids and len(scores) >= self.CONSECUTIVE_BOTTOM_QUARTERS:
+                all_bottom = all(
+                    self._is_bottom(s.personality_score, genus_scores)
+                    for s in scores[-self.CONSECUTIVE_BOTTOM_QUARTERS :]
+                )
+                if all_bottom:
+                    if aid in watchlist:
+                        result.eliminated.append(aid)
+                    else:
+                        result.watchlist_additions.append(aid)
 
             # Watchlist recovery
             if aid in watchlist:
@@ -193,8 +205,11 @@ class SelectionEngine:
 
             genus_perf.sort(key=lambda x: x[1], reverse=True)
             elite_n = max(1, int(len(genus_perf) * self.ELITE_THRESHOLD))
-            elite = [genomes_by_id[aid] for aid, _ in genus_perf[:elite_n]
-                     if aid in genomes_by_id and aid not in watchlist]
+            elite = [
+                genomes_by_id[aid]
+                for aid, _ in genus_perf[:elite_n]
+                if aid in genomes_by_id and aid not in watchlist
+            ]
 
             # Diversity-weighted pairing
             pairs = self._diversity_weighted_pairing(elite)
@@ -249,6 +264,7 @@ class SelectionEngine:
 # Mutation Engine
 # ═══════════════════════════════════════════════════════════
 
+
 class MutationEngine:
     """Implements evolution_engine_spec §4 mutation_rules.
 
@@ -259,10 +275,10 @@ class MutationEngine:
       4. regime_adaptation — market regime mismatch
     """
 
-    MAX_ADJUSTMENT = 0.05          # max factor weight change per generation
+    MAX_ADJUSTMENT = 0.05  # max factor weight change per generation
     MAX_SCORING_CHANGE = 0.10
-    POST_MORTEM_THRESHOLD = 3      # suggested_action frequency for auto-inclusion
-    THESIS_LOW_WIN_THRESHOLD = 0.4 # win_rate below this triggers mutation
+    POST_MORTEM_THRESHOLD = 3  # suggested_action frequency for auto-inclusion
+    THESIS_LOW_WIN_THRESHOLD = 0.4  # win_rate below this triggers mutation
     THESIS_QUARTERS_THRESHOLD = 8  # consecutive quarters
     REGIME_MISMATCH_MONTHS = 6
     COOLDOWN_QUARTERS = 2
@@ -307,17 +323,21 @@ class MutationEngine:
             all_ic = np.mean([m["ic_mean"] for m in memory if m["ic_mean"] is not None])
 
             if recent_ic > all_ic * 1.5 and weight < 0.30:  # Significant improvement
-                candidates.append(MutationCandidate(
-                    proposal_id=f"factor_{factor_name}_{genome.agent_id}",
-                    parent_agent_id=genome.agent_id,
-                    hypothesis=f"Factor {factor_name} IC improved: {recent_ic:.3f} vs {all_ic:.3f} avg",
-                    affected_parameter=f"factor_weight.{factor_name}",
-                    direction="increase",
-                    specific_value=min(weight + random.uniform(0.01, self.MAX_ADJUSTMENT), 0.30),
-                    expected_effect=f"Expected to improve alpha by ~{(recent_ic - all_ic):.3f}",
-                    confidence=min(0.9, (recent_ic - all_ic) / all_ic) if all_ic > 0 else 0.5,
-                    source="factor_memory",
-                ))
+                candidates.append(
+                    MutationCandidate(
+                        proposal_id=f"factor_{factor_name}_{genome.agent_id}",
+                        parent_agent_id=genome.agent_id,
+                        hypothesis=f"Factor {factor_name} IC improved: {recent_ic:.3f} vs {all_ic:.3f} avg",
+                        affected_parameter=f"factor_weight.{factor_name}",
+                        direction="increase",
+                        specific_value=min(
+                            weight + random.uniform(0.01, self.MAX_ADJUSTMENT), 0.30
+                        ),
+                        expected_effect=f"Expected to improve alpha by ~{(recent_ic - all_ic):.3f}",
+                        confidence=min(0.9, (recent_ic - all_ic) / all_ic) if all_ic > 0 else 0.5,
+                        source="factor_memory",
+                    )
+                )
 
         return candidates
 
@@ -345,17 +365,19 @@ class MutationEngine:
         for key, count in action_counts.items():
             if count >= self.POST_MORTEM_THRESHOLD:
                 action_type, target = key.split(":", 1)
-                candidates.append(MutationCandidate(
-                    proposal_id=f"pm_{target}_{genome.agent_id}",
-                    parent_agent_id=genome.agent_id,
-                    hypothesis=f"Post-mortem suggests {action_type} on {target} (appeared {count}x)",
-                    affected_parameter=target,
-                    direction=action_type,
-                    specific_value=None,  # Rule engine computes exact value
-                    expected_effect="Address recurring failure pattern from post-mortems",
-                    confidence=min(0.8, count / 10.0),
-                    source="post_mortem",
-                ))
+                candidates.append(
+                    MutationCandidate(
+                        proposal_id=f"pm_{target}_{genome.agent_id}",
+                        parent_agent_id=genome.agent_id,
+                        hypothesis=f"Post-mortem suggests {action_type} on {target} (appeared {count}x)",
+                        affected_parameter=target,
+                        direction=action_type,
+                        specific_value=None,  # Rule engine computes exact value
+                        expected_effect="Address recurring failure pattern from post-mortems",
+                        confidence=min(0.8, count / 10.0),
+                        source="post_mortem",
+                    )
+                )
 
         return candidates
 
@@ -371,9 +393,9 @@ class MutationEngine:
         # TODO: Check market_regime_snapshots vs genome's market_regime_preference
         return candidates
 
-    def validate_mutation(self, candidate: MutationCandidate,
-                           parent_genome: AgentGenome,
-                           sandbox_result: dict) -> bool:
+    def validate_mutation(
+        self, candidate: MutationCandidate, parent_genome: AgentGenome, sandbox_result: dict
+    ) -> bool:
         """Validate a single mutation candidate against sandbox results.
 
         Returns True if mutation should be applied.
@@ -392,6 +414,7 @@ class MutationEngine:
 # ═══════════════════════════════════════════════════════════
 # Crossover Engine
 # ═══════════════════════════════════════════════════════════
+
 
 class CrossoverEngine:
     """Implements evolution_engine_spec §5 crossover_rules.
@@ -422,8 +445,16 @@ class CrossoverEngine:
 
         # ── Interpolate identity vector ──────────────────
         child_identity = {}
-        dims = ["valuation", "quality", "growth", "momentum",
-                "macro", "contrarian", "patience", "concentration"]
+        dims = [
+            "valuation",
+            "quality",
+            "growth",
+            "momentum",
+            "macro",
+            "contrarian",
+            "patience",
+            "concentration",
+        ]
         for d in dims:
             a_val = parent_a.identity_vector.get(d, 50)
             b_val = parent_b.identity_vector.get(d, 50)
@@ -439,8 +470,9 @@ class CrossoverEngine:
         child_thesis = {}
         if parent_a.thesis_scoring and parent_b.thesis_scoring:
             for key in set(parent_a.thesis_scoring.keys()) | set(parent_b.thesis_scoring.keys()):
-                child_thesis[key] = (parent_a.thesis_scoring.get(key, 0) +
-                                     parent_b.thesis_scoring.get(key, 0)) / 2
+                child_thesis[key] = (
+                    parent_a.thesis_scoring.get(key, 0) + parent_b.thesis_scoring.get(key, 0)
+                ) / 2
 
         # ── Build new genome YAML ─────────────────────────
         child_id = f"{parent_a.strategy_genus}_v{parent_a.generation + 1}_{hashlib.sha256(str(random.random()).encode()).hexdigest()[:6]}"
@@ -493,12 +525,12 @@ class CrossoverEngine:
             "investment_identity:",
             "  dimensions:",
         ]
-        for dim, val in kwargs['identity'].items():
+        for dim, val in kwargs["identity"].items():
             lines.append(f"    {dim}: {val}")
 
         lines.append("")
         lines.append("factor_weights:")
-        for name, weight in kwargs['factor_weights'].items():
+        for name, weight in kwargs["factor_weights"].items():
             lines.append(f"  {name}: {weight}")
 
         return "\n".join(lines)
@@ -507,6 +539,7 @@ class CrossoverEngine:
 # ═══════════════════════════════════════════════════════════
 # Sandbox Validator
 # ═══════════════════════════════════════════════════════════
+
 
 class SandboxValidator:
     """Implements evolution_engine_spec §4 validation.
@@ -521,9 +554,9 @@ class SandboxValidator:
     BOOTSTRAP_SAMPLES = 1000
     BOOTSTRAP_SIGNIFICANCE = 0.10  # p < 0.1
 
-    def validate(self, parent_genome: AgentGenome,
-                  child_genome: AgentGenome,
-                  historical_data: dict) -> dict:
+    def validate(
+        self, parent_genome: AgentGenome, child_genome: AgentGenome, historical_data: dict
+    ) -> dict:
         """Run sandbox validation for a child genome.
 
         Args:
@@ -545,8 +578,7 @@ class SandboxValidator:
         # Bootstrap significance test
         p_value = self._bootstrap_test(parent_genome, child_genome, historical_data)
 
-        passed = (improvement >= self.ACCEPTANCE_THRESHOLD and
-                  p_value < self.BOOTSTRAP_SIGNIFICANCE)
+        passed = improvement >= self.ACCEPTANCE_THRESHOLD and p_value < self.BOOTSTRAP_SIGNIFICANCE
 
         return {
             "passed": passed,
@@ -574,19 +606,16 @@ class SandboxValidator:
 
         # Factor weights influence expected return
         quality_weight = sum(
-            w for n, w in genome.factor_weights.items()
-            if n in ("roe", "roic", "gross_margin")
+            w for n, w in genome.factor_weights.items() if n in ("roe", "roic", "gross_margin")
         )
         momentum_weight = sum(
-            w for n, w in genome.factor_weights.items()
-            if n.startswith("momentum")
+            w for n, w in genome.factor_weights.items() if n.startswith("momentum")
         )
 
         adjusted_return = base_return + quality_weight * 0.02 - momentum_weight * 0.01
         return max(-0.4, min(0.5, adjusted_return))
 
-    def _bootstrap_test(self, parent: AgentGenome, child: AgentGenome,
-                         data: dict) -> float:
+    def _bootstrap_test(self, parent: AgentGenome, child: AgentGenome, data: dict) -> float:
         """Bootstrap test for significance of improvement."""
         np.random.seed(42)
         parent_scores = []
@@ -603,6 +632,7 @@ class SandboxValidator:
 # ═══════════════════════════════════════════════════════════
 # Evolution Engine (orchestrator)
 # ═══════════════════════════════════════════════════════════
+
 
 class EvolutionEngine:
     """Orchestrates the full 7-step genome_update pipeline.
@@ -621,9 +651,12 @@ class EvolutionEngine:
 
         self.watchlist: set[str] = set()
 
-    def run_cycle(self, genomes: list[AgentGenome],
-                   performances: list[PerformanceRecord],
-                   historical_data: dict = None) -> dict:
+    def run_cycle(
+        self,
+        genomes: list[AgentGenome],
+        performances: list[PerformanceRecord],
+        historical_data: dict = None,
+    ) -> dict:
         """Run one complete evolution cycle (quarterly).
 
         Returns dict with cycle summary.
@@ -637,9 +670,7 @@ class EvolutionEngine:
         }
 
         # ── Step 1-2: Selection ───────────────────────────
-        selection_result = self.selection.run_selection_cycle(
-            genomes, performances, self.watchlist
-        )
+        selection_result = self.selection.run_selection_cycle(genomes, performances, self.watchlist)
 
         result["frozen"] = selection_result.eliminated
         result["watchlist_added"] = selection_result.watchlist_additions
@@ -667,9 +698,7 @@ class EvolutionEngine:
 
             # Apply mutations (each validated in sandbox)
             for candidate in candidates[:3]:  # Limit to 3 mutations per child
-                sandbox_result = self.sandbox.validate(
-                    parent_a, child, historical_data or {}
-                )
+                sandbox_result = self.sandbox.validate(parent_a, child, historical_data or {})
 
                 if sandbox_result["passed"]:
                     # Adjust child genome based on candidate
@@ -715,6 +744,7 @@ class EvolutionEngine:
 # Survival Criteria Checker
 # ═══════════════════════════════════════════════════════════
 
+
 class SurvivalCriteria:
     """Implements evolution_engine_spec §6 survival_criteria."""
 
@@ -729,15 +759,16 @@ class SurvivalCriteria:
         return score < SurvivalCriteria.ABSOLUTE_MIN_SCORE
 
     @staticmethod
-    def check_diversity_exemption(genome: AgentGenome,
-                                   other_genomes: list[AgentGenome]) -> bool:
+    def check_diversity_exemption(genome: AgentGenome, other_genomes: list[AgentGenome]) -> bool:
         """Returns True if this agent qualifies for diversity exemption.
 
         Condition: min identity distance to other agents in same genus > 0.5.
         """
-        same_genus = [g for g in other_genomes
-                       if g.strategy_genus == genome.strategy_genus
-                       and g.agent_id != genome.agent_id]
+        same_genus = [
+            g
+            for g in other_genomes
+            if g.strategy_genus == genome.strategy_genus and g.agent_id != genome.agent_id
+        ]
         if not same_genus:
             return False
 

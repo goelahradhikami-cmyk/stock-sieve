@@ -25,10 +25,10 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
-from datetime import date
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -80,7 +80,7 @@ class SecurityAnalystV3Replay:
             if r:
                 results.append(r)
             if (i + 1) % 20 == 0:
-                print(f"  ... {i+1}/{len(episodes)} processed", flush=True)
+                print(f"  ... {i + 1}/{len(episodes)} processed", flush=True)
 
         print(f"Episodes with v3 candidates: {len(results)}", flush=True)
         return self._analyze(results)
@@ -89,8 +89,10 @@ class SecurityAnalystV3Replay:
         """Run v3 CandidateGenerator for one episode."""
         try:
             candidates = self.generator.generate(
-                ep["trade_date"], ep["market_state"],
-                top_n=50, episode_id=ep["episode_id"],
+                ep["trade_date"],
+                ep["market_state"],
+                top_n=50,
+                episode_id=ep["episode_id"],
             )
         except Exception as e:
             logger.warning("v3 replay %s failed: %s", ep["episode_id"], e)
@@ -121,14 +123,11 @@ class SecurityAnalystV3Replay:
             "v3_top": v3_data,
             "v1_selected": [dict(r) for r in v1_rows],
             "v3_frm_directions": [
-                c.v3_features.frm_direction
-                for c in candidates[:V3_TOP_N]
-                if c.v3_features
+                c.v3_features.frm_direction for c in candidates[:V3_TOP_N] if c.v3_features
             ],
         }
 
-    def _lookup_candidate_data(self, episode_id: str,
-                                codes: list[str]) -> list[dict]:
+    def _lookup_candidate_data(self, episode_id: str, codes: list[str]) -> list[dict]:
         """Look up residual_alpha etc. for v3 candidates.
 
         v3 candidates may or may not be in shadow_candidates (they're
@@ -152,15 +151,17 @@ class SecurityAnalystV3Replay:
             if code in found:
                 result.append(found[code])
             else:
-                result.append({
-                    "stock_code": code,
-                    "residual_alpha": None,
-                    "market_beta": None,
-                    "stock_return_t20": None,
-                    "earnings_revision_direction": None,
-                    "frm_score": None,
-                    "_in_original_pool": False,
-                })
+                result.append(
+                    {
+                        "stock_code": code,
+                        "residual_alpha": None,
+                        "market_beta": None,
+                        "stock_return_t20": None,
+                        "earnings_revision_direction": None,
+                        "frm_score": None,
+                        "_in_original_pool": False,
+                    }
+                )
         return result
 
     def _analyze(self, results: list[dict]) -> dict:
@@ -183,15 +184,13 @@ class SecurityAnalystV3Replay:
         v1_improving_rate = v1_dirs.get("improving", 0) / max(1, v1_total)
         v3_improving_rate = v3_dirs.get("improving", 0) / max(1, v3_total)
 
-        print(f"\n--- FRM Direction (v3.1 target: improving > 85%) ---",
-              flush=True)
+        print("\n--- FRM Direction (v3.1 target: improving > 85%) ---", flush=True)
         print(f"  V1 selected: {dict(v1_dirs)}", flush=True)
         print(f"  V3 top-5:    {dict(v3_dirs)}", flush=True)
         print(f"  V1 improving rate: {v1_improving_rate:.1%}", flush=True)
         print(f"  V3 improving rate: {v3_improving_rate:.1%}", flush=True)
         v3_1_pass = v3_improving_rate > 0.85
-        print(f"  v3.1 GATE: {'PASS ✅' if v3_1_pass else 'FAIL ❌'} "
-              f"(target >85%)", flush=True)
+        print(f"  v3.1 GATE: {'PASS ✅' if v3_1_pass else 'FAIL ❌'} (target >85%)", flush=True)
 
         # Residual alpha comparison (v3.2 target)
         v1_res = []
@@ -212,47 +211,61 @@ class SecurityAnalystV3Replay:
                 else:
                     v3_not_in_pool += 1
 
-        print(f"\n--- Residual Alpha (v3.2 target: > -2%) ---", flush=True)
+        print("\n--- Residual Alpha (v3.2 target: > -2%) ---", flush=True)
 
         def _stats(arr, label):
             if not arr:
                 print(f"  {label}: N=0 (no attribution data)", flush=True)
                 return None
             a = np.array(arr)
-            print(f"  {label}: N={len(a)} mean={np.mean(a):+.4f} "
-                  f"median={np.median(a):+.4f} >0: {np.mean(a>0):.1%}",
-                  flush=True)
-            return {"n": len(a), "mean": float(np.mean(a)),
-                    "median": float(np.median(a)),
-                    "positive_rate": float(np.mean(a > 0))}
+            print(
+                f"  {label}: N={len(a)} mean={np.mean(a):+.4f} "
+                f"median={np.median(a):+.4f} >0: {np.mean(a > 0):.1%}",
+                flush=True,
+            )
+            return {
+                "n": len(a),
+                "mean": float(np.mean(a)),
+                "median": float(np.median(a)),
+                "positive_rate": float(np.mean(a > 0)),
+            }
 
         v1_stats = _stats(v1_res, "V1 selected")
         v3_stats = _stats(v3_res, "V3 top-5 (in original pool)")
         print(f"  V3 candidates in original pool: {v3_in_pool}", flush=True)
-        print(f"  V3 candidates NOT in original pool: {v3_not_in_pool} "
-              f"(no attribution data)", flush=True)
+        print(
+            f"  V3 candidates NOT in original pool: {v3_not_in_pool} (no attribution data)",
+            flush=True,
+        )
 
         v3_2_pass = v3_stats and v3_stats["mean"] > -0.02
         if v3_stats:
-            print(f"  v3.2 GATE: {'PASS ✅' if v3_2_pass else 'FAIL ❌'} "
-                  f"(target >-2%)", flush=True)
+            print(f"  v3.2 GATE: {'PASS ✅' if v3_2_pass else 'FAIL ❌'} (target >-2%)", flush=True)
 
         # Funnel log summary
-        print(f"\n--- Funnel Log Summary ---", flush=True)
+        print("\n--- Funnel Log Summary ---", flush=True)
         funnel_stats = self._funnel_log_summary()
         for line in funnel_stats["lines"]:
             print(f"  {line}", flush=True)
 
         # Verdict
-        verdict = self._compute_verdict(v3_1_pass, v3_2_pass,
-                                         v1_improving_rate, v3_improving_rate,
-                                         v1_stats, v3_stats)
+        verdict = self._compute_verdict(
+            v3_1_pass, v3_2_pass, v1_improving_rate, v3_improving_rate, v1_stats, v3_stats
+        )
 
         # Export report
         report_path = self._export_report(
-            v1_dirs, v3_dirs, v1_improving_rate, v3_improving_rate,
-            v1_stats, v3_stats, v3_in_pool, v3_not_in_pool,
-            funnel_stats, verdict)
+            v1_dirs,
+            v3_dirs,
+            v1_improving_rate,
+            v3_improving_rate,
+            v1_stats,
+            v3_stats,
+            v3_in_pool,
+            v3_not_in_pool,
+            funnel_stats,
+            verdict,
+        )
         print(f"\n=== Report: {report_path} ===", flush=True)
 
         return {"verdict": verdict, "report_path": report_path}
@@ -260,9 +273,7 @@ class SecurityAnalystV3Replay:
     def _funnel_log_summary(self) -> dict:
         """Summarize shadow_funnel_log across all replayed episodes."""
         lines = []
-        total = self.conn.execute(
-            "SELECT COUNT(*) FROM shadow_funnel_log"
-        ).fetchone()[0]
+        total = self.conn.execute("SELECT COUNT(*) FROM shadow_funnel_log").fetchone()[0]
         lines.append(f"Total funnel entries: {total}")
 
         if total == 0:
@@ -284,9 +295,9 @@ class SecurityAnalystV3Replay:
         lines.append(f"  final_pass (all 3 stages): {passed}")
         return {"lines": lines}
 
-    def _compute_verdict(self, v3_1_pass, v3_2_pass,
-                          v1_improving, v3_improving,
-                          v1_stats, v3_stats):
+    def _compute_verdict(
+        self, v3_1_pass, v3_2_pass, v1_improving, v3_improving, v1_stats, v3_stats
+    ):
         gates = {
             "v3_1_frm_improving": {
                 "target": ">85%",
@@ -312,12 +323,21 @@ class SecurityAnalystV3Replay:
             verdict = "V3.1 NOT MET - Stage 1 gate needs adjustment"
         return {"gates": gates, "all_pass": all_pass, "verdict": verdict}
 
-    def _export_report(self, v1_dirs, v3_dirs, v1_improving, v3_improving,
-                       v1_stats, v3_stats, v3_in_pool, v3_not_in_pool,
-                       funnel_stats, verdict) -> str:
+    def _export_report(
+        self,
+        v1_dirs,
+        v3_dirs,
+        v1_improving,
+        v3_improving,
+        v1_stats,
+        v3_stats,
+        v3_in_pool,
+        v3_not_in_pool,
+        funnel_stats,
+        verdict,
+    ) -> str:
         today = date.today().isoformat()
-        path = os.path.join(REPORT_DIR,
-                            f"security_analyst_v3_replay_{today}.md")
+        path = os.path.join(REPORT_DIR, f"security_analyst_v3_replay_{today}.md")
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         lines = []
@@ -333,14 +353,13 @@ class SecurityAnalystV3Replay:
         lines.append(f"V1 selected: {dict(v1_dirs)}")
         lines.append(f"V3 top-5:    {dict(v3_dirs)}")
         lines.append("")
-        lines.append(f"| Metric | V1 | V3 |")
-        lines.append(f"|--------|----|----|")
+        lines.append("| Metric | V1 | V3 |")
+        lines.append("|--------|----|----|")
         lines.append(f"| improving rate | {v1_improving:.1%} | {v3_improving:.1%} |")
         lines.append("")
         g = verdict["gates"].get("v3_1_frm_improving", {})
         mark = "✅" if g.get("passed") else "❌"
-        lines.append(f"**{mark} v3.1 GATE: {g.get('passed')}** "
-                     f"(target {g.get('target')})")
+        lines.append(f"**{mark} v3.1 GATE: {g.get('passed')}** (target {g.get('target')})")
         lines.append("")
         lines.append("## v3.2: Residual Alpha (target: > -2%)")
         lines.append("")
@@ -348,12 +367,12 @@ class SecurityAnalystV3Replay:
         lines.append("|--------|-------------|----------|")
         if v1_stats and v3_stats:
             lines.append(f"| N | {v1_stats['n']} | {v3_stats['n']} |")
-            lines.append(f"| mean | {v1_stats['mean']:+.4f} | "
-                         f"{v3_stats['mean']:+.4f} |")
-            lines.append(f"| median | {v1_stats['median']:+.4f} | "
-                         f"{v3_stats['median']:+.4f} |")
-            lines.append(f"| positive rate | {v1_stats['positive_rate']:.1%} | "
-                         f"{v3_stats['positive_rate']:.1%} |")
+            lines.append(f"| mean | {v1_stats['mean']:+.4f} | {v3_stats['mean']:+.4f} |")
+            lines.append(f"| median | {v1_stats['median']:+.4f} | {v3_stats['median']:+.4f} |")
+            lines.append(
+                f"| positive rate | {v1_stats['positive_rate']:.1%} | "
+                f"{v3_stats['positive_rate']:.1%} |"
+            )
         lines.append("")
         lines.append(f"V3 candidates in original pool (have attribution): {v3_in_pool}")
         lines.append(f"V3 candidates NOT in original pool (no attribution): {v3_not_in_pool}")
@@ -361,8 +380,7 @@ class SecurityAnalystV3Replay:
         g2 = verdict["gates"].get("v3_2_residual_alpha", {})
         if g2:
             mark2 = "✅" if g2.get("passed") else "❌"
-            lines.append(f"**{mark2} v3.2 GATE: {g2.get('passed')}** "
-                         f"(target {g2.get('target')})")
+            lines.append(f"**{mark2} v3.2 GATE: {g2.get('passed')}** (target {g2.get('target')})")
         lines.append("")
         lines.append("## Funnel Log Summary")
         lines.append("")
@@ -374,14 +392,18 @@ class SecurityAnalystV3Replay:
         lines.append("## Interpretation")
         lines.append("")
         if v3_improving > v1_improving:
-            lines.append(f"V3 corrected FRM direction: {v1_improving:.1%} -> "
-                         f"{v3_improving:.1%} improving. The Stage 1 hard gate "
-                         f"(reject deteriorating) successfully filters out "
-                         f"stocks with declining earnings.")
+            lines.append(
+                f"V3 corrected FRM direction: {v1_improving:.1%} -> "
+                f"{v3_improving:.1%} improving. The Stage 1 hard gate "
+                f"(reject deteriorating) successfully filters out "
+                f"stocks with declining earnings."
+            )
         if v3_stats and v1_stats:
             delta = v3_stats["mean"] - v1_stats["mean"]
-            lines.append(f"Residual alpha: V1 {v1_stats['mean']:+.4f} -> "
-                         f"V3 {v3_stats['mean']:+.4f} (delta {delta:+.4f}).")
+            lines.append(
+                f"Residual alpha: V1 {v1_stats['mean']:+.4f} -> "
+                f"V3 {v3_stats['mean']:+.4f} (delta {delta:+.4f})."
+            )
             if v3_stats["mean"] > 0:
                 lines.append("V3 produces POSITIVE true selection alpha!")
             elif v3_stats["mean"] > v1_stats["mean"]:
@@ -397,8 +419,8 @@ class SecurityAnalystV3Replay:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(
-        description="Security Analyst v3 Replay (6-S.13.5)")
+
+    parser = argparse.ArgumentParser(description="Security Analyst v3 Replay (6-S.13.5)")
     parser.add_argument("--episode", type=str, default=None)
     args = parser.parse_args()
 

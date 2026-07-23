@@ -34,8 +34,7 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -54,16 +53,17 @@ class V3CandidateFeatures:
     never read these. Populated by CandidateGenerator (6-S.13.2+) and
     consumed by v3 replay for attribution.
     """
-    recovery_score: Optional[float] = None        # Stage 1 composite 0-100
-    earnings_acceleration: Optional[float] = None  # earnings_yoy_current - previous
-    frm_direction: Optional[str] = None           # improving/stable/deteriorating
-    frm_score: Optional[float] = None             # FRM score 0-100 (reuses 6-S.12.2)
-    relative_strength: Optional[float] = None     # Stage 2: stock_return - sector_return
-    sector_strength: Optional[float] = None       # Stage 2: sector_return - market_return
-    rs_score: Optional[float] = None              # Stage 2 composite 0-100
-    liquidity_pass: Optional[bool] = None         # Stage 1 liquidity gate
-    candidate_stage: Optional[str] = None         # stage1_pass/stage2_pass/stage3_pass/rejected
-    rejection_reason: Optional[str] = None        # LOW_LIQUIDITY/DETERIORATING/WEAK_RS/NO_MISPRICING
+
+    recovery_score: float | None = None  # Stage 1 composite 0-100
+    earnings_acceleration: float | None = None  # earnings_yoy_current - previous
+    frm_direction: str | None = None  # improving/stable/deteriorating
+    frm_score: float | None = None  # FRM score 0-100 (reuses 6-S.12.2)
+    relative_strength: float | None = None  # Stage 2: stock_return - sector_return
+    sector_strength: float | None = None  # Stage 2: sector_return - market_return
+    rs_score: float | None = None  # Stage 2 composite 0-100
+    liquidity_pass: bool | None = None  # Stage 1 liquidity gate
+    candidate_stage: str | None = None  # stage1_pass/stage2_pass/stage3_pass/rejected
+    rejection_reason: str | None = None  # LOW_LIQUIDITY/DETERIORATING/WEAK_RS/NO_MISPRICING
 
 
 @dataclass
@@ -73,35 +73,36 @@ class MispricingObject:
     Not a score. An OBJECT with a causal claim: "the market believes X,
     but reality is Y, therefore the price will correct."
     """
+
     code: str
     trade_date: str
 
     # Layer 1: Market Belief (what the price implies)
-    price_drawdown_12m: float = 0.0      # -0.35 = -35% in 12 months
-    pe_compression: float = 0.0           # PE_now / PE_1y_ago (0.4 = 60% compression)
-    momentum_rank: float = 0.5            # 0 = bottom, 1 = top
-    market_pessimism: float = 0.0         # composite 0-1 (1 = max pessimism)
+    price_drawdown_12m: float = 0.0  # -0.35 = -35% in 12 months
+    pe_compression: float = 0.0  # PE_now / PE_1y_ago (0.4 = 60% compression)
+    momentum_rank: float = 0.5  # 0 = bottom, 1 = top
+    market_pessimism: float = 0.0  # composite 0-1 (1 = max pessimism)
 
     # Layer 2: Business Reality (what fundamentals show)
     roe: float = 0.0
-    roe_stability: float = 0.0            # 1 = stable, 0 = volatile
-    margin_change: float = 0.0            # Δ(gross_margin) positive = improving
-    cashflow_trend: float = 0.0           # cashflow growth direction
-    debt_ratio: float = 0.0               # debt_to_equity
-    business_strength: float = 0.0        # composite 0-1 (1 = max strength)
+    roe_stability: float = 0.0  # 1 = stable, 0 = volatile
+    margin_change: float = 0.0  # Δ(gross_margin) positive = improving
+    cashflow_trend: float = 0.0  # cashflow growth direction
+    debt_ratio: float = 0.0  # debt_to_equity
+    business_strength: float = 0.0  # composite 0-1 (1 = max strength)
 
     # Layer 3: Divergence
-    divergence_score: float = 0.0         # business_strength - market_pessimism
-    divergence_type: str = ""             # "market_overreaction" / "cyclical_misjudgment" / etc
+    divergence_score: float = 0.0  # business_strength - market_pessimism
+    divergence_type: str = ""  # "market_overreaction" / "cyclical_misjudgment" / etc
 
     # Layer 4: Thesis (filled by doctrine, not here)
-    thesis: str = ""                      # "市场将周期性下滑误判为结构性恶化"
-    invalidation: str = ""                # "margin cannot recover within 2 quarters"
-    confidence: float = 0.0               # 0-1
+    thesis: str = ""  # "市场将周期性下滑误判为结构性恶化"
+    invalidation: str = ""  # "margin cannot recover within 2 quarters"
+    confidence: float = 0.0  # 0-1
 
     # Layer 5: v3 Candidate Generator features (6-S.13, advisory only)
     # Frozen modules (KillCriteria, DoctrineUnderwriter) never read these.
-    v3_features: Optional[V3CandidateFeatures] = None
+    v3_features: V3CandidateFeatures | None = None
 
     def is_anomaly(self, threshold: float = 0.15) -> bool:
         """Is this a significant narrative divergence?
@@ -112,9 +113,11 @@ class MispricingObject:
           - business_strength > 0.4 (some strength)
           - divergence_score > threshold (gap between the two)
         """
-        return (self.divergence_score > threshold
-                and self.market_pessimism > 0.4
-                and self.business_strength > 0.4)
+        return (
+            self.divergence_score > threshold
+            and self.market_pessimism > 0.4
+            and self.business_strength > 0.4
+        )
 
     def is_true_mispricing(self) -> bool:
         """Triage: is this a TRUE mispricing or a value trap?
@@ -140,15 +143,11 @@ class MispricingObject:
             return False
 
         # Filter 3: plausible margin change
-        if self.margin_change is not None:
-            if abs(self.margin_change) > 0.50:
-                return False
-
-        # Filter 4: must still pass basic anomaly check
-        if not self.is_anomaly():
+        if self.margin_change is not None and abs(self.margin_change) > 0.50:
             return False
 
-        return True
+        # Filter 4: must still pass basic anomaly check
+        return self.is_anomaly()
 
     def triage_label(self) -> str:
         """Classify anomaly as opportunity, trap, or uncertain.
@@ -203,17 +202,19 @@ class MarketAnomalyDetector:
     investment thesis and confidence.
     """
 
-    def __init__(self, cache_db: str = "data/cache.db",
-                 eval_db: str = "data/evaluation.db"):
+    def __init__(self, cache_db: str = "data/cache.db", eval_db: str = "data/evaluation.db"):
         self.cache_db = cache_db
         self.eval_db = eval_db
         self.local = LocalDataProvider()
         self.akshare = AkshareProvider(db_path=cache_db)
 
-    def scan(self, trade_date: str,
-             universe: list[str] | None = None,
-             top_n: int = 50,
-             triage: bool = True) -> list[MispricingObject]:
+    def scan(
+        self,
+        trade_date: str,
+        universe: list[str] | None = None,
+        top_n: int = 50,
+        triage: bool = True,
+    ) -> list[MispricingObject]:
         """Scan the universe for narrative divergence anomalies.
 
         Args:
@@ -268,11 +269,7 @@ class MarketAnomalyDetector:
         pessimism_pe = min(1.0, max(0, 1 - (pe_compression or 1.0))) if pe_compression else 0.5
         pessimism_momentum = 1.0 - (momentum_rank or 0.5)  # low momentum = pessimistic
 
-        market_pessimism = (
-            0.5 * pessimism_price
-            + 0.3 * pessimism_momentum
-            + 0.2 * pessimism_pe
-        )
+        market_pessimism = 0.5 * pessimism_price + 0.3 * pessimism_momentum + 0.2 * pessimism_pe
 
         # Layer 2: Business Strength (vintage-aware)
         fin = self.akshare.get_financial_dict_vintage(code, trade_date)
@@ -290,7 +287,9 @@ class MarketAnomalyDetector:
         stability = roe_stability or 0.5
         margin = max(0, min(1, 0.5 + (margin_change or 0) * 5))  # +10% margin -> 1.0
         cashflow = max(0, min(1, 0.5 + (cashflow_trend or 0) * 5))
-        debt_health = max(0, min(1, 1.0 - (debt_ratio or 1.0) / 3.0))  # debt/equity 0 -> 1.0, 3.0 -> 0
+        debt_health = max(
+            0, min(1, 1.0 - (debt_ratio or 1.0) / 3.0)
+        )  # debt/equity 0 -> 1.0, 3.0 -> 0
 
         business_strength = (
             0.30 * strength_roe
@@ -346,10 +345,10 @@ class MarketAnomalyDetector:
         finally:
             conn.close()
 
-    def _compute_price_drawdown(self, code: str, trade_date: str,
-                                 months: int = 12) -> float | None:
+    def _compute_price_drawdown(self, code: str, trade_date: str, months: int = 12) -> float | None:
         """12-month price drawdown. Negative = price fell."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=months * 30)).isoformat()
 
         try:
@@ -364,6 +363,7 @@ class MarketAnomalyDetector:
     def _compute_pe_compression(self, code: str, trade_date: str) -> float | None:
         """PE compression ratio: PE_now / PE_1y_ago. <1 = compressed."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=365)).isoformat()
 
         fin_now = self.akshare.get_financial_dict_vintage(code, trade_date)
@@ -403,6 +403,7 @@ class MarketAnomalyDetector:
     def _compute_margin_change(self, code: str, trade_date: str) -> float | None:
         """Change in net margin vs 4 quarters ago."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=365)).isoformat()
 
         fin_now = self.akshare.get_financial_dict_vintage(code, trade_date)
@@ -449,6 +450,7 @@ class MarketAnomalyDetector:
     def _compute_cashflow_trend(self, code: str, trade_date: str) -> float | None:
         """Cashflow trend: net_profit growth direction (proxy for cashflow)."""
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=365)).isoformat()
 
         fin_now = self.akshare.get_financial_dict_vintage(code, trade_date)

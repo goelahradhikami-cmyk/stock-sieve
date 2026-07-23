@@ -47,12 +47,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -69,15 +69,15 @@ REPORT_DIR = "data/reports"
 
 # Bucket thresholds (frozen from prior experiments)
 # FRM: from Exp1 quintile boundaries (improving direction)
-FRM_LOW_MAX = 57.0      # Q1-Q2 boundary ~57
-FRM_HIGH_MIN = 68.0     # Q4-Q5 boundary ~68
+FRM_LOW_MAX = 57.0  # Q1-Q2 boundary ~57
+FRM_HIGH_MIN = 68.0  # Q4-Q5 boundary ~68
 
 # Gap: from v3.3.1 autopsy (recomputed cross-sectionally per decision date)
 # Use terciles of available gap distribution at runtime
 
 # Sustainability: use composite proxy (from v3.4 ablation), terciles at runtime
 
-MIN_N_PER_CELL = 3      # minimum N to report a cell (relaxed for 3D)
+MIN_N_PER_CELL = 3  # minimum N to report a cell (relaxed for 3D)
 
 
 def load_enriched_group_a():
@@ -141,22 +141,24 @@ def load_enriched_group_a():
             if vals:
                 sustain_proxy = float(np.mean(vals))
 
-        enriched.append({
-            "security_id": sid,
-            "trade_date": td,
-            "episode_id": r["episode_id"],
-            "residual_alpha": r["residual_alpha"],
-            "frm_score": r["frm_score"],
-            "frm_direction": r["frm_direction"],
-            "gap_score": gap_score,
-            "sustain_proxy": sustain_proxy,
-            "earnings_acceleration": r["earnings_acceleration"],
-            # Control variables (crowding proxies)
-            "market_cap": mcap_map.get(sid) or mcap_map.get(sid.zfill(6)),
-            "volume_ratio": r["volume_ratio"],       # liquidity/turnover proxy
-            "relative_strength": r["relative_strength"],  # momentum proxy
-            "stock_return_t20": r["stock_return_t20"],
-        })
+        enriched.append(
+            {
+                "security_id": sid,
+                "trade_date": td,
+                "episode_id": r["episode_id"],
+                "residual_alpha": r["residual_alpha"],
+                "frm_score": r["frm_score"],
+                "frm_direction": r["frm_direction"],
+                "gap_score": gap_score,
+                "sustain_proxy": sustain_proxy,
+                "earnings_acceleration": r["earnings_acceleration"],
+                # Control variables (crowding proxies)
+                "market_cap": mcap_map.get(sid) or mcap_map.get(sid.zfill(6)),
+                "volume_ratio": r["volume_ratio"],  # liquidity/turnover proxy
+                "relative_strength": r["relative_strength"],  # momentum proxy
+                "stock_return_t20": r["stock_return_t20"],
+            }
+        )
 
     shadow.close()
     cache.close()
@@ -219,8 +221,18 @@ def step1_3d_cube(enriched):
     # Compute tercile thresholds for gap and sustainability (cross-sectional)
     gap_t1, gap_t2 = _terciles([e["gap_score"] for e in enriched])
     sus_t1, sus_t2 = _terciles([e["sustain_proxy"] for e in enriched])
-    print(f"\n  Gap terciles: L < {gap_t1:.3f}, M < {gap_t2:.3f}, H >= {gap_t2:.3f}" if gap_t1 else "  Gap: insufficient", flush=True)
-    print(f"  Sustain terciles: L < {sus_t1:.3f}, M < {sus_t2:.3f}, H >= {sus_t2:.3f}" if sus_t1 else "  Sustain: insufficient", flush=True)
+    print(
+        f"\n  Gap terciles: L < {gap_t1:.3f}, M < {gap_t2:.3f}, H >= {gap_t2:.3f}"
+        if gap_t1
+        else "  Gap: insufficient",
+        flush=True,
+    )
+    print(
+        f"  Sustain terciles: L < {sus_t1:.3f}, M < {sus_t2:.3f}, H >= {sus_t2:.3f}"
+        if sus_t1
+        else "  Sustain: insufficient",
+        flush=True,
+    )
     print(f"  FRM buckets: L < {FRM_LOW_MAX}, M < {FRM_HIGH_MIN}, H >= {FRM_HIGH_MIN}", flush=True)
 
     # Bucket each row
@@ -242,15 +254,23 @@ def step1_3d_cube(enriched):
     for frm in "LMH":
         for gap in "LMH":
             for sus in "LMH":
-                cell_rows = [e for e in bucketed
-                             if e["frm_b"] == frm and e["gap_b"] == gap and e["sus_b"] == sus]
+                cell_rows = [
+                    e
+                    for e in bucketed
+                    if e["frm_b"] == frm and e["gap_b"] == gap and e["sus_b"] == sus
+                ]
                 key = f"{frm}{gap}{sus}"
                 cube[key] = _stats(cell_rows, key)
 
     # Print cube as flat table sorted by alpha
-    print(f"\n  {'cell':6s} {'frm':4s} {'gap':4s} {'sus':4s} {'n':>4} {'alpha':>8} {'positive':>9}", flush=True)
-    print(f"  {'-'*45}", flush=True)
-    sorted_cells = sorted(cube.items(), key=lambda x: -(x[1]["alpha_pct"] if x[1]["n"] > 0 else -999))
+    print(
+        f"\n  {'cell':6s} {'frm':4s} {'gap':4s} {'sus':4s} {'n':>4} {'alpha':>8} {'positive':>9}",
+        flush=True,
+    )
+    print(f"  {'-' * 45}", flush=True)
+    sorted_cells = sorted(
+        cube.items(), key=lambda x: -(x[1]["alpha_pct"] if x[1]["n"] > 0 else -999)
+    )
     for key, s in sorted_cells:
         if s["n"] > 0:
             frm, gap, sus = key[0], key[1], key[2]
@@ -259,15 +279,21 @@ def step1_3d_cube(enriched):
             sus_name = {"L": "Low", "M": "Mid", "H": "High"}[sus]
             marker = " <-- ALPHA ISLAND" if key == "MMM" else ""
             marker = " <-- DANGER" if key == "HHH" and s["n"] > 0 else marker
-            print(f"  {key:6s} {frm_name:4s} {gap_name:4s} {sus_name:4s} "
-                  f"{s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%{marker}", flush=True)
+            print(
+                f"  {key:6s} {frm_name:4s} {gap_name:4s} {sus_name:4s} "
+                f"{s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%{marker}",
+                flush=True,
+            )
 
     # H3-1 test: is MMM the Alpha Island?
     mmm = cube.get("MMM", {"n": 0, "alpha_pct": None})
-    print(f"\n  H3-1 Alpha Island test (Middle-Middle-Middle):", flush=True)
+    print("\n  H3-1 Alpha Island test (Middle-Middle-Middle):", flush=True)
     if mmm["n"] >= MIN_N_PER_CELL:
-        print(f"    MMM: N={mmm['n']}, alpha={mmm['alpha_pct']:+.2f}%, "
-              f"positive={mmm['positive_rate_pct']:.1f}%", flush=True)
+        print(
+            f"    MMM: N={mmm['n']}, alpha={mmm['alpha_pct']:+.2f}%, "
+            f"positive={mmm['positive_rate_pct']:.1f}%",
+            flush=True,
+        )
         # Compare to overall mean
         all_alpha = np.mean([e["residual_alpha"] for e in bucketed]) * 100
         print(f"    Overall bucketed mean: {all_alpha:+.2f}%", flush=True)
@@ -286,7 +312,10 @@ def step2_extreme_danger(bucketed):
 
     # Define key comparisons
     comparisons = [
-        ("MMM (all middle)", lambda e: e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M"),
+        (
+            "MMM (all middle)",
+            lambda e: e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M",
+        ),
         ("HHH (all high)", lambda e: e["frm_b"] == "H" and e["gap_b"] == "H" and e["sus_b"] == "H"),
         ("LLL (all low)", lambda e: e["frm_b"] == "L" and e["gap_b"] == "L" and e["sus_b"] == "L"),
         ("High FRM + High Gap", lambda e: e["frm_b"] == "H" and e["gap_b"] == "H"),
@@ -294,19 +323,28 @@ def step2_extreme_danger(bucketed):
         ("High Gap + High Sustain", lambda e: e["gap_b"] == "H" and e["sus_b"] == "H"),
         ("Mid FRM + Mid Gap", lambda e: e["frm_b"] == "M" and e["gap_b"] == "M"),
         ("Mid FRM + Mid Sustain", lambda e: e["frm_b"] == "M" and e["sus_b"] == "M"),
-        ("Any 2+ extremes (H or L)", lambda e: sum(1 for b in [e["frm_b"], e["gap_b"], e["sus_b"]] if b in "HL") >= 2),
-        ("Any 2+ middle (M)", lambda e: sum(1 for b in [e["frm_b"], e["gap_b"], e["sus_b"]] if b == "M") >= 2),
+        (
+            "Any 2+ extremes (H or L)",
+            lambda e: sum(1 for b in [e["frm_b"], e["gap_b"], e["sus_b"]] if b in "HL") >= 2,
+        ),
+        (
+            "Any 2+ middle (M)",
+            lambda e: sum(1 for b in [e["frm_b"], e["gap_b"], e["sus_b"]] if b == "M") >= 2,
+        ),
     ]
 
     results = {}
     print(f"\n  {'combination':30s} {'n':>4} {'alpha':>8} {'positive':>9}", flush=True)
-    print(f"  {'-'*55}", flush=True)
+    print(f"  {'-' * 55}", flush=True)
     for label, pred in comparisons:
         sub = [e for e in bucketed if pred(e)]
         s = _stats(sub, label)
         results[label] = s
         if s["n"] > 0:
-            print(f"  {label:30s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%", flush=True)
+            print(
+                f"  {label:30s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
         else:
             print(f"  {label:30s}    0      N/A      N/A", flush=True)
 
@@ -342,10 +380,18 @@ def step3_crowding_control(bucketed):
             continue
 
         t1, t2 = _terciles(values)
-        print(f"    terciles: L < {t1:.3f}, M < {t2:.3f}, H >= {t2:.3f}" if t1 else "    insufficient", flush=True)
+        print(
+            f"    terciles: L < {t1:.3f}, M < {t2:.3f}, H >= {t2:.3f}"
+            if t1
+            else "    insufficient",
+            flush=True,
+        )
 
         # For each control tercile, compare MMM vs non-MMM
-        print(f"    {'tercile':10s} {'mmm_n':>6} {'mmm_alpha':>10} {'non_n':>6} {'non_alpha':>10} {'delta':>8}", flush=True)
+        print(
+            f"    {'tercile':10s} {'mmm_n':>6} {'mmm_alpha':>10} {'non_n':>6} {'non_alpha':>10} {'delta':>8}",
+            flush=True,
+        )
         for tname, tlo, thi in [("Low", None, t1), ("Mid", t1, t2), ("High", t2, None)]:
             if t1 is None:
                 continue
@@ -354,49 +400,69 @@ def step3_crowding_control(bucketed):
             elif thi is None:
                 sub = [e for e in bucketed if e.get(ctrl_key) is not None and e[ctrl_key] >= t2]
             else:
-                sub = [e for e in bucketed if e.get(ctrl_key) is not None and t1 <= e[ctrl_key] < t2]
+                sub = [
+                    e for e in bucketed if e.get(ctrl_key) is not None and t1 <= e[ctrl_key] < t2
+                ]
 
-            mmm_sub = [e for e in sub if e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M"]
-            non_sub = [e for e in sub if not (e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M")]
+            mmm_sub = [
+                e for e in sub if e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M"
+            ]
+            non_sub = [
+                e
+                for e in sub
+                if not (e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M")
+            ]
 
             mmm_s = _stats(mmm_sub)
             non_s = _stats(non_sub)
-            delta = (mmm_s["alpha_pct"] - non_s["alpha_pct"]) if mmm_s["n"] > 0 and non_s["n"] > 0 else None
-            print(f"    {tname:10s} {mmm_s['n']:6d} "
-                  f"{(mmm_s['alpha_pct'] if mmm_s['n']>0 else 0):+9.2f}% "
-                  f"{non_s['n']:6d} {(non_s['alpha_pct'] if non_s['n']>0 else 0):+9.2f}% "
-                  f"{(delta if delta is not None else 0):+7.2f}pp", flush=True)
+            delta = (
+                (mmm_s["alpha_pct"] - non_s["alpha_pct"])
+                if mmm_s["n"] > 0 and non_s["n"] > 0
+                else None
+            )
+            print(
+                f"    {tname:10s} {mmm_s['n']:6d} "
+                f"{(mmm_s['alpha_pct'] if mmm_s['n'] > 0 else 0):+9.2f}% "
+                f"{non_s['n']:6d} {(non_s['alpha_pct'] if non_s['n'] > 0 else 0):+9.2f}% "
+                f"{(delta if delta is not None else 0):+7.2f}pp",
+                flush=True,
+            )
 
         results[ctrl_label] = {"t1": t1, "t2": t2}
 
     # Overall: regression of alpha on MMM dummy + controls
-    print(f"\n  --- Regression: alpha ~ MMM + controls ---", flush=True)
+    print("\n  --- Regression: alpha ~ MMM + controls ---", flush=True)
     reg_rows = []
     for e in bucketed:
         if all(e.get(k) is not None for k in ["market_cap", "volume_ratio", "relative_strength"]):
             is_mmm = 1.0 if (e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M") else 0.0
-            reg_rows.append({
-                "alpha": e["residual_alpha"] * 100,
-                "mmm": is_mmm,
-                "mcap": e["market_cap"],
-                "vol_ratio": e["volume_ratio"],
-                "rs": e["relative_strength"],
-            })
+            reg_rows.append(
+                {
+                    "alpha": e["residual_alpha"] * 100,
+                    "mmm": is_mmm,
+                    "mcap": e["market_cap"],
+                    "vol_ratio": e["volume_ratio"],
+                    "rs": e["relative_strength"],
+                }
+            )
 
     if len(reg_rows) >= 20:
         y = np.array([r["alpha"] for r in reg_rows])
+
         # Normalize controls
         def norm(v):
             v = np.array(v, dtype=float)
             return (v - v.min()) / (v.max() - v.min() + 1e-9)
 
-        X = np.column_stack([
-            np.ones(len(y)),
-            np.array([r["mmm"] for r in reg_rows]),
-            norm([r["mcap"] for r in reg_rows]),
-            norm([r["vol_ratio"] for r in reg_rows]),
-            norm([r["rs"] for r in reg_rows]),
-        ])
+        X = np.column_stack(
+            [
+                np.ones(len(y)),
+                np.array([r["mmm"] for r in reg_rows]),
+                norm([r["mcap"] for r in reg_rows]),
+                norm([r["vol_ratio"] for r in reg_rows]),
+                norm([r["rs"] for r in reg_rows]),
+            ]
+        )
         try:
             beta, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
             y_pred = X @ beta
@@ -418,14 +484,22 @@ def step3_crowding_control(bucketed):
             print(f"  {'market_cap(norm)':25s} {beta[2]:8.3f} {t_stats[2]:6.2f}", flush=True)
             print(f"  {'volume_ratio(norm)':25s} {beta[3]:8.3f} {t_stats[3]:6.2f}", flush=True)
             print(f"  {'relative_strength(norm)':25s} {beta[4]:8.3f} {t_stats[4]:6.2f}", flush=True)
-            print(f"\n  MMM coefficient after controls: {beta[1]:+.3f}pp (t={t_stats[1]:.2f})", flush=True)
+            print(
+                f"\n  MMM coefficient after controls: {beta[1]:+.3f}pp (t={t_stats[1]:.2f})",
+                flush=True,
+            )
             if beta[1] > 0:
-                print(f"  -> MMM alpha SURVIVES crowding controls (H3 not an artifact)", flush=True)
+                print("  -> MMM alpha SURVIVES crowding controls (H3 not an artifact)", flush=True)
             else:
-                print(f"  -> MMM alpha does NOT survive controls (may be crowding artifact)", flush=True)
+                print(
+                    "  -> MMM alpha does NOT survive controls (may be crowding artifact)",
+                    flush=True,
+                )
             results["regression"] = {
-                "n": n, "r2": float(r2),
-                "mmm_beta": float(beta[1]), "mmm_t": float(t_stats[1]),
+                "n": n,
+                "r2": float(r2),
+                "mmm_beta": float(beta[1]),
+                "mmm_t": float(t_stats[1]),
                 "survives": bool(beta[1] > 0),
             }
         except Exception as ex:
@@ -453,10 +527,14 @@ def step4_time_split(bucketed):
         s = _stats(sub)
         mmm_sub = [e for e in sub if e["frm_b"] == "M" and e["gap_b"] == "M" and e["sus_b"] == "M"]
         mmm_s = _stats(mmm_sub)
-        print(f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% "
-              f"{mmm_s['n']:6d} {(mmm_s['alpha_pct'] if mmm_s['n']>0 else 0):+9.2f}%", flush=True)
+        print(
+            f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% "
+            f"{mmm_s['n']:6d} {(mmm_s['alpha_pct'] if mmm_s['n'] > 0 else 0):+9.2f}%",
+            flush=True,
+        )
         results[y] = {
-            "n": s["n"], "alpha_pct": s["alpha_pct"],
+            "n": s["n"],
+            "alpha_pct": s["alpha_pct"],
             "mmm_n": mmm_s["n"],
             "mmm_alpha_pct": mmm_s["alpha_pct"] if mmm_s["n"] > 0 else None,
         }
@@ -475,7 +553,13 @@ def run_exp8():
     has_gap = sum(1 for e in enriched if e["gap_score"] is not None)
     has_sus = sum(1 for e in enriched if e["sustain_proxy"] is not None)
     has_frm = sum(1 for e in enriched if e["frm_score"] is not None)
-    has_all = sum(1 for e in enriched if e["gap_score"] is not None and e["sustain_proxy"] is not None and e["frm_score"] is not None)
+    has_all = sum(
+        1
+        for e in enriched
+        if e["gap_score"] is not None
+        and e["sustain_proxy"] is not None
+        and e["frm_score"] is not None
+    )
     print(f"  with gap: {has_gap}, with sustainability: {has_sus}, with FRM: {has_frm}", flush=True)
     print(f"  with ALL THREE: {has_all}", flush=True)
 
@@ -493,7 +577,9 @@ def run_exp8():
     hhh = cube.get("HHH", {"n": 0, "alpha_pct": None})
 
     h3_1_pass = mmm["n"] >= MIN_N_PER_CELL and mmm["alpha_pct"] is not None and mmm["alpha_pct"] > 0
-    h3_2_pass = hhh["n"] == 0 or (hhh["alpha_pct"] is not None and hhh["alpha_pct"] < mmm["alpha_pct"])
+    h3_2_pass = hhh["n"] == 0 or (
+        hhh["alpha_pct"] is not None and hhh["alpha_pct"] < mmm["alpha_pct"]
+    )
 
     reg = control_results.get("regression", {})
     control_pass = reg.get("survives", False) if reg else False
@@ -508,26 +594,38 @@ def run_exp8():
     if mmm["n"] > 0:
         print(f"    MMM: N={mmm['n']}, alpha={mmm['alpha_pct']:+.2f}%", flush=True)
     print(f"  H3-2 Extreme danger (HHH < MMM): {'PASS' if h3_2_pass else 'FAIL'}", flush=True)
-    print(f"  Crowding control (MMM survives): {'PASS' if control_pass else 'FAIL/INCONCLUSIVE'}", flush=True)
+    print(
+        f"  Crowding control (MMM survives): {'PASS' if control_pass else 'FAIL/INCONCLUSIVE'}",
+        flush=True,
+    )
     if reg:
-        print(f"    MMM beta after controls: {reg['mmm_beta']:+.3f}pp (t={reg['mmm_t']:.2f})", flush=True)
+        print(
+            f"    MMM beta after controls: {reg['mmm_beta']:+.3f}pp (t={reg['mmm_t']:.2f})",
+            flush=True,
+        )
     print(f"  Time stability: {'PASS' if time_pass else 'INCONCLUSIVE'}", flush=True)
 
     if h3_1_pass and control_pass:
         verdict = "H3 VALIDATED - Uncertainty Asymmetry is the alpha source"
-        recommendation = ("PARADIGM SHIFT: Security Analyst transforms from Recovery Quality "
-                          "Detector to Uncertainty Asymmetry Detector. Build v3.6 around "
-                          "the Middle-Uncertainty Zone.")
+        recommendation = (
+            "PARADIGM SHIFT: Security Analyst transforms from Recovery Quality "
+            "Detector to Uncertainty Asymmetry Detector. Build v3.6 around "
+            "the Middle-Uncertainty Zone."
+        )
     elif h3_1_pass and not control_pass:
         verdict = "H3 PARTIALLY VALIDATED - Alpha Island exists but may be crowding artifact"
-        recommendation = ("Do NOT paradigm-shift yet. The middle-zone alpha may come from "
-                          "avoiding crowded trades, not uncertainty premium. Need larger N "
-                          "and more controls before operationalizing.")
+        recommendation = (
+            "Do NOT paradigm-shift yet. The middle-zone alpha may come from "
+            "avoiding crowded trades, not uncertainty premium. Need larger N "
+            "and more controls before operationalizing."
+        )
     elif not h3_1_pass:
         verdict = "H3 NOT VALIDATED - No Alpha Island in the middle"
-        recommendation = ("H3 rejected at the 3D level. The four single-signal inverted-U "
-                          "patterns do not converge into a unified zone. Re-examine whether "
-                          "the inverted-U is signal-specific rather than universal.")
+        recommendation = (
+            "H3 rejected at the 3D level. The four single-signal inverted-U "
+            "patterns do not converge into a unified zone. Re-examine whether "
+            "the inverted-U is signal-specific rather than universal."
+        )
     else:
         verdict = "INCONCLUSIVE - mixed signals"
         recommendation = "Keep FRM as frozen black-box. Extend data before re-testing."
@@ -543,16 +641,24 @@ def run_exp8():
         "date": str(date.today()),
         "n_total": len(enriched),
         "n_with_all_three": has_all,
-        "thresholds": {"frm_low_max": FRM_LOW_MAX, "frm_high_min": FRM_HIGH_MIN,
-                       "gap_t1": thresholds[0], "gap_t2": thresholds[1],
-                       "sus_t1": thresholds[2], "sus_t2": thresholds[3]},
+        "thresholds": {
+            "frm_low_max": FRM_LOW_MAX,
+            "frm_high_min": FRM_HIGH_MIN,
+            "gap_t1": thresholds[0],
+            "gap_t2": thresholds[1],
+            "sus_t1": thresholds[2],
+            "sus_t2": thresholds[3],
+        },
         "cube": {k: v for k, v in cube.items()},
         "extreme_combinations": extreme_results,
         "crowding_control": control_results,
         "time_split": time_results,
-        "h3_1_pass": h3_1_pass, "h3_2_pass": h3_2_pass,
-        "control_pass": control_pass, "time_pass": time_pass,
-        "verdict": verdict, "recommendation": recommendation,
+        "h3_1_pass": h3_1_pass,
+        "h3_2_pass": h3_2_pass,
+        "control_pass": control_pass,
+        "time_pass": time_pass,
+        "verdict": verdict,
+        "recommendation": recommendation,
     }
     report_path = os.path.join(REPORT_DIR, f"v3_5_exp8_uncertainty_cube_{date.today()}.json")
     with open(report_path, "w", encoding="utf-8") as f:

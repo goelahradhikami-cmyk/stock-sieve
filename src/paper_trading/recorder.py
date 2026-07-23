@@ -11,14 +11,12 @@ new paper trading episodes. It does NOT modify historical data.
 
 from __future__ import annotations
 
-import sqlite3
 import json
-from datetime import date
+import sqlite3
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
 SHADOW_DB = "data/shadow_trading.db"
 
 
@@ -31,7 +29,9 @@ def ensure_columns():
         cols = [r[1] for r in cur.fetchall()]
 
         if "execution_mode" not in cols:
-            conn.execute("ALTER TABLE shadow_episode ADD COLUMN execution_mode TEXT DEFAULT 'historical'")
+            conn.execute(
+                "ALTER TABLE shadow_episode ADD COLUMN execution_mode TEXT DEFAULT 'historical'"
+            )
             logger.info("recorder: added execution_mode column")
 
         if "decision_fingerprint" not in cols:
@@ -85,10 +85,25 @@ def record_episode(
                 breadth, recovery_prob, reason_codes, brain_version, status,
                 execution_mode, decision_fingerprint)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (episode_id, trade_date, market_state, confidence, confidence_band,
-             decision, position_target, vol_20d, vol_change, trend_ma60,
-             breadth, recovery_prob, json.dumps(reason_codes), brain_version,
-             "pending", "paper_live", decision_fingerprint_json),
+            (
+                episode_id,
+                trade_date,
+                market_state,
+                confidence,
+                confidence_band,
+                decision,
+                position_target,
+                vol_20d,
+                vol_change,
+                trend_ma60,
+                breadth,
+                recovery_prob,
+                json.dumps(reason_codes),
+                brain_version,
+                "pending",
+                "paper_live",
+                decision_fingerprint_json,
+            ),
         )
         conn.commit()
         logger.info("recorder: recorded episode %s (%s %s)", episode_id, decision, market_state)

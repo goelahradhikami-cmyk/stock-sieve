@@ -27,8 +27,8 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
+import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -86,26 +86,37 @@ def evaluate_all():
                 min_positions_pass, max_concentration_pass, max_sector_pass,
                 diversification_pass, failure_reason)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (ep["episode_id"], result["candidate_count"],
-             result["selected_count"], result["top1_weight"],
-             result["herfindahl_index"], result["sector_count"],
-             result["max_sector_weight"], result["min_positions_pass"],
-             result["max_concentration_pass"], result["max_sector_pass"],
-             result["diversification_pass"], result["failure_reason"]),
+            (
+                ep["episode_id"],
+                result["candidate_count"],
+                result["selected_count"],
+                result["top1_weight"],
+                result["herfindahl_index"],
+                result["sector_count"],
+                result["max_sector_weight"],
+                result["min_positions_pass"],
+                result["max_concentration_pass"],
+                result["max_sector_pass"],
+                result["diversification_pass"],
+                result["failure_reason"],
+            ),
         )
 
     conn.commit()
 
-    print(f"\n=== Portfolio Construction Summary ===", flush=True)
+    print("\n=== Portfolio Construction Summary ===", flush=True)
     print(f"  Total BUY episodes:        {stats['total']}", flush=True)
-    print(f"  Diversification PASS:      {stats['pass']} "
-          f"({stats['pass']/max(1,stats['total']):.1%})", flush=True)
+    print(
+        f"  Diversification PASS:      {stats['pass']} "
+        f"({stats['pass'] / max(1, stats['total']):.1%})",
+        flush=True,
+    )
     print(f"  FAIL_MIN_POSITIONS (<5):   {stats['fail_min_positions']}", flush=True)
     print(f"  FAIL_CONCENTRATION (>25%): {stats['fail_concentration']}", flush=True)
     print(f"  FAIL_SECTOR (>40%):        {stats['fail_sector']}", flush=True)
 
     # Show the known failure case
-    print(f"\n=== Known failure: 2025-08-13 ===", flush=True)
+    print("\n=== Known failure: 2025-08-13 ===", flush=True)
     row = conn.execute(
         "SELECT * FROM shadow_portfolio_construction WHERE episode_id='E20250813'"
     ).fetchone()
@@ -116,7 +127,7 @@ def evaluate_all():
         print(f"  failure_reason: {row['failure_reason']}", flush=True)
 
     # Distribution of selected_count
-    print(f"\n=== selected_count distribution ===", flush=True)
+    print("\n=== selected_count distribution ===", flush=True)
     for r in conn.execute(
         "SELECT selected_count, COUNT(*) c FROM shadow_portfolio_construction "
         "GROUP BY selected_count ORDER BY selected_count"
@@ -127,12 +138,12 @@ def evaluate_all():
     cache.close()
 
 
-def _evaluate_one(conn: sqlite3.Connection, cache: sqlite3.Connection,
-                  ep: sqlite3.Row) -> dict | None:
+def _evaluate_one(
+    conn: sqlite3.Connection, cache: sqlite3.Connection, ep: sqlite3.Row
+) -> dict | None:
     """Evaluate portfolio construction for one episode."""
     candidates = conn.execute(
-        "SELECT stock_code, selected, sector_code FROM shadow_candidates "
-        "WHERE episode_id = ?",
+        "SELECT stock_code, selected, sector_code FROM shadow_candidates WHERE episode_id = ?",
         (ep["episode_id"],),
     ).fetchall()
 
@@ -146,7 +157,7 @@ def _evaluate_one(conn: sqlite3.Connection, cache: sqlite3.Connection,
     # Equal-weight assumption
     weight = 1.0 / selected_count
     top1_weight = weight  # equal-weight: all same
-    herfindahl = selected_count * (weight ** 2)
+    herfindahl = selected_count * (weight**2)
 
     # Sector concentration
     sector_weights = defaultdict(float)
@@ -161,8 +172,9 @@ def _evaluate_one(conn: sqlite3.Connection, cache: sqlite3.Connection,
     min_positions_pass = 1 if selected_count >= MIN_POSITIONS else 0
     max_concentration_pass = 1 if top1_weight <= MAX_SINGLE_WEIGHT else 0
     max_sector_pass = 1 if max_sector_weight <= MAX_SECTOR_WEIGHT else 0
-    diversification_pass = 1 if (min_positions_pass and max_concentration_pass
-                                  and max_sector_pass) else 0
+    diversification_pass = (
+        1 if (min_positions_pass and max_concentration_pass and max_sector_pass) else 0
+    )
 
     # Failure reason
     reasons = []

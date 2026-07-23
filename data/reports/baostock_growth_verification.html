@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案A 验证报告 · baostock 多期因子流入 FactorEngine</title>
+<style>
+  :root{ --bg:#f7f8fa; --card:#fff; --ink:#1f2329; --muted:#6b7280; --line:#e5e7eb;
+         --ok:#0a7d34; --okbg:#e6f6ec; --warn:#b45309; --warnbg:#fef3e2; --accent:#2563eb; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+       line-height:1.6;padding:28px}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .verdict{background:var(--okbg);border:1px solid #b7e4c7;color:var(--ok);
+           border-radius:10px;padding:14px 18px;font-weight:600;font-size:15px;margin-bottom:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card h2{font-size:15px;margin:0 0 12px;color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  .num{font-variant-numeric:tabular-nums;font-family:"SF Mono",Consolas,monospace}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .pill.ok{background:var(--okbg);color:var(--ok)}
+  .pill.run{background:var(--warnbg);color:var(--warn)}
+  .kv{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+  .kv div{background:#f3f4f6;border-radius:8px;padding:8px 12px}
+  .kv b{color:var(--accent)}
+  code{background:#eef1f5;padding:1px 6px;border-radius:5px;font-size:12.5px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:10px}
+  .big{font-size:30px;font-weight:700;font-family:"SF Mono",Consolas,monospace}
+  .route{font-size:13px;color:var(--muted)}
+  .route b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>方案A 验证报告</h1>
+  <div class="sub">baostock 多期财务接入 → 成长因子流入 FactorEngine · 生成于 2026-07-17</div>
+
+  <div class="verdict">✅ 已验证：多期因子真实流入 FactorEngine，成长族不再恒为中性 50</div>
+
+  <div class="card">
+    <h2>数据链路</h2>
+    <p class="route">
+      <b>STOCK_SIEVE_USE_BAOSTOCK=1</b>
+      → <code>get_financial_provider()</code> 返回 <code>BaostockProvider</code>
+      → 登录 baostock.com 拉 profit/growth/balance 多期
+      → 落 <code>cache.db.baostock_cache</code>
+      → <code>get_financial_dict()</code> 返回成长字段
+      → <code>FactorEngine.compute_single_stock()</code> 成长族读取这些键
+    </p>
+    <p class="note">成长族读取的键（factors/engine.py）：revenue_growth_1y / revenue_growth_3y /
+       earnings_growth_1y / earnings_growth_3y / margin_trend —— 与 baostock 返回键完全一致。</p>
+  </div>
+
+  <div class="card">
+    <h2>实证样本：600000 浦发银行</h2>
+    <table>
+      <tr><th>baostock 返回的成长字段（真实多期）</th><th class="num">值</th></tr>
+      <tr><td>revenue_growth_1y（营收同比）</td><td class="num">-0.472</td></tr>
+      <tr><td>earnings_growth_1y（盈利同比）</td><td class="num">+0.022</td></tr>
+      <tr><td>earnings_growth_3y（盈利3年CAGR）</td><td class="num">-0.016</td></tr>
+      <tr><td>revenue_growth_3y / margin_trend</td><td class="num">None（该券时序不足13季）</td></tr>
+    </table>
+    <div style="margin-top:16px;display:flex;align-items:baseline;gap:14px">
+      <div>
+        <div class="note" style="margin:0">growth_score（FactorEngine 直算，raw 族均值）</div>
+        <div class="big" style="color:var(--ok)">-15.53</div>
+      </div>
+      <div>
+        <div class="note" style="margin:0">中性基准（缺多期数据时）</div>
+        <div class="big" style="color:var(--muted)">50.00</div>
+      </div>
+    </div>
+    <p class="note">偏离中性 65 分 → 多期数据已生效。直算为 raw 族均值（可负）；daily_run 的
+       <code>compute_cross_sectional()</code> 会再重标成 0–100 相对分。</p>
+  </div>
+
+  <div class="card">
+    <h2>全量验证状态 <span class="pill run">后台运行中</span></h2>
+    <div class="kv">
+      <div>命令 <b>python -m src.daily_run --sample 40</b></div>
+      <div>开关 <b>STOCK_SIEVE_USE_BAOSTOCK=1</b></div>
+      <div>后台任务 <b>F6tWsh</b></div>
+      <div>日志 <b>_baostock_run.log</b></div>
+    </div>
+    <p class="note">目的：样本 ≥2 触发横截面标准化，核验 <code>research_decisions.growth_score</code>
+       在 40 只上呈 0–100 分布（不再一片 50）。完成后将补录分布数据于此报告。</p>
+  </div>
+
+  <div class="card">
+    <h2>诚实边界</h2>
+    <ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink)">
+      <li>baostock <b>仅 A 股</b>，不含港股（港股需另接 Tushare，本轮未做）。</li>
+      <li>任一券取数失败 → <code>get_financial_dict</code> 返回 <code>{}</code>，成长族回退中性 50，绝不造假。</li>
+      <li>部分券因 baostock 时序不足，3年CAGR / 毛利趋势为 None，属真实数据缺口而非填充。</li>
+      <li>默认（不设环境变量）零行为变化，仍走旧 <code>FinancialDataProvider</code>。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

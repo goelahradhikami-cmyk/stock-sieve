@@ -25,10 +25,9 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
+import sys
 from datetime import date
-from collections import defaultdict
 
 import numpy as np
 
@@ -68,21 +67,24 @@ def run_validation():
     enriched = []
     for i, r in enumerate(rows):
         score = engine.compute(r["security_id"], r["trade_date"])
-        enriched.append({
-            "row": r,
-            "gap_score": score.gap_score,
-            "gap_percentile": score.gap_percentile,
-            "ea": score.earnings_acceleration,
-            "pr": score.price_reaction,
-            "frm_direction": score.frm_direction or (r["frm_direction"] if "frm_direction" in r.keys() else None),
-            "residual_alpha": r["residual_alpha"],
-            "market_beta": r["market_beta"],
-            "sector_beta": r["sector_beta"],
-            "rs_vs_sector": r["relative_strength"],
-            "frm_score": r["frm_score"],
-        })
+        enriched.append(
+            {
+                "row": r,
+                "gap_score": score.gap_score,
+                "gap_percentile": score.gap_percentile,
+                "ea": score.earnings_acceleration,
+                "pr": score.price_reaction,
+                "frm_direction": score.frm_direction
+                or (r["frm_direction"] if "frm_direction" in r else None),
+                "residual_alpha": r["residual_alpha"],
+                "market_beta": r["market_beta"],
+                "sector_beta": r["sector_beta"],
+                "rs_vs_sector": r["relative_strength"],
+                "frm_score": r["frm_score"],
+            }
+        )
         if (i + 1) % 50 == 0:
-            print(f"  ... {i+1}/{len(rows)}", flush=True)
+            print(f"  ... {i + 1}/{len(rows)}", flush=True)
 
     # Filter to those with gap_score
     valid = [e for e in enriched if e["gap_score"] is not None]
@@ -116,14 +118,17 @@ def _print_stats(label, s):
     if s["n"] == 0:
         print(f"  {label}: N=0", flush=True)
     else:
-        print(f"  {label}: N={s['n']} mean={s['mean']:+.4f} "
-              f"median={s['median']:+.4f} >0: {s['positive_rate']:.1%}",
-              flush=True)
+        print(
+            f"  {label}: N={s['n']} mean={s['mean']:+.4f} "
+            f"median={s['median']:+.4f} >0: {s['positive_rate']:.1%}",
+            flush=True,
+        )
 
 
 # ------------------------------------------------------------------
 # Experiment 1: Gap Decile Test
 # ------------------------------------------------------------------
+
 
 def _exp1_gap_decile(valid):
     """Sort by gap_score into 10 deciles, compare D10 vs D1."""
@@ -145,37 +150,44 @@ def _exp1_gap_decile(valid):
         ra_vals = [e["residual_alpha"] for e in subset]
         s = _stats(ra_vals)
         gap_vals = [e["gap_score"] for e in subset]
-        deciles[f"D{d+1}"] = {
+        deciles[f"D{d + 1}"] = {
             "n": s["n"],
             "gap_range": [min(gap_vals), max(gap_vals)],
             "residual_mean": s["mean"],
             "residual_median": s["median"],
             "positive_rate": s["positive_rate"],
         }
-        _print_stats(
-            f"D{d+1} (gap {min(gap_vals):+.3f} to {max(gap_vals):+.3f})", s)
+        _print_stats(f"D{d + 1} (gap {min(gap_vals):+.3f} to {max(gap_vals):+.3f})", s)
 
     d1 = deciles["D1"]
     d10 = deciles["D10"]
-    print(f"\n  KEY TEST: D1 (lowest gap) vs D10 (highest gap):", flush=True)
-    print(f"    D1 residual: {d1['residual_mean']:+.4f} "
-          f"(positive {d1['positive_rate']:.1%})", flush=True)
-    print(f"    D10 residual: {d10['residual_mean']:+.4f} "
-          f"(positive {d10['positive_rate']:.1%})", flush=True)
+    print("\n  KEY TEST: D1 (lowest gap) vs D10 (highest gap):", flush=True)
+    print(
+        f"    D1 residual: {d1['residual_mean']:+.4f} (positive {d1['positive_rate']:.1%})",
+        flush=True,
+    )
+    print(
+        f"    D10 residual: {d10['residual_mean']:+.4f} (positive {d10['positive_rate']:.1%})",
+        flush=True,
+    )
 
-    passed = (d10["residual_mean"] is not None
-              and d1["residual_mean"] is not None
-              and d10["residual_mean"] > d1["residual_mean"])
+    passed = (
+        d10["residual_mean"] is not None
+        and d1["residual_mean"] is not None
+        and d10["residual_mean"] > d1["residual_mean"]
+    )
     mark = "✅" if passed else "❌"
-    print(f"    {mark} Gate 1 (D10 > D1): "
-          f"{'PASS' if passed else 'FAIL'}", flush=True)
+    print(f"    {mark} Gate 1 (D10 > D1): {'PASS' if passed else 'FAIL'}", flush=True)
 
     # Also check monotonicity
-    means = [deciles[f"D{d+1}"]["residual_mean"] for d in range(10)
-             if deciles[f"D{d+1}"]["residual_mean"] is not None]
+    means = [
+        deciles[f"D{d + 1}"]["residual_mean"]
+        for d in range(10)
+        if deciles[f"D{d + 1}"]["residual_mean"] is not None
+    ]
     if len(means) == 10:
         # Count increases
-        increases = sum(1 for i in range(9) if means[i+1] > means[i])
+        increases = sum(1 for i in range(9) if means[i + 1] > means[i])
         print(f"    Monotonicity: {increases}/9 increasing steps", flush=True)
 
     return {"deciles": deciles, "gate1_passed": passed}
@@ -184,6 +196,7 @@ def _exp1_gap_decile(valid):
 # ------------------------------------------------------------------
 # Experiment 2: FRM Preservation
 # ------------------------------------------------------------------
+
 
 def _exp2_frm_preservation(valid, conn):
     """Compare FRM-only baseline vs FRM+EGE top-30%."""
@@ -198,13 +211,13 @@ def _exp2_frm_preservation(valid, conn):
 
     # FRM + EGE top-30% (by gap_score)
     valid_sorted = sorted(valid, key=lambda x: -(x["gap_score"] or -999))
-    top_30pct = valid_sorted[:max(1, len(valid_sorted) * 3 // 10)]
+    top_30pct = valid_sorted[: max(1, len(valid_sorted) * 3 // 10)]
     ege_stats = _stats([e["residual_alpha"] for e in top_30pct])
     print(f"\n  FRM + EGE top-30% (N={len(top_30pct)}):", flush=True)
     _print_stats("    top-30%", ege_stats)
 
     # Also bottom-30% for contrast
-    bottom_30pct = valid_sorted[-(max(1, len(valid_sorted) * 3 // 10)):]
+    bottom_30pct = valid_sorted[-(max(1, len(valid_sorted) * 3 // 10)) :]
     bottom_stats = _stats([e["residual_alpha"] for e in bottom_30pct])
     print(f"\n  FRM + EGE bottom-30% (N={len(bottom_30pct)}):", flush=True)
     _print_stats("    bottom-30%", bottom_stats)
@@ -214,11 +227,12 @@ def _exp2_frm_preservation(valid, conn):
         delta = ege_stats["mean"] - frm_stats["mean"]
         print(f"\n  Delta (EGE top-30% - FRM-only): {delta:+.4f}", flush=True)
         # Gate B: EGE doesn't destroy alpha
-        gate_b = (ege_stats["mean"] >= frm_stats["mean"]
-                  or ege_stats["positive_rate"] >= frm_stats["positive_rate"])
+        gate_b = (
+            ege_stats["mean"] >= frm_stats["mean"]
+            or ege_stats["positive_rate"] >= frm_stats["positive_rate"]
+        )
         mark = "✅" if gate_b else "❌"
-        print(f"  {mark} Gate 2 (FRM preservation): "
-              f"{'PASS' if gate_b else 'FAIL'}", flush=True)
+        print(f"  {mark} Gate 2 (FRM preservation): {'PASS' if gate_b else 'FAIL'}", flush=True)
     else:
         gate_b = False
 
@@ -234,36 +248,35 @@ def _exp2_frm_preservation(valid, conn):
 # Experiment 3: RS Ablation Regression Check
 # ------------------------------------------------------------------
 
+
 def _exp3_rs_regression(valid):
     """Verify EGE did not secretly restore RS bias."""
     print("\n--- Experiment 3: RS Ablation Regression Check ---", flush=True)
     print("Verify: high-gap candidates should have LOWER RS", flush=True)
 
     valid_sorted = sorted(valid, key=lambda x: -(x["gap_score"] or -999))
-    top_30 = valid_sorted[:max(1, len(valid_sorted) * 3 // 10)]
-    bottom_30 = valid_sorted[-(max(1, len(valid_sorted) * 3 // 10)):]
+    top_30 = valid_sorted[: max(1, len(valid_sorted) * 3 // 10)]
+    bottom_30 = valid_sorted[-(max(1, len(valid_sorted) * 3 // 10)) :]
 
-    top_rs = [e["rs_vs_sector"] for e in top_30
-              if e["rs_vs_sector"] is not None]
-    bottom_rs = [e["rs_vs_sector"] for e in bottom_30
-                 if e["rs_vs_sector"] is not None]
+    top_rs = [e["rs_vs_sector"] for e in top_30 if e["rs_vs_sector"] is not None]
+    bottom_rs = [e["rs_vs_sector"] for e in bottom_30 if e["rs_vs_sector"] is not None]
 
     if top_rs and bottom_rs:
         top_mean = float(np.mean(top_rs))
         bottom_mean = float(np.mean(bottom_rs))
-        print(f"  EGE top-30% avg RS: {top_mean:+.4f} (N={len(top_rs)})",
-              flush=True)
-        print(f"  EGE bottom-30% avg RS: {bottom_mean:+.4f} (N={len(bottom_rs)})",
-              flush=True)
+        print(f"  EGE top-30% avg RS: {top_mean:+.4f} (N={len(top_rs)})", flush=True)
+        print(f"  EGE bottom-30% avg RS: {bottom_mean:+.4f} (N={len(bottom_rs)})", flush=True)
         # Expected: top-gap should have LOWER RS (market hasn't noticed)
         gate_c = top_mean < bottom_mean
         mark = "✅" if gate_c else "❌"
-        print(f"  {mark} Gate 3 (RS inversion): "
-              f"{'PASS - high gap = low RS' if gate_c else 'FAIL - RS not inverted'}",
-              flush=True)
+        print(
+            f"  {mark} Gate 3 (RS inversion): "
+            f"{'PASS - high gap = low RS' if gate_c else 'FAIL - RS not inverted'}",
+            flush=True,
+        )
     else:
         gate_c = False
-        print(f"  Insufficient RS data for comparison", flush=True)
+        print("  Insufficient RS data for comparison", flush=True)
 
     # Correlation: gap_score vs RS (should be negative)
     gaps = [e["gap_score"] for e in valid if e["rs_vs_sector"] is not None]
@@ -272,11 +285,9 @@ def _exp3_rs_regression(valid):
         corr = float(np.corrcoef(gaps, rss)[0, 1])
         print(f"  Correlation gap_score vs RS: {corr:+.4f}", flush=True)
         if corr < 0:
-            print(f"    ✅ Negative correlation: high gap = low RS (expected)",
-                  flush=True)
+            print("    ✅ Negative correlation: high gap = low RS (expected)", flush=True)
         else:
-            print(f"    ⚠️ Positive correlation: EGE may be tracking RS",
-                  flush=True)
+            print("    ⚠️ Positive correlation: EGE may be tracking RS", flush=True)
     else:
         corr = None
 
@@ -291,6 +302,7 @@ def _exp3_rs_regression(valid):
 # ------------------------------------------------------------------
 # Report export
 # ------------------------------------------------------------------
+
 
 def _export_report(results):
     today = date.today().isoformat()
@@ -309,18 +321,20 @@ def _export_report(results):
     lines.append("## Experiment 1: Gap Decile Test")
     lines.append("")
     if "deciles" in e1:
-        lines.append("| Decile | Gap Range | N | Residual Mean | "
-                     "Positive Rate |")
+        lines.append("| Decile | Gap Range | N | Residual Mean | Positive Rate |")
         lines.append("|--------|-----------|---|---------------|---------------|")
         for d, data in e1["deciles"].items():
-            lines.append(f"| {d} | [{data['gap_range'][0]:+.3f}, "
-                         f"{data['gap_range'][1]:+.3f}] | {data['n']} | "
-                         f"{data['residual_mean']:+.4f} | "
-                         f"{data['positive_rate']:.1%} |")
+            lines.append(
+                f"| {d} | [{data['gap_range'][0]:+.3f}, "
+                f"{data['gap_range'][1]:+.3f}] | {data['n']} | "
+                f"{data['residual_mean']:+.4f} | "
+                f"{data['positive_rate']:.1%} |"
+            )
         lines.append("")
         mark = "✅" if e1.get("gate1_passed") else "❌"
-        lines.append(f"**{mark} Gate 1 (D10 > D1): "
-                     f"{'PASS' if e1.get('gate1_passed') else 'FAIL'}**")
+        lines.append(
+            f"**{mark} Gate 1 (D10 > D1): {'PASS' if e1.get('gate1_passed') else 'FAIL'}**"
+        )
     lines.append("")
 
     e2 = results.get("exp2_frm_preservation", {})
@@ -329,33 +343,34 @@ def _export_report(results):
     if "frm_only" in e2:
         lines.append("| Group | N | Residual Mean | Positive Rate |")
         lines.append("|-------|---|---------------|---------------|")
-        for label, key in [("FRM-only", "frm_only"),
-                           ("EGE top-30%", "ege_top30"),
-                           ("EGE bottom-30%", "ege_bottom30")]:
+        for label, key in [
+            ("FRM-only", "frm_only"),
+            ("EGE top-30%", "ege_top30"),
+            ("EGE bottom-30%", "ege_bottom30"),
+        ]:
             s = e2[key]
             if s and s["mean"] is not None:
-                lines.append(f"| {label} | {s['n']} | "
-                             f"{s['mean']:+.4f} | "
-                             f"{s['positive_rate']:.1%} |")
+                lines.append(
+                    f"| {label} | {s['n']} | {s['mean']:+.4f} | {s['positive_rate']:.1%} |"
+                )
         lines.append("")
         mark = "✅" if e2.get("gate2_passed") else "❌"
-        lines.append(f"**{mark} Gate 2 (FRM preservation): "
-                     f"{'PASS' if e2.get('gate2_passed') else 'FAIL'}**")
+        lines.append(
+            f"**{mark} Gate 2 (FRM preservation): {'PASS' if e2.get('gate2_passed') else 'FAIL'}**"
+        )
     lines.append("")
 
     e3 = results.get("exp3_rs_regression", {})
     lines.append("## Experiment 3: RS Ablation Regression Check")
     lines.append("")
     if "gap_rs_correlation" in e3 and e3["gap_rs_correlation"] is not None:
-        lines.append(f"- Correlation gap_score vs RS: "
-                     f"{e3['gap_rs_correlation']:+.4f}")
-        lines.append(f"- EGE top-30% avg RS: "
-                     f"{e3.get('top30_rs_mean', 'n/a')}")
-        lines.append(f"- EGE bottom-30% avg RS: "
-                     f"{e3.get('bottom30_rs_mean', 'n/a')}")
+        lines.append(f"- Correlation gap_score vs RS: {e3['gap_rs_correlation']:+.4f}")
+        lines.append(f"- EGE top-30% avg RS: {e3.get('top30_rs_mean', 'n/a')}")
+        lines.append(f"- EGE bottom-30% avg RS: {e3.get('bottom30_rs_mean', 'n/a')}")
         mark = "✅" if e3.get("gate3_passed") else "❌"
-        lines.append(f"\n**{mark} Gate 3 (RS inversion): "
-                     f"{'PASS' if e3.get('gate3_passed') else 'FAIL'}**")
+        lines.append(
+            f"\n**{mark} Gate 3 (RS inversion): {'PASS' if e3.get('gate3_passed') else 'FAIL'}**"
+        )
     lines.append("")
 
     # Summary verdict
@@ -364,19 +379,18 @@ def _export_report(results):
     g3 = e3.get("gate3_passed", False)
     lines.append("## Summary")
     lines.append("")
-    lines.append(f"| Gate | Result |")
-    lines.append(f"|------|--------|")
-    lines.append(f"| Gate 1 (Gap discrimination) | "
-                 f"{'✅ PASS' if g1 else '❌ FAIL'} |")
-    lines.append(f"| Gate 2 (FRM preservation) | "
-                 f"{'✅ PASS' if g2 else '❌ FAIL'} |")
-    lines.append(f"| Gate 3 (RS inversion) | "
-                 f"{'✅ PASS' if g3 else '❌ FAIL'} |")
+    lines.append("| Gate | Result |")
+    lines.append("|------|--------|")
+    lines.append(f"| Gate 1 (Gap discrimination) | {'✅ PASS' if g1 else '❌ FAIL'} |")
+    lines.append(f"| Gate 2 (FRM preservation) | {'✅ PASS' if g2 else '❌ FAIL'} |")
+    lines.append(f"| Gate 3 (RS inversion) | {'✅ PASS' if g3 else '❌ FAIL'} |")
     lines.append("")
     all_pass = g1 and g2 and g3
     if all_pass:
-        lines.append("**All gates PASS. EGE has discriminative power, "
-                     "preserves FRM alpha, and correctly inverts RS.**")
+        lines.append(
+            "**All gates PASS. EGE has discriminative power, "
+            "preserves FRM alpha, and correctly inverts RS.**"
+        )
     else:
         passed = sum([g1, g2, g3])
         lines.append(f"**{passed}/3 gates PASS. See analysis above.**")

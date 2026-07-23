@@ -26,8 +26,8 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
+import sys
 from datetime import date
 
 import numpy as np
@@ -105,16 +105,32 @@ def run_comparison():
             "mb_mean": float(np.mean(mb)) if len(mb) else None,
             "sb_mean": float(np.mean(sb)) if len(sb) else None,
             "sr_mean": float(np.mean(sr)) if len(sr) else None,
-            "beta_sum": (float(np.mean(mb)) + float(np.mean(sb)))
-                        if len(mb) and len(sb) else None,
+            "beta_sum": (float(np.mean(mb)) + float(np.mean(sb))) if len(mb) and len(sb) else None,
         }
         print(f"\n  {label} (N={result['n']}):", flush=True)
-        print(f"    residual_alpha: mean={result['ra_mean']:+.4f} "
-              f"median={result['ra_median']:+.4f} >0: {result['ra_positive_rate']:.1%}",
-              flush=True)
-        print(f"    market_beta:    mean={result['mb_mean']:+.4f}" if result['mb_mean'] is not None else "    market_beta:    n/a", flush=True)
-        print(f"    sector_beta:    mean={result['sb_mean']:+.4f}" if result['sb_mean'] is not None else "    sector_beta:    n/a", flush=True)
-        print(f"    stock_return:   mean={result['sr_mean']:+.4f}" if result['sr_mean'] is not None else "    stock_return:   n/a", flush=True)
+        print(
+            f"    residual_alpha: mean={result['ra_mean']:+.4f} "
+            f"median={result['ra_median']:+.4f} >0: {result['ra_positive_rate']:.1%}",
+            flush=True,
+        )
+        print(
+            f"    market_beta:    mean={result['mb_mean']:+.4f}"
+            if result["mb_mean"] is not None
+            else "    market_beta:    n/a",
+            flush=True,
+        )
+        print(
+            f"    sector_beta:    mean={result['sb_mean']:+.4f}"
+            if result["sb_mean"] is not None
+            else "    sector_beta:    n/a",
+            flush=True,
+        )
+        print(
+            f"    stock_return:   mean={result['sr_mean']:+.4f}"
+            if result["sr_mean"] is not None
+            else "    stock_return:   n/a",
+            flush=True,
+        )
         if result["beta_sum"] is not None:
             print(f"    beta_sum (mb+sb): {result['beta_sum']:+.4f}", flush=True)
         return result
@@ -151,39 +167,46 @@ def run_comparison():
 
     for gname, g in gates.items():
         mark = "✅" if g["passed"] else "❌"
-        print(f"  {mark} {gname}: v2={g['v2']} -> v3={g['v3']} "
-              f"(target: {g['target']})", flush=True)
+        print(f"  {mark} {gname}: v2={g['v2']} -> v3={g['v3']} (target: {g['target']})", flush=True)
 
     # Situation determination
     print("\n--- Situation Assessment ---", flush=True)
     if v3_stats:
         if v3_stats["ra_mean"] > 0:
             situation = "A"
-            interpretation = ("residual_alpha > 0: deserved cheapness + "
-                            "beta trap SOLVED. Proceed to v3.3 validation.")
+            interpretation = (
+                "residual_alpha > 0: deserved cheapness + "
+                "beta trap SOLVED. Proceed to v3.3 validation."
+            )
         elif v3_stats["ra_mean"] > -0.02:
             situation = "B"
-            interpretation = ("-2% < alpha < 0: direction right, but Stage 3 "
-                            "mispricing detector is weak. Optimize Stage 3.")
+            interpretation = (
+                "-2% < alpha < 0: direction right, but Stage 3 "
+                "mispricing detector is weak. Optimize Stage 3."
+            )
         else:
             situation = "C"
-            interpretation = ("alpha still < -2%: Stage 1/2 only filter "
-                            "garbage. Mispricing hypothesis itself may be "
-                            "wrong. Need to redesign anomaly detection.")
+            interpretation = (
+                "alpha still < -2%: Stage 1/2 only filter "
+                "garbage. Mispricing hypothesis itself may be "
+                "wrong. Need to redesign anomaly detection."
+            )
         print(f"  Situation {situation}: {interpretation}", flush=True)
-        print(f"  residual_alpha: v2 {a_stats['ra_mean']:+.4f} -> "
-              f"v3 {v3_stats['ra_mean']:+.4f} "
-              f"(delta {v3_stats['ra_mean']-a_stats['ra_mean']:+.4f})",
-              flush=True)
+        print(
+            f"  residual_alpha: v2 {a_stats['ra_mean']:+.4f} -> "
+            f"v3 {v3_stats['ra_mean']:+.4f} "
+            f"(delta {v3_stats['ra_mean'] - a_stats['ra_mean']:+.4f})",
+            flush=True,
+        )
 
     # Export report
     report_path = _export_report(
-        a_stats, b_stats, c_stats, v3_stats, gates, situation, interpretation)
+        a_stats, b_stats, c_stats, v3_stats, gates, situation, interpretation
+    )
     print(f"\n=== Report: {report_path} ===", flush=True)
 
     conn.close()
-    return {"situation": situation, "gates": gates,
-            "v3_stats": v3_stats, "v2_stats": a_stats}
+    return {"situation": situation, "gates": gates, "v3_stats": v3_stats, "v2_stats": a_stats}
 
 
 def _export_report(a, b, c, v3, gates, situation, interpretation):
@@ -201,15 +224,21 @@ def _export_report(a, b, c, v3, gates, situation, interpretation):
     lines.append("")
     lines.append("## Three-Group Comparison")
     lines.append("")
-    lines.append("| Group | N | residual_alpha mean | median | >0 rate | market_beta | sector_beta | beta_sum |")
-    lines.append("|-------|---|---------------------|--------|---------|-------------|-------------|----------|")
+    lines.append(
+        "| Group | N | residual_alpha mean | median | >0 rate | market_beta | sector_beta | beta_sum |"
+    )
+    lines.append(
+        "|-------|---|---------------------|--------|---------|-------------|-------------|----------|"
+    )
     for s in [a, b, c, v3]:
         if s:
-            lines.append(f"| {s['label']} | {s['n']} | "
-                         f"{s['ra_mean']:+.4f} | {s['ra_median']:+.4f} | "
-                         f"{s['ra_positive_rate']:.1%} | "
-                         f"{s['mb_mean']:+.4f} | {s['sb_mean']:+.4f} | "
-                         f"{s['beta_sum']:+.4f} |")
+            lines.append(
+                f"| {s['label']} | {s['n']} | "
+                f"{s['ra_mean']:+.4f} | {s['ra_median']:+.4f} | "
+                f"{s['ra_positive_rate']:.1%} | "
+                f"{s['mb_mean']:+.4f} | {s['sb_mean']:+.4f} | "
+                f"{s['beta_sum']:+.4f} |"
+            )
     lines.append("")
     lines.append("## Gate Evaluation")
     lines.append("")
@@ -225,32 +254,40 @@ def _export_report(a, b, c, v3, gates, situation, interpretation):
     lines.append("")
     if a and v3:
         delta = v3["ra_mean"] - a["ra_mean"]
-        lines.append(f"residual_alpha: V2 {a['ra_mean']:+.4f} -> "
-                     f"V3 {v3['ra_mean']:+.4f} (delta {delta:+.4f})")
-        lines.append(f"positive rate:  V2 {a['ra_positive_rate']:.1%} -> "
-                     f"V3 {v3['ra_positive_rate']:.1%}")
+        lines.append(
+            f"residual_alpha: V2 {a['ra_mean']:+.4f} -> "
+            f"V3 {v3['ra_mean']:+.4f} (delta {delta:+.4f})"
+        )
+        lines.append(
+            f"positive rate:  V2 {a['ra_positive_rate']:.1%} -> V3 {v3['ra_positive_rate']:.1%}"
+        )
         if a["beta_sum"] and v3["beta_sum"]:
-            lines.append(f"beta exposure:  V2 {a['beta_sum']:+.4f} -> "
-                         f"V3 {v3['beta_sum']:+.4f}")
+            lines.append(f"beta exposure:  V2 {a['beta_sum']:+.4f} -> V3 {v3['beta_sum']:+.4f}")
     lines.append("")
     lines.append("## Interpretation")
     lines.append("")
     if situation == "A":
-        lines.append("V3 SOLVED both deserved cheapness (FRM gate) and "
-                     "Recovery Beta Trap (RS gate). True selection alpha "
-                     "is positive. Proceed to v3.3 full validation.")
+        lines.append(
+            "V3 SOLVED both deserved cheapness (FRM gate) and "
+            "Recovery Beta Trap (RS gate). True selection alpha "
+            "is positive. Proceed to v3.3 full validation."
+        )
     elif situation == "B":
-        lines.append("V3 improved direction (FRM) and reduced beta exposure "
-                     "(RS), but residual_alpha is still negative. The "
-                     "Stage 3 mispricing detector (anomaly) is the remaining "
-                     "weakness. Next: optimize Stage 3 or redesign anomaly "
-                     "detection.")
+        lines.append(
+            "V3 improved direction (FRM) and reduced beta exposure "
+            "(RS), but residual_alpha is still negative. The "
+            "Stage 3 mispricing detector (anomaly) is the remaining "
+            "weakness. Next: optimize Stage 3 or redesign anomaly "
+            "detection."
+        )
     else:
-        lines.append("V3's Stage 1/2 filter out garbage but do not produce "
-                     "alpha. The mispricing hypothesis itself may be wrong. "
-                     "The anomaly detector's core assumption "
-                     "('drawdown + cheap = mispriced') needs fundamental "
-                     "redesign.")
+        lines.append(
+            "V3's Stage 1/2 filter out garbage but do not produce "
+            "alpha. The mispricing hypothesis itself may be wrong. "
+            "The anomaly detector's core assumption "
+            "('drawdown + cheap = mispriced') needs fundamental "
+            "redesign."
+        )
     lines.append("")
     lines.append("## A/B Isolation (FRM vs RS contribution)")
     lines.append("")

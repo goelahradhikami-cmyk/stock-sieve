@@ -6,6 +6,9 @@ associated factor genomes. After 3+ rejections, mark as 'weakening'.
 """
 
 from src.data.db import managed_connect
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class FailurePropagation:
@@ -16,11 +19,14 @@ class FailurePropagation:
 
     def propagate(self, agent_genome_id: str):
         """After agent freeze, penalize its factor genomes."""
-        rows = self.db.execute("""
+        rows = self.db.execute(
+            """
             SELECT DISTINCT factor_genome_id, fitness_score
             FROM genome_compatibility
             WHERE agent_genome_id = ? AND status = 'active'
-        """, (agent_genome_id,)).fetchall()
+        """,
+            (agent_genome_id,),
+        ).fetchall()
 
         for factor_id, current_fitness in rows:
             new_fitness = (current_fitness or 0.5) * 0.95
@@ -28,23 +34,26 @@ class FailurePropagation:
             try:
                 self.db.execute(
                     "UPDATE factor_genome SET fitness_score=? WHERE genome_id=?",
-                    (new_fitness, factor_id)
+                    (new_fitness, factor_id),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
 
-            penalty_count = self.db.execute("""
+            penalty_count = self.db.execute(
+                """
                 SELECT COUNT(*) FROM genome_compatibility
                 WHERE factor_genome_id = ? AND status = 'rejected'
-            """, (factor_id,)).fetchone()
+            """,
+                (factor_id,),
+            ).fetchone()
 
             if penalty_count and penalty_count[0] >= 3:
                 try:
                     self.db.execute(
                         "UPDATE factor_genome SET status='weakening' WHERE genome_id=?",
-                        (factor_id,)
+                        (factor_id,),
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("operation failed (was silently ignored): %s", exc)
 
         self.db.commit()

@@ -41,7 +41,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -65,30 +64,31 @@ class CrowdingResult:
     post-hoc decomposition (which crowding source drives H3-B?) is
     possible without re-backfill.
     """
+
     security_id: str
     trade_date: str
 
     # Momentum crowding (raw)
-    return_20d: Optional[float] = None
-    return_60d: Optional[float] = None
+    return_20d: float | None = None
+    return_60d: float | None = None
 
     # Liquidity crowding (raw)
-    turnover_percentile: Optional[float] = None
-    volume_ratio: Optional[float] = None
+    turnover_percentile: float | None = None
+    volume_ratio: float | None = None
 
     # Volatility crowding (raw)
-    realized_vol_20d: Optional[float] = None
+    realized_vol_20d: float | None = None
 
     # Attention crowding (raw)
-    abnormal_volume: Optional[float] = None
-    price_gap: Optional[float] = None
+    abnormal_volume: float | None = None
+    price_gap: float | None = None
 
     # Control variables
-    market_cap: Optional[float] = None
-    float_mcap: Optional[float] = None
+    market_cap: float | None = None
+    float_mcap: float | None = None
 
     # Composite (diagnostic only)
-    crowding_score_v1: Optional[float] = None
+    crowding_score_v1: float | None = None
 
 
 class CrowdingCalculator:
@@ -119,8 +119,12 @@ class CrowdingCalculator:
         # Add buffer for calendar lookup
         kline = self._load_kline_before(code, trade_date, days=LOOKBACK_60D + 10)
         if kline is None or len(kline) < MIN_HISTORY_DAYS:
-            logger.debug("crowding: insufficient kline for %s @ %s (got %d rows)",
-                         code, trade_date, len(kline) if kline is not None else 0)
+            logger.debug(
+                "crowding: insufficient kline for %s @ %s (got %d rows)",
+                code,
+                trade_date,
+                len(kline) if kline is not None else 0,
+            )
             return result
 
         # ─── Momentum crowding ───
@@ -147,8 +151,7 @@ class CrowdingCalculator:
     # Kline loading (vintage-safe: only data BEFORE trade_date)
     # ─────────────────────────────────────────────────────────────────
 
-    def _load_kline_before(self, code: str, trade_date: str,
-                           days: int) -> Optional[pd.DataFrame]:
+    def _load_kline_before(self, code: str, trade_date: str, days: int) -> pd.DataFrame | None:
         """Load TDX kline ending BEFORE trade_date.
 
         Uses LocalDataProvider (same source as event_reaction.py).
@@ -168,6 +171,7 @@ class CrowdingCalculator:
     def _offset_date(self, date_str: str, offset_days: int) -> str:
         """Simple calendar offset (not trading-day-aware, just for query range)."""
         from datetime import datetime, timedelta
+
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         return (dt + timedelta(days=offset_days)).strftime("%Y-%m-%d")
 
@@ -175,8 +179,9 @@ class CrowdingCalculator:
     # Momentum crowding
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_momentum(self, result: CrowdingResult,
-                          kline: pd.DataFrame, trade_date: str) -> None:
+    def _compute_momentum(
+        self, result: CrowdingResult, kline: pd.DataFrame, trade_date: str
+    ) -> None:
         """return_20d and return_60d (trailing returns BEFORE trade_date).
 
         High momentum = market has already noticed = crowded.
@@ -191,23 +196,25 @@ class CrowdingCalculator:
     # Volatility crowding
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_volatility(self, result: CrowdingResult,
-                            kline: pd.DataFrame, trade_date: str) -> None:
+    def _compute_volatility(
+        self, result: CrowdingResult, kline: pd.DataFrame, trade_date: str
+    ) -> None:
         """realized_vol_20d = std(daily_returns, 20d) BEFORE trade_date.
 
         High vol = event-driven attention = potentially crowded.
         """
         closes = kline["close"].values
         if len(closes) >= LOOKBACK_20D + 1:
-            daily_returns = np.diff(np.log(closes[-LOOKBACK_20D - 1:]))
+            daily_returns = np.diff(np.log(closes[-LOOKBACK_20D - 1 :]))
             result.realized_vol_20d = float(np.std(daily_returns, ddof=0))
 
     # ─────────────────────────────────────────────────────────────────
     # Volume-based features (liquidity + attention crowding)
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_volume_features(self, result: CrowdingResult,
-                                 kline: pd.DataFrame, trade_date: str) -> None:
+    def _compute_volume_features(
+        self, result: CrowdingResult, kline: pd.DataFrame, trade_date: str
+    ) -> None:
         """volume_ratio, abnormal_volume, price_gap (volume-based crowding).
 
         volume_ratio = volume(last_day) / avg(volume, 20d)
@@ -219,7 +226,7 @@ class CrowdingCalculator:
 
         if len(volumes) >= LOOKBACK_20D + 1:
             vol_last = volumes[-1]
-            vol_20d = volumes[-LOOKBACK_20D - 1:-1]  # 20 days BEFORE last day
+            vol_20d = volumes[-LOOKBACK_20D - 1 : -1]  # 20 days BEFORE last day
             avg_vol = float(np.mean(vol_20d))
             std_vol = float(np.std(vol_20d, ddof=0))
 
@@ -255,7 +262,7 @@ class CrowdingCalculator:
     # Turnover percentile (cross-sectional, computed in backfill)
     # ─────────────────────────────────────────────────────────────────
 
-    def compute_turnover_percentile(self, code: str, trade_date: str) -> Optional[float]:
+    def compute_turnover_percentile(self, code: str, trade_date: str) -> float | None:
         """Cross-sectional turnover percentile at trade_date.
 
         Uses finance_snapshots.turnover_pct. Returns percentile rank
@@ -276,8 +283,7 @@ class CrowdingCalculator:
 
             # Get this stock's turnover
             row = conn.execute(
-                "SELECT turnover_pct FROM finance_snapshots "
-                "WHERE code = ? AND date = ?",
+                "SELECT turnover_pct FROM finance_snapshots WHERE code = ? AND date = ?",
                 (code, snap_date),
             ).fetchone()
             if not row or row["turnover_pct"] is None:

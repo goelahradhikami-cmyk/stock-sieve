@@ -14,7 +14,6 @@ and confidence adjustment.
 """
 
 
-
 class ComplexityChecker:
     """Evaluates thesis structural complexity to prevent narrative overfitting."""
 
@@ -65,8 +64,7 @@ class ComplexityChecker:
 
         # ── Total penalty ────────────────────────────────
         total = sum(
-            details[k]["penalty"]
-            for k in ["claims", "causal_depth", "dependencies", "assumptions"]
+            details[k]["penalty"] for k in ["claims", "causal_depth", "dependencies", "assumptions"]
         )
         total = min(10.0, total)
         details["total_score"] = round(total, 1)
@@ -95,8 +93,19 @@ class ComplexityChecker:
         if not text:
             return 1
 
-        causal_words = ["推动", "导致", "促使", "引发", "带动", "→", "->",
-                        "所以", "因此", "从而", "进而"]
+        causal_words = [
+            "推动",
+            "导致",
+            "促使",
+            "引发",
+            "带动",
+            "→",
+            "->",
+            "所以",
+            "因此",
+            "从而",
+            "进而",
+        ]
         depth = 1
         for word in causal_words:
             depth += text.count(word)
@@ -127,8 +136,18 @@ class ComplexityChecker:
         if not text:
             return 2
 
-        assumption_words = ["假设", "预计", "预期", "有望", "可能", "或将",
-                            "大概率", "应该", "将会", "预计将"]
+        assumption_words = [
+            "假设",
+            "预计",
+            "预期",
+            "有望",
+            "可能",
+            "或将",
+            "大概率",
+            "应该",
+            "将会",
+            "预计将",
+        ]
         count = 1  # base assumption that the thesis is correct
         for word in assumption_words:
             count += text.count(word)

@@ -6,6 +6,7 @@ percentile/z_score (computed by `compute_cross_sectional`) back into the scores.
 That made the composite scores scale-sensitive and not comparable across the
 universe. These tests pin the corrected behaviour.
 """
+
 import math
 import sys
 import types
@@ -117,5 +118,5 @@ def test_compute_universe_wires_two_passes():
     ]
     out = fe.compute_universe(inputs)
 
-    assert seen == ["AAA", "BBB"]                     # per-stock pass ran
+    assert seen == ["AAA", "BBB"]  # per-stock pass ran
     assert out[0].quality_score > out[1].quality_score  # cross-section applied

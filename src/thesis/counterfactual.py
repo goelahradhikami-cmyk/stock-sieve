@@ -31,15 +31,14 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
 from src.agents.doctrine_engine import DoctrineGenome
-from src.factors.snapshot_builder import FactorSnapshotBuilder
 from src.data.local_provider import LocalDataProvider
-from src.thesis.signal_engine import ThesisSignalEngine
+from src.factors.snapshot_builder import FactorSnapshotBuilder
 from src.thesis.residualizer import ThesisResidualizer
+from src.thesis.signal_engine import ThesisSignalEngine
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,6 +47,7 @@ logger = get_logger(__name__)
 @dataclass
 class ABTestResult:
     """A/B test result for one date."""
+
     trade_date: str
     eval_date: str
     # Control (factor-only)
@@ -57,8 +57,8 @@ class ABTestResult:
     treatment_picks: list[str] = field(default_factory=list)
     treatment_return: float = 0.0
     # Difference
-    incremental_alpha: float = 0.0    # treatment - control
-    overlap_rate: float = 0.0         # how many stocks are in both portfolios
+    incremental_alpha: float = 0.0  # treatment - control
+    overlap_rate: float = 0.0  # how many stocks are in both portfolios
     # Thesis accuracy
     thesis_accuracy: float = 0.0
 
@@ -73,8 +73,7 @@ class CounterfactualEngine:
     Incremental Alpha = treatment_return - control_return
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.builder = FactorSnapshotBuilder()
@@ -82,8 +81,9 @@ class CounterfactualEngine:
         self.signal_engine = ThesisSignalEngine(cache_db=cache_db)
         self.residualizer = ThesisResidualizer(eval_db=eval_db)
 
-    def run_ab_test(self, doctrine: DoctrineGenome,
-                     trade_date: str, horizon: int = 20) -> ABTestResult:
+    def run_ab_test(
+        self, doctrine: DoctrineGenome, trade_date: str, horizon: int = 20
+    ) -> ABTestResult:
         """Run one A/B test for a doctrine on a date.
 
         Returns: ABTestResult with control/treatment returns + incremental alpha
@@ -109,10 +109,7 @@ class CounterfactualEngine:
         thesis_signals = self.signal_engine.compute_signals_batch(all_codes, trade_date)
 
         # 2. Orthogonalize thesis signals against factors
-        ts_dict = {
-            code: {"thesis_score": sig.thesis_score}
-            for code, sig in thesis_signals.items()
-        }
+        ts_dict = {code: {"thesis_score": sig.thesis_score} for code, sig in thesis_signals.items()}
         residualized = self.residualizer.orthogonalize_universe(trade_date, ts_dict)
 
         # 3. Factor constraint: keep only quality > 30 (risk filter, not selection)
@@ -150,8 +147,7 @@ class CounterfactualEngine:
             overlap_rate=overlap,
         )
 
-    def run_batch(self, doctrine: DoctrineGenome,
-                   dates: list[str], horizon: int = 20) -> dict:
+    def run_batch(self, doctrine: DoctrineGenome, dates: list[str], horizon: int = 20) -> dict:
         """Run A/B test across multiple dates.
 
         Returns: summary with avg incremental alpha + stats
@@ -177,9 +173,13 @@ class CounterfactualEngine:
         else:
             t_stat = 0
 
-        verdict = "THESIS_ADDS_VALUE" if avg_increment > 0.005 and t_stat > 1.5 else \
-                  "THESIS_NEUTRAL" if abs(avg_increment) < 0.005 else \
-                  "THESIS_HURTS"
+        verdict = (
+            "THESIS_ADDS_VALUE"
+            if avg_increment > 0.005 and t_stat > 1.5
+            else "THESIS_NEUTRAL"
+            if abs(avg_increment) < 0.005
+            else "THESIS_HURTS"
+        )
 
         return {
             "n": len(results),
@@ -203,8 +203,8 @@ class CounterfactualEngine:
                 if kline is not None and not kline.empty and len(kline) >= 2:
                     close = kline["close"].values
                     returns.append((close[-1] - close[0]) / close[0])
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
         return returns
 
     def _get_eval_date(self, trade_date: str, horizon: int) -> str | None:

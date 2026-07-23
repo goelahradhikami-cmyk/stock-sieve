@@ -10,18 +10,32 @@ today. The fix makes the mapping explicit and forward-compatible: if a decision
 carries its own `chairman_score`, that value is persisted; otherwise it falls
 back to `weighted_score`.
 """
+
 import os
-import sqlite3
 import tempfile
 
 from src.data.evaluation_db import EvaluationDB
+import contextlib
 
 _INSERT_COLUMNS = (
-    "committee_id", "research_decision_id", "valuation_score", "industry_score",
-    "risk_score", "quant_score", "devil_advocate_score", "chairman_score",
-    "weighted_score", "verdict", "verdict_reason", "position_cap_modifier",
-    "confidence_modifier", "monitoring_flags", "required_conditions_json",
-    "member_statements_json", "devil_advocate_attack", "debate_transcript",
+    "committee_id",
+    "research_decision_id",
+    "valuation_score",
+    "industry_score",
+    "risk_score",
+    "quant_score",
+    "devil_advocate_score",
+    "chairman_score",
+    "weighted_score",
+    "verdict",
+    "verdict_reason",
+    "position_cap_modifier",
+    "confidence_modifier",
+    "monitoring_flags",
+    "required_conditions_json",
+    "member_statements_json",
+    "devil_advocate_attack",
+    "debate_transcript",
 )
 
 _CREATE = """
@@ -92,10 +106,8 @@ def test_chairman_score_mirrors_weighted_when_absent():
         assert row["chairman_score"] == 72.3, dict(row)
         assert row["weighted_score"] == 72.3, dict(row)
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp.name)
-        except OSError:
-            pass
 
 
 def test_chairman_score_uses_distinct_value_when_present():
@@ -103,13 +115,15 @@ def test_chairman_score_uses_distinct_value_when_present():
     tmp.close()
     try:
         db = _make_db(tmp.name)
-        db.insert_committee_decision(_base_decision(
-            committee_id="cm-002",
-            research_decision_id=2,
-            weighted_score=70.0,
-            chairman_score=88.0,  # distinct chairman override
-            verdict="APPROVE",
-        ))
+        db.insert_committee_decision(
+            _base_decision(
+                committee_id="cm-002",
+                research_decision_id=2,
+                weighted_score=70.0,
+                chairman_score=88.0,  # distinct chairman override
+                verdict="APPROVE",
+            )
+        )
         conn = db.connect()
         row = conn.execute(
             "SELECT chairman_score, weighted_score FROM committee_decisions "
@@ -120,7 +134,5 @@ def test_chairman_score_uses_distinct_value_when_present():
         assert row["chairman_score"] == 88.0, dict(row)
         assert row["weighted_score"] == 70.0, dict(row)
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp.name)
-        except OSError:
-            pass

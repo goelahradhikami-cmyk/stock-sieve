@@ -1,4 +1,5 @@
 """🏛️ Investment Committee Room — Terminal-styled governance dashboard."""
+
 import streamlit as st
 
 from ..components.committee_card import committee_card
@@ -12,19 +13,24 @@ from ..utils.theme import (
 
 def render():
     # ── Page header ──────────────────────────────────────
-    st.markdown("""
+    st.markdown(
+        """
     <div class="page-header">
         <h1>🏛️ 投资委员会会议室</h1>
         <p>旁听 AI 投资委员会的辩论 — 五角色评分 · 魔鬼代言人攻击 · 主席裁决</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     db = get_db()
     history = load_committee_history(db)
 
     if not history:
         st.info("暂无委员会会议记录。运行一次投资决策流程后，会议记录将在此展示。")
-        st.caption("提示：使用 CLI 运行 `python -m src.cli screen --personality value_purist` 生成决策数据")
+        st.caption(
+            "提示：使用 CLI 运行 `python -m src.cli screen --personality value_purist` 生成决策数据"
+        )
         return
 
     # ── Meeting selector ─────────────────────────────────

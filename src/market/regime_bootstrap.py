@@ -27,8 +27,6 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from datetime import date
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -56,8 +54,9 @@ class RegimeClassifier:
     REGIMES = ("crash", "bear", "bull", "high_volatility", "sideway")
 
     @classmethod
-    def classify(cls, return_60d: float, volatility_20d: float,
-                 vol_percentile_threshold: Optional[float] = None) -> str:
+    def classify(
+        cls, return_60d: float, volatility_20d: float, vol_percentile_threshold: float | None = None
+    ) -> str:
         """Classify a single observation.
 
         Args:
@@ -91,9 +90,12 @@ class RegimeBootstrap:
     writes to market_regime_snapshots (the system-level regime fact source).
     """
 
-    def __init__(self, cache_db: str = "data/cache.db",
-                 eval_db: str = "data/evaluation.db",
-                 index_code: str = "000300"):
+    def __init__(
+        self,
+        cache_db: str = "data/cache.db",
+        eval_db: str = "data/evaluation.db",
+        index_code: str = "000300",
+    ):
         self.cache_db = cache_db
         self.eval_db = eval_db
         self.index_code = index_code
@@ -105,7 +107,8 @@ class RegimeBootstrap:
             df = pd.read_sql_query(
                 "SELECT trade_date AS date, close FROM market_index_daily "
                 "WHERE index_code=? AND trade_date >= ? ORDER BY trade_date",
-                conn, params=(self.index_code, start_date),
+                conn,
+                params=(self.index_code, start_date),
             )
         finally:
             conn.close()
@@ -114,15 +117,16 @@ class RegimeBootstrap:
         df = df.dropna(subset=["close"]).reset_index(drop=True)
         return df
 
-    def backfill_history(self, start_date: str = "2024-01-01",
-                         end_date: str | None = None) -> int:
+    def backfill_history(self, start_date: str = "2024-01-01", end_date: str | None = None) -> int:
         """Compute and persist regime labels for every trading day.
 
         Returns: number of rows written to market_regime_snapshots.
         """
         df = self._load_index_close(start_date)
         if len(df) < 60:
-            logger.warning("regime_bootstrap: only %d rows since %s (need >=60)", len(df), start_date)
+            logger.warning(
+                "regime_bootstrap: only %d rows since %s (need >=60)", len(df), start_date
+            )
             return 0
 
         if end_date:
@@ -152,15 +156,19 @@ class RegimeBootstrap:
                     vol_percentile_threshold=vol_p90,
                 )
                 obs_date = row["date"].strftime("%Y-%m-%d")
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO market_regime_snapshots
                     (obs_date, regime_type, risk_score, indicators_json, created_at)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (
-                    obs_date, regime,
-                    float(row["vol_20d"]) * 100,  # risk_score = vol*100 (rough)
-                    f'{{"return_60d":{row["return_60d"]:.4f},"vol_20d":{row["vol_20d"]:.4f}}}',
-                ))
+                """,
+                    (
+                        obs_date,
+                        regime,
+                        float(row["vol_20d"]) * 100,  # risk_score = vol*100 (rough)
+                        f'{{"return_60d":{row["return_60d"]:.4f},"vol_20d":{row["vol_20d"]:.4f}}}',
+                    ),
+                )
                 written += 1
             conn.commit()
         finally:

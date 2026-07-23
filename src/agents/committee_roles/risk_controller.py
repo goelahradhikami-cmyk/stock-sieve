@@ -16,8 +16,9 @@
 from ._common import as_float, clamp, normalize_severity
 
 
-def score_risk(portfolio_state, security_analysis, validation_result,
-               factor_snapshot=None) -> float:
+def score_risk(
+    portfolio_state, security_analysis, validation_result, factor_snapshot=None
+) -> float:
     """评估组合脆弱性与极端风险。返回 0-100（越高越安全）。"""
     fs = factor_snapshot or {}
     score = 100.0

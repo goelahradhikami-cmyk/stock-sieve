@@ -64,9 +64,15 @@ def test_real_roundtrip_init_insert_read():
     db = EvaluationDB(db_path)
     db.init_db()
     sid = db.insert_genome_snapshot(
-        agent_id="AG1", strategy_genus="g", strategy_species="s",
-        generation=1, parent_agent_id="", genome_hash="h1",
-        genome_yaml="yaml", birth_date="2026-01-01", status="active",
+        agent_id="AG1",
+        strategy_genus="g",
+        strategy_species="s",
+        generation=1,
+        parent_agent_id="",
+        genome_hash="h1",
+        genome_yaml="yaml",
+        birth_date="2026-01-01",
+        status="active",
     )
     assert isinstance(sid, int) and sid >= 1
     snap = db.get_genome_snapshot("AG1", "active")
@@ -91,9 +97,15 @@ def test_insert_commits_and_closes():
     fc = _FakeConn()
     with _patch(db, fc):
         sid = db.insert_genome_snapshot(
-            agent_id="AG1", strategy_genus="g", strategy_species="s",
-            generation=1, parent_agent_id="", genome_hash="h1",
-            genome_yaml="yaml", birth_date="2026-01-01", status="active",
+            agent_id="AG1",
+            strategy_genus="g",
+            strategy_species="s",
+            generation=1,
+            parent_agent_id="",
+            genome_hash="h1",
+            genome_yaml="yaml",
+            birth_date="2026-01-01",
+            status="active",
         )
     assert sid == 7
     assert fc.commit_calls == 1
@@ -126,9 +138,15 @@ def test_insert_connection_closed_on_exception():
     with _patch(db, fc):
         try:
             db.insert_genome_snapshot(
-                agent_id="AG1", strategy_genus="g", strategy_species="s",
-                generation=1, parent_agent_id="", genome_hash="h1",
-                genome_yaml="yaml", birth_date="2026-01-01", status="active",
+                agent_id="AG1",
+                strategy_genus="g",
+                strategy_species="s",
+                generation=1,
+                parent_agent_id="",
+                genome_hash="h1",
+                genome_yaml="yaml",
+                birth_date="2026-01-01",
+                status="active",
             )
         except sqlite3.OperationalError:
             raised = True

@@ -17,7 +17,6 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
 def with_conn(func):
     """Open a SQLite connection for the duration of ``func`` and guarantee it
     is closed — even if the function raises.

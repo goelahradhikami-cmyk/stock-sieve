@@ -5,7 +5,6 @@ Phase 5A-2 §4.1
 """
 
 
-
 class EvidenceChecker:
     """Validates thesis evidence items against actual factor values."""
 
@@ -44,20 +43,24 @@ class EvidenceChecker:
                 actual_value = item["value"]
 
             if actual_value is None:
-                failures.append({
-                    "metric": metric,
-                    "reason": f"Factor '{metric}' not found in snapshot",
-                    "condition": condition,
-                })
+                failures.append(
+                    {
+                        "metric": metric,
+                        "reason": f"Factor '{metric}' not found in snapshot",
+                        "condition": condition,
+                    }
+                )
                 continue
 
             if not self._evaluate(condition, actual_value):
-                failures.append({
-                    "metric": metric,
-                    "actual": actual_value,
-                    "condition": condition,
-                    "reason": f"Expected {condition}, got {actual_value}",
-                })
+                failures.append(
+                    {
+                        "metric": metric,
+                        "actual": actual_value,
+                        "condition": condition,
+                        "reason": f"Expected {condition}, got {actual_value}",
+                    }
+                )
 
         passed = len(evidence) - len(failures)
         score = (passed / len(evidence)) * 100 if evidence else 50.0
@@ -79,19 +82,20 @@ class EvidenceChecker:
         try:
             # Unspaced comparisons (e.g., ">0.20", "<30")
             import re
-            m = re.match(r'^(>=|<=|>|<|=)\s*(-?[\d.]+)$', condition)
+
+            m = re.match(r"^(>=|<=|>|<|=)\s*(-?[\d.]+)$", condition)
             if m:
                 op = m.group(1)
                 threshold = float(m.group(2))
-                if op == '>=':
+                if op == ">=":
                     return float(actual) >= threshold
-                if op == '<=':
+                if op == "<=":
                     return float(actual) <= threshold
-                if op == '>':
+                if op == ">":
                     return float(actual) > threshold
-                if op == '<':
+                if op == "<":
                     return float(actual) < threshold
-                if op == '=':
+                if op == "=":
                     return abs(float(actual) - threshold) < 0.001
 
             # Spaced comparisons with metric prefix (e.g., "roe > 0.20")

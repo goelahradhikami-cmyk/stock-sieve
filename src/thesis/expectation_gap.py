@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -41,25 +40,26 @@ logger = get_logger(__name__)
 @dataclass
 class ExpectationGapScore:
     """Expectation Gap assessment for one stock at one decision date."""
+
     security_id: str
     trade_date: str
 
     # Raw inputs (from earnings_event_reaction table)
-    earnings_acceleration: Optional[float] = None      # 1st derivative
-    earnings_acceleration_2nd: Optional[float] = None   # 2nd derivative
-    price_reaction: Optional[float] = None              # sector_adjusted_t5 (PRIMARY)
-    price_reaction_20d: Optional[float] = None          # sector_adjusted_t20
-    available_date: Optional[str] = None                # event anchor
+    earnings_acceleration: float | None = None  # 1st derivative
+    earnings_acceleration_2nd: float | None = None  # 2nd derivative
+    price_reaction: float | None = None  # sector_adjusted_t5 (PRIMARY)
+    price_reaction_20d: float | None = None  # sector_adjusted_t20
+    available_date: str | None = None  # event anchor
 
     # FRM context (from earnings_event_reaction)
-    frm_direction: Optional[str] = None
-    earnings_yoy_current: Optional[float] = None
-    earnings_yoy_previous: Optional[float] = None
+    frm_direction: str | None = None
+    earnings_yoy_current: float | None = None
+    earnings_yoy_previous: float | None = None
 
     # Composite (frozen formula)
-    gap_score: Optional[float] = None                   # z(EA) - z(PR)
-    gap_percentile: Optional[float] = None              # 0-1, higher = more underreaction
-    confidence: Optional[float] = None                  # 0-1, data quality flag
+    gap_score: float | None = None  # z(EA) - z(PR)
+    gap_percentile: float | None = None  # 0-1, higher = more underreaction
+    confidence: float | None = None  # 0-1, data quality flag
 
     # Diagnosis
     data_available: bool = True
@@ -117,8 +117,7 @@ class ExpectationGapEngine:
         result.earnings_yoy_previous = event_data.get("earnings_yoy_previous")
 
         # 3. Need both EA and PR to compute gap
-        if (result.earnings_acceleration is None
-                or result.price_reaction is None):
+        if result.earnings_acceleration is None or result.price_reaction is None:
             result.data_available = False
             result.confidence = 0.3
             result.gap_score = None
@@ -142,8 +141,7 @@ class ExpectationGapEngine:
             result.confidence = 0.8
 
         # 5. Percentile (for decile analysis)
-        result.gap_percentile = self._compute_percentile(
-            result.gap_score, trade_date)
+        result.gap_percentile = self._compute_percentile(result.gap_score, trade_date)
 
         return result
 
@@ -151,8 +149,7 @@ class ExpectationGapEngine:
     # Event reaction data loading
     # ------------------------------------------------------------------
 
-    def _load_event_reaction(self, code: str,
-                              trade_date: str) -> dict | None:
+    def _load_event_reaction(self, code: str, trade_date: str) -> dict | None:
         """Load the most recent earnings_event_reaction before trade_date.
 
         Joins earnings_event_reaction with akshare_financials to find the
@@ -185,13 +182,16 @@ class ExpectationGapEngine:
                     return None
                 # Compute on the fly using EventReactionCalculator
                 from src.thesis.event_reaction import EventReactionCalculator
+
                 calc = EventReactionCalculator(self.cache_db)
                 result = calc.compute(code, ann[0])
                 return result.to_dict()
 
-            cols = [d[0] for d in conn.execute(
-                "SELECT * FROM earnings_event_reaction LIMIT 0").description]
-            return dict(zip(cols, row))
+            cols = [
+                d[0]
+                for d in conn.execute("SELECT * FROM earnings_event_reaction LIMIT 0").description
+            ]
+            return dict(zip(cols, row, strict=False))
         finally:
             conn.close()
 
@@ -261,8 +261,7 @@ class ExpectationGapEngine:
         self._distribution_cache[trade_date] = dist
         return dist
 
-    def _compute_percentile(self, gap_score: float,
-                             trade_date: str) -> float | None:
+    def _compute_percentile(self, gap_score: float, trade_date: str) -> float | None:
         """Compute percentile of gap_score within the distribution."""
         # For percentile, we need the gap distribution
         conn = sqlite3.connect(self.cache_db)

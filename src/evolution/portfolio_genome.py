@@ -22,9 +22,9 @@ class PortfolioDecisionDNA:
     # Default DNA — conservative baseline
     DEFAULT = {
         "confidence_policy": {
-            "high":   {"score": 90, "max_position": 0.18},
+            "high": {"score": 90, "max_position": 0.18},
             "medium": {"score": 70, "max_position": 0.10},
-            "low":    {"score": 50, "max_position": 0.03},
+            "low": {"score": 50, "max_position": 0.03},
         },
         "uncertainty_response": {
             "model_disagreement": 0.3,
@@ -58,8 +58,9 @@ class PortfolioDecisionDNA:
                 elif key == "uncertainty_response":
                     child[key] = parent_a[key] if alpha > 0.5 else parent_b[key]
                     child[key]["reduce_pct"] = round(
-                        parent_a[key].get("reduce_pct", 0.25) * alpha +
-                        parent_b[key].get("reduce_pct", 0.25) * (1 - alpha), 2
+                        parent_a[key].get("reduce_pct", 0.25) * alpha
+                        + parent_b[key].get("reduce_pct", 0.25) * (1 - alpha),
+                        2,
                     )
                 else:
                     child[key] = parent_a[key] if alpha > 0.5 else parent_b[key]
@@ -74,10 +75,13 @@ class PortfolioDecisionDNA:
         for level in ("high", "medium", "low"):
             if level in a and level in b:
                 result[level] = {
-                    "score": int(a[level].get("score", 70) * alpha + b[level].get("score", 70) * (1 - alpha)),
+                    "score": int(
+                        a[level].get("score", 70) * alpha + b[level].get("score", 70) * (1 - alpha)
+                    ),
                     "max_position": round(
-                        a[level].get("max_position", 0.10) * alpha +
-                        b[level].get("max_position", 0.10) * (1 - alpha), 2
+                        a[level].get("max_position", 0.10) * alpha
+                        + b[level].get("max_position", 0.10) * (1 - alpha),
+                        2,
                     ),
                 }
         return result
@@ -86,13 +90,14 @@ class PortfolioDecisionDNA:
     def mutate(cls, parent: dict) -> dict:
         """Small random perturbation to policy thresholds."""
         import random
+
         child = json.loads(json.dumps(parent))
         for level in ("high", "medium", "low"):
             if level in child.get("confidence_policy", {}):
                 delta = random.uniform(-0.02, 0.02)
-                child["confidence_policy"][level]["max_position"] = max(0.01, min(0.30,
-                    child["confidence_policy"][level]["max_position"] + delta
-                ))
+                child["confidence_policy"][level]["max_position"] = max(
+                    0.01, min(0.30, child["confidence_policy"][level]["max_position"] + delta)
+                )
         return child
 
 
@@ -101,10 +106,10 @@ class RegimeProbabilityPolicy:
 
     DEFAULT = {
         "bull_prob_80_to_100": {"equity_exposure": 0.95},
-        "bull_prob_50_to_80":  {"equity_exposure": 0.85},
+        "bull_prob_50_to_80": {"equity_exposure": 0.85},
         "bear_prob_60_to_100": {"equity_exposure": 0.60},
         "crisis_prob_over_60": {"equity_exposure": 0.30},
-        "default":             {"equity_exposure": 0.75},
+        "default": {"equity_exposure": 0.75},
     }
 
     @classmethod
@@ -113,9 +118,9 @@ class RegimeProbabilityPolicy:
         if policy is None:
             policy = cls.DEFAULT
 
-        bull_p = probs.get('bull', 0)
-        bear_p = probs.get('bear', 0)
-        crisis_p = probs.get('crisis', 0)
+        bull_p = probs.get("bull", 0)
+        bear_p = probs.get("bear", 0)
+        crisis_p = probs.get("crisis", 0)
 
         if crisis_p > 0.60:
             return policy.get("crisis_prob_over_60", {}).get("equity_exposure", 0.30)
@@ -133,32 +138,32 @@ class PortfolioFitnessEvaluator:
     """Fitness function with Alpha Efficiency (Commit 6-H.2 Fix 2)."""
 
     def evaluate(self, genome: dict, decision_policy: dict, backtest: dict) -> float:
-        perf = backtest.get('performance', {})
-        risk = backtest.get('risk', {})
+        perf = backtest.get("performance", {})
+        risk = backtest.get("risk", {})
 
         # Alpha efficiency: excess return per unit of factor exposure
-        factor_exposure = risk.get('factor_exposure', 1.0)
-        alpha_efficiency = perf.get('annual_return', 0) / max(1.0, factor_exposure)
+        factor_exposure = risk.get("factor_exposure", 1.0)
+        alpha_efficiency = perf.get("annual_return", 0) / max(1.0, factor_exposure)
 
         # Decision policy effectiveness
         decision_score = self._evaluate_decision_policy(decision_policy, backtest)
 
         fitness = (
-            (perf.get('sharpe', 0) or 0) * 0.20 +
-            alpha_efficiency * 0.15 +
-            (perf.get('calmar', 0) or 0) * 0.15 +
-            (1 - abs(risk.get('max_drawdown', 0) or 0)) * 0.15 +
-            (risk.get('regime_consistency', 0) or 0) * 0.15 +
-            decision_score * 0.10 +
-            (risk.get('diversity_score', 0) or 0) * 0.10
+            (perf.get("sharpe", 0) or 0) * 0.20
+            + alpha_efficiency * 0.15
+            + (perf.get("calmar", 0) or 0) * 0.15
+            + (1 - abs(risk.get("max_drawdown", 0) or 0)) * 0.15
+            + (risk.get("regime_consistency", 0) or 0) * 0.15
+            + decision_score * 0.10
+            + (risk.get("diversity_score", 0) or 0) * 0.10
         )
         return max(0, fitness)
 
     def _evaluate_decision_policy(self, policy: dict, backtest: dict) -> float:
-        events = backtest.get('decision_events', [])
+        events = backtest.get("decision_events", [])
         if not events:
             return 0.5
-        correct = sum(1 for e in events if e.get('outcome') == 'positive')
+        correct = sum(1 for e in events if e.get("outcome") == "positive")
         return correct / len(events)
 
 
@@ -176,7 +181,7 @@ class GeneAgeTracker:
         """Higher age or performance decay → higher mutation rate."""
         row = self.db.execute(
             "SELECT age_days, performance_decay FROM portfolio_gene_age WHERE genome_id=?",
-            (genome_id,)
+            (genome_id,),
         ).fetchone()
         if not row:
             return 1.0

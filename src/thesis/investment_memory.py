@@ -26,12 +26,11 @@ Usage:
 
 from __future__ import annotations
 
-import sqlite3
 import json
 import math
-from dataclasses import dataclass, field
+import sqlite3
+from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
 
 from src.utils.logger import get_logger
 
@@ -52,33 +51,34 @@ DECAY_LAMBDA = math.log(2) / DECAY_HALF_LIFE_DAYS
 @dataclass
 class BeliefRecord:
     """One belief in the investment memory."""
-    belief_id: str               # e.g. "CONFIRMED_RECOVERY+quality"
+
+    belief_id: str  # e.g. "CONFIRMED_RECOVERY+quality"
     market_state: str
     doctrine: str
-    belief_state: str            # VERIFIED / CONDITIONAL / HYPOTHESIS / REJECTED
+    belief_state: str  # VERIFIED / CONDITIONAL / HYPOTHESIS / REJECTED
 
     # Evidence
     n_theses: int
     n_success: int
     win_rate: float
     avg_return: float
-    avg_alpha: float             # beta-adjusted return
+    avg_alpha: float  # beta-adjusted return
 
     # Audit scores
-    sample_score: float          # 0-1
-    regime_score: float          # 0-1
-    causal_score: float          # 0-1
-    decay_score: float           # 0-1
-    audit_score: float           # composite
+    sample_score: float  # 0-1
+    regime_score: float  # 0-1
+    causal_score: float  # 0-1
+    decay_score: float  # 0-1
+    audit_score: float  # composite
 
     # Missing evidence
-    missing_audits: list[str]    # e.g. ["regime_stability", "time_decay"]
+    missing_audits: list[str]  # e.g. ["regime_stability", "time_decay"]
 
     # Memory management
     created_at: str
     last_updated: str
-    decay_factor: float          # current decay (starts at 1.0)
-    can_evolve: bool             # only VERIFIED + CONDITIONAL can evolve
+    decay_factor: float  # current decay (starts at 1.0)
+    can_evolve: bool  # only VERIFIED + CONDITIONAL can evolve
 
     # Bayesian
     posterior_alpha: float
@@ -147,12 +147,20 @@ class InvestmentMemory:
         conn.commit()
         conn.close()
 
-    def store_belief(self, market_state: str, doctrine: str,
-                      n_theses: int, n_success: int,
-                      avg_return: float, avg_alpha: float,
-                      sample_score: float, regime_score: float,
-                      causal_score: float, decay_score: float,
-                      missing_audits: list[str] = None) -> BeliefRecord:
+    def store_belief(
+        self,
+        market_state: str,
+        doctrine: str,
+        n_theses: int,
+        n_success: int,
+        avg_return: float,
+        avg_alpha: float,
+        sample_score: float,
+        regime_score: float,
+        causal_score: float,
+        decay_score: float,
+        missing_audits: list[str] = None,
+    ) -> BeliefRecord:
         """Store or update a belief in memory.
 
         Args:
@@ -192,7 +200,8 @@ class InvestmentMemory:
 
         conn = sqlite3.connect(self.eval_db)
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO investment_memory
                 (belief_id, market_state, doctrine, belief_state,
                  n_theses, n_success, win_rate, avg_return, avg_alpha,
@@ -201,28 +210,56 @@ class InvestmentMemory:
                  created_at, last_updated, decay_factor, can_evolve,
                  posterior_alpha, posterior_beta)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.0, ?, ?, ?)
-            """, (
-                belief_id, market_state, doctrine, belief_state,
-                n_theses, n_success, win_rate, avg_return, avg_alpha,
-                sample_score, regime_score, causal_score, decay_score,
-                audit_score, json.dumps(missing),
-                now, now, can_evolve,
-                posterior_alpha, posterior_beta,
-            ))
+            """,
+                (
+                    belief_id,
+                    market_state,
+                    doctrine,
+                    belief_state,
+                    n_theses,
+                    n_success,
+                    win_rate,
+                    avg_return,
+                    avg_alpha,
+                    sample_score,
+                    regime_score,
+                    causal_score,
+                    decay_score,
+                    audit_score,
+                    json.dumps(missing),
+                    now,
+                    now,
+                    can_evolve,
+                    posterior_alpha,
+                    posterior_beta,
+                ),
+            )
             conn.commit()
         finally:
             conn.close()
 
         return BeliefRecord(
-            belief_id=belief_id, market_state=market_state, doctrine=doctrine,
-            belief_state=belief_state, n_theses=n_theses, n_success=n_success,
-            win_rate=win_rate, avg_return=avg_return, avg_alpha=avg_alpha,
-            sample_score=sample_score, regime_score=regime_score,
-            causal_score=causal_score, decay_score=decay_score,
-            audit_score=audit_score, missing_audits=missing,
-            created_at=now, last_updated=now, decay_factor=1.0,
+            belief_id=belief_id,
+            market_state=market_state,
+            doctrine=doctrine,
+            belief_state=belief_state,
+            n_theses=n_theses,
+            n_success=n_success,
+            win_rate=win_rate,
+            avg_return=avg_return,
+            avg_alpha=avg_alpha,
+            sample_score=sample_score,
+            regime_score=regime_score,
+            causal_score=causal_score,
+            decay_score=decay_score,
+            audit_score=audit_score,
+            missing_audits=missing,
+            created_at=now,
+            last_updated=now,
+            decay_factor=1.0,
             can_evolve=can_evolve,
-            posterior_alpha=posterior_alpha, posterior_beta=posterior_beta,
+            posterior_alpha=posterior_alpha,
+            posterior_beta=posterior_beta,
         )
 
     def get_beliefs(self, market_state: str = None) -> list[BeliefRecord]:
@@ -309,9 +346,9 @@ class InvestmentMemory:
                 "SELECT COUNT(*) FROM investment_memory WHERE can_evolve=1"
             ).fetchone()[0]
 
-            avg_decay = conn.execute(
-                "SELECT AVG(decay_factor) FROM investment_memory"
-            ).fetchone()[0] or 1.0
+            avg_decay = (
+                conn.execute("SELECT AVG(decay_factor) FROM investment_memory").fetchone()[0] or 1.0
+            )
         finally:
             conn.close()
 

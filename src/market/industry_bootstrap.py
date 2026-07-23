@@ -18,17 +18,13 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-import time
-from datetime import date, timedelta
-from typing import Optional
+from datetime import date
 
 import numpy as np
-import pandas as pd
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
 
 DDL_INDUSTRY_DAILY_RETURNS = """
 CREATE TABLE IF NOT EXISTS industry_daily_returns (
@@ -56,9 +52,10 @@ def _industry_short_name(full: str) -> str:
     """J66货币金融服务 -> 货币金融服务 (strip the leading code prefix)."""
     if not full:
         return ""
-    #证监会格式: "J66货币金融服务" -> 取中文名
+    # 证监会格式: "J66货币金融服务" -> 取中文名
     import re
-    m = re.match(r'^[A-Z]\d+(.*)', full)
+
+    m = re.match(r"^[A-Z]\d+(.*)", full)
     return m.group(1) if m else full
 
 
@@ -80,15 +77,16 @@ class IndustryBootstrap:
         Returns: number of stocks updated.
         """
         import baostock as bs
+
         lg = bs.login()
-        if lg.error_code != '0':
+        if lg.error_code != "0":
             raise ConnectionError(f"baostock login failed: {lg.error_msg}")
 
         try:
             rs = bs.query_stock_industry()
             rows = []
-            while rs.error_code == '0' and rs.next():
-                row = dict(zip(rs.fields, rs.get_row_data()))
+            while rs.error_code == "0" and rs.next():
+                row = dict(zip(rs.fields, rs.get_row_data(), strict=False))
                 rows.append(row)
         finally:
             bs.logout()
@@ -119,8 +117,9 @@ class IndustryBootstrap:
         logger.info("industry_bootstrap: updated %d stocks with industry", updated)
         return updated
 
-    def build_industry_daily_returns(self, start_date: str = "2024-01-01",
-                                      end_date: str | None = None) -> int:
+    def build_industry_daily_returns(
+        self, start_date: str = "2024-01-01", end_date: str | None = None
+    ) -> int:
         """Build market-cap-weighted industry daily returns from stock K-lines.
 
         For each trade date, group stocks by industry, compute the
@@ -134,6 +133,7 @@ class IndustryBootstrap:
         """
         self._ensure_table()
         from src.data.local_provider import LocalDataProvider
+
         local = LocalDataProvider()
 
         conn = sqlite3.connect(self.cache_db)
@@ -146,10 +146,14 @@ class IndustryBootstrap:
         conn.close()
 
         if not stock_rows:
-            logger.warning("industry_bootstrap: no stocks with industry - run backfill_industry first")
+            logger.warning(
+                "industry_bootstrap: no stocks with industry - run backfill_industry first"
+            )
             return 0
 
-        logger.info("industry_bootstrap: %d stocks with industry, building returns", len(stock_rows))
+        logger.info(
+            "industry_bootstrap: %d stocks with industry, building returns", len(stock_rows)
+        )
 
         # End date default = today
         if end_date is None:
@@ -159,6 +163,7 @@ class IndustryBootstrap:
         # To keep it fast, sample at most 1000 stocks (enough for industry weights)
         if len(stock_rows) > 1000:
             import random
+
             stock_rows = random.sample(stock_rows, 1000)
 
         industry_date_returns: dict[tuple[str, str], list[tuple[float, float]]] = {}
@@ -182,8 +187,8 @@ class IndustryBootstrap:
                     if key not in industry_date_returns:
                         industry_date_returns[key] = []
                     industry_date_returns[key].append((float(ret), market_cap))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
             if (i + 1) % 200 == 0:
                 logger.info("industry_bootstrap: %d/%d stocks processed", i + 1, len(stock_rows))
 

@@ -42,12 +42,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -88,17 +88,19 @@ def load_candidates():
             gap = score.gap_score
         except Exception:
             pass
-        enriched.append({
-            "episode_id": r["episode_id"],
-            "trade_date": r["trade_date"],
-            "sid": r["security_id"],
-            "alpha": r["residual_alpha"],
-            "frm": r["frm_score"],
-            "frm_dir": r["frm_direction"],
-            "rs_avail": r["rs_data_available"],
-            "return_t20": r["stock_return_t20"],
-            "gap": gap,
-        })
+        enriched.append(
+            {
+                "episode_id": r["episode_id"],
+                "trade_date": r["trade_date"],
+                "sid": r["security_id"],
+                "alpha": r["residual_alpha"],
+                "frm": r["frm_score"],
+                "frm_dir": r["frm_direction"],
+                "rs_avail": r["rs_data_available"],
+                "return_t20": r["stock_return_t20"],
+                "gap": gap,
+            }
+        )
 
     # Compute quintiles for FRM and Gap (cross-sectional, all candidates)
     frm_vals = sorted([e["frm"] for e in enriched if e["frm"] is not None])
@@ -126,7 +128,9 @@ def _portfolio_metrics(stocks, label=""):
         "label": label,
         "n": len(stocks),
         "alpha_pct": float(np.mean(alphas) * 100) if alphas else None,
-        "positive_rate_pct": float(100.0 * sum(1 for a in alphas if a > 0) / len(alphas)) if alphas else None,
+        "positive_rate_pct": float(100.0 * sum(1 for a in alphas if a > 0) / len(alphas))
+        if alphas
+        else None,
         "worst_stock_pct": float(min(returns) * 100) if returns else None,
         "volatility_pct": float(np.std(returns) * 100) if len(returns) > 1 else None,
         "median_alpha_pct": float(np.median(alphas) * 100) if alphas else None,
@@ -139,9 +143,15 @@ def _print_portfolio(s, indent=4):
         print(f"{pad}{s['label']}: EMPTY", flush=True)
         return
     print(f"{pad}{s['label']}: N={s['n']}", flush=True)
-    print(f"{pad}  alpha={s['alpha_pct']:+.2f}%  positive={s['positive_rate_pct']:.1f}%  "
-          f"median={s['median_alpha_pct']:+.2f}%", flush=True)
-    print(f"{pad}  worst_stock={s['worst_stock_pct']:+.2f}%  vol={s['volatility_pct']:.2f}%", flush=True)
+    print(
+        f"{pad}  alpha={s['alpha_pct']:+.2f}%  positive={s['positive_rate_pct']:.1f}%  "
+        f"median={s['median_alpha_pct']:+.2f}%",
+        flush=True,
+    )
+    print(
+        f"{pad}  worst_stock={s['worst_stock_pct']:+.2f}%  vol={s['volatility_pct']:.2f}%",
+        flush=True,
+    )
 
 
 def build_portfolios(enriched):
@@ -208,21 +218,24 @@ def run_exp11b():
     port_a, port_b, port_c_meta, by_episode = build_portfolios(enriched)
 
     # Portfolio metrics
-    print(f"\n{'='*70}", flush=True)
+    print(f"\n{'=' * 70}", flush=True)
     print("PORTFOLIO COMPARISON", flush=True)
-    print(f"{'='*70}", flush=True)
+    print(f"{'=' * 70}", flush=True)
 
     s_a = _portfolio_metrics(port_a, "Portfolio A: FRM direction only (baseline)")
     s_b = _portfolio_metrics(port_b, "Portfolio B: FRM + MEF (reject H×H, Gap Q5)")
 
-    print(f"\n  --- Portfolio A: FRM direction only ---", flush=True)
+    print("\n  --- Portfolio A: FRM direction only ---", flush=True)
     _print_portfolio(s_a)
-    print(f"\n  --- Portfolio B: FRM + Market Extremity Filter ---", flush=True)
+    print("\n  --- Portfolio B: FRM + Market Extremity Filter ---", flush=True)
     _print_portfolio(s_b)
 
     # How many removed
     n_removed = len(port_a) - len(port_b)
-    print(f"\n  MEF removed: {n_removed} stocks ({100.0*n_removed/len(port_a):.1f}% of pool)", flush=True)
+    print(
+        f"\n  MEF removed: {n_removed} stocks ({100.0 * n_removed / len(port_a):.1f}% of pool)",
+        flush=True,
+    )
 
     # Random filter bootstrap
     print(f"\n  --- Portfolio C: Random filter (bootstrap {N_BOOTSTRAP_RANDOM}x) ---", flush=True)
@@ -231,32 +244,47 @@ def run_exp11b():
     boot_worsts = [r["worst_stock_pct"] for r in boot_results if r["worst_stock_pct"] is not None]
     boot_vols = [r["volatility_pct"] for r in boot_results if r["volatility_pct"] is not None]
 
-    print(f"  Random filter distribution:", flush=True)
-    print(f"    alpha:      mean={np.mean(boot_alphas):+.2f}%  std={np.std(boot_alphas):.2f}%  "
-          f"[{np.percentile(boot_alphas,5):+.2f}%, {np.percentile(boot_alphas,95):+.2f}%]", flush=True)
-    print(f"    worst_stock: mean={np.mean(boot_worsts):+.2f}%  std={np.std(boot_worsts):.2f}%  "
-          f"[{np.percentile(boot_worsts,5):+.2f}%, {np.percentile(boot_worsts,95):+.2f}%]", flush=True)
-    print(f"    volatility:  mean={np.mean(boot_vols):.2f}%  std={np.std(boot_vols):.2f}%  "
-          f"[{np.percentile(boot_vols,5):.2f}%, {np.percentile(boot_vols,95):.2f}%]", flush=True)
+    print("  Random filter distribution:", flush=True)
+    print(
+        f"    alpha:      mean={np.mean(boot_alphas):+.2f}%  std={np.std(boot_alphas):.2f}%  "
+        f"[{np.percentile(boot_alphas, 5):+.2f}%, {np.percentile(boot_alphas, 95):+.2f}%]",
+        flush=True,
+    )
+    print(
+        f"    worst_stock: mean={np.mean(boot_worsts):+.2f}%  std={np.std(boot_worsts):.2f}%  "
+        f"[{np.percentile(boot_worsts, 5):+.2f}%, {np.percentile(boot_worsts, 95):+.2f}%]",
+        flush=True,
+    )
+    print(
+        f"    volatility:  mean={np.mean(boot_vols):.2f}%  std={np.std(boot_vols):.2f}%  "
+        f"[{np.percentile(boot_vols, 5):.2f}%, {np.percentile(boot_vols, 95):.2f}%]",
+        flush=True,
+    )
 
     # Per-episode comparison
-    print(f"\n{'='*70}", flush=True)
+    print(f"\n{'=' * 70}", flush=True)
     print("PER-EPISODE COMPARISON (A vs B)", flush=True)
-    print(f"{'='*70}", flush=True)
-    print(f"  {'episode':15s} {'A_n':>4} {'B_n':>4} {'A_alpha':>8} {'B_alpha':>8} "
-          f"{'A_worst':>8} {'B_worst':>8}", flush=True)
+    print(f"{'=' * 70}", flush=True)
+    print(
+        f"  {'episode':15s} {'A_n':>4} {'B_n':>4} {'A_alpha':>8} {'B_alpha':>8} "
+        f"{'A_worst':>8} {'B_worst':>8}",
+        flush=True,
+    )
     for ep_id in sorted(by_episode.keys()):
         stocks = by_episode[ep_id]
         s_a_ep = _portfolio_metrics(stocks)
         s_b_ep = _portfolio_metrics([s for s in stocks if not s["is_hh"] and not s["is_gap_q5"]])
-        print(f"  {ep_id:15s} {s_a_ep['n']:4d} {s_b_ep['n']:4d} "
-              f"{s_a_ep['alpha_pct']:+7.2f}% {s_b_ep['alpha_pct']:+7.2f}% "
-              f"{s_a_ep['worst_stock_pct']:+7.2f}% {s_b_ep['worst_stock_pct']:+7.2f}%", flush=True)
+        print(
+            f"  {ep_id:15s} {s_a_ep['n']:4d} {s_b_ep['n']:4d} "
+            f"{s_a_ep['alpha_pct']:+7.2f}% {s_b_ep['alpha_pct']:+7.2f}% "
+            f"{s_a_ep['worst_stock_pct']:+7.2f}% {s_b_ep['worst_stock_pct']:+7.2f}%",
+            flush=True,
+        )
 
     # ─── Verdict ───
-    print(f"\n{'='*70}", flush=True)
+    print(f"\n{'=' * 70}", flush=True)
     print("VERDICT SYNTHESIS", flush=True)
-    print(f"{'='*70}", flush=True)
+    print(f"{'=' * 70}", flush=True)
 
     checks = {}
     # Check 1: B worst_stock < A worst_stock (MEF reduces drawdown)
@@ -276,23 +304,37 @@ def run_exp11b():
     n_beats = sum([b_beats_random_alpha, b_beats_random_worst, b_beats_random_vol])
     checks["mef_beats_random_2of3"] = n_beats >= 2
 
-    print(f"\n  Validation checks:", flush=True)
-    print(f"    MEF reduces worst stock:    {'PASS' if checks['mef_reduces_worst'] else 'FAIL'} "
-          f"(A={s_a['worst_stock_pct']:+.2f}%, B={s_b['worst_stock_pct']:+.2f}%)", flush=True)
-    print(f"    MEF reduces volatility:     {'PASS' if checks['mef_reduces_vol'] else 'FAIL'} "
-          f"(A={s_a['volatility_pct']:.2f}%, B={s_b['volatility_pct']:.2f}%)", flush=True)
-    print(f"    MEF preserves alpha (<1pp): {'PASS' if checks['mef_preserves_alpha'] else 'FAIL'} "
-          f"(A={s_a['alpha_pct']:+.2f}%, B={s_b['alpha_pct']:+.2f}%)", flush=True)
-    print(f"    MEF beats random 2/3:       {'PASS' if checks['mef_beats_random_2of3'] else 'FAIL'} "
-          f"(beats {n_beats}/3 random median)", flush=True)
+    print("\n  Validation checks:", flush=True)
+    print(
+        f"    MEF reduces worst stock:    {'PASS' if checks['mef_reduces_worst'] else 'FAIL'} "
+        f"(A={s_a['worst_stock_pct']:+.2f}%, B={s_b['worst_stock_pct']:+.2f}%)",
+        flush=True,
+    )
+    print(
+        f"    MEF reduces volatility:     {'PASS' if checks['mef_reduces_vol'] else 'FAIL'} "
+        f"(A={s_a['volatility_pct']:.2f}%, B={s_b['volatility_pct']:.2f}%)",
+        flush=True,
+    )
+    print(
+        f"    MEF preserves alpha (<1pp): {'PASS' if checks['mef_preserves_alpha'] else 'FAIL'} "
+        f"(A={s_a['alpha_pct']:+.2f}%, B={s_b['alpha_pct']:+.2f}%)",
+        flush=True,
+    )
+    print(
+        f"    MEF beats random 2/3:       {'PASS' if checks['mef_beats_random_2of3'] else 'FAIL'} "
+        f"(beats {n_beats}/3 random median)",
+        flush=True,
+    )
 
     all_pass = all(checks.values())
     n_pass = sum(checks.values())
 
     if all_pass:
         verdict = "ALL CHECKS PASS - MEF improves portfolio quality"
-        recommendation = ("v3.6 = Market State Intelligence Layer (MSIL) with MEF. "
-                          "FRM direction gate + Market Extremity Filter. Risk filter validated.")
+        recommendation = (
+            "v3.6 = Market State Intelligence Layer (MSIL) with MEF. "
+            "FRM direction gate + Market Extremity Filter. Risk filter validated."
+        )
     elif n_pass >= 3:
         verdict = f"PARTIAL ({n_pass}/4 pass) - MEF shows promise"
         recommendation = "Analyze which checks failed. May need MEF threshold tuning."

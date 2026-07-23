@@ -28,9 +28,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
-
-import numpy as np
 
 from src.data.local_provider import LocalDataProvider
 from src.utils.logger import get_logger
@@ -41,9 +38,10 @@ logger = get_logger(__name__)
 @dataclass
 class SectorConfirmResult:
     """Sector-relative strength confirmation for one stock."""
+
     code: str
     trade_date: str
-    sector: Optional[str] = None
+    sector: str | None = None
 
     # Subscores (0-100)
     relative_strength: float = 50.0
@@ -51,14 +49,14 @@ class SectorConfirmResult:
     consistency: float = 50.0
 
     # Raw signals
-    stock_return_20d: Optional[float] = None
-    sector_return_20d: Optional[float] = None
-    market_return_20d: Optional[float] = None
-    rs_vs_sector: Optional[float] = None       # stock - sector
-    sector_vs_market: Optional[float] = None   # sector - market
+    stock_return_20d: float | None = None
+    sector_return_20d: float | None = None
+    market_return_20d: float | None = None
+    rs_vs_sector: float | None = None  # stock - sector
+    sector_vs_market: float | None = None  # sector - market
 
     # Diagnosis
-    data_available: bool = True   # False if sector data missing (pre-2024-06)
+    data_available: bool = True  # False if sector data missing (pre-2024-06)
 
     # Composite
     score: float = 50.0  # 0-100
@@ -92,8 +90,7 @@ class SectorConfirmationScorer:
         self.cache_db = cache_db
         self.local = LocalDataProvider()
 
-    def compute(self, code: str, trade_date: str,
-                lookback_days: int = 20) -> SectorConfirmResult:
+    def compute(self, code: str, trade_date: str, lookback_days: int = 20) -> SectorConfirmResult:
         """Compute sector confirmation score.
 
         Args:
@@ -121,14 +118,13 @@ class SectorConfirmationScorer:
             return result
 
         # 2. Stock 20d return
-        result.stock_return_20d = self._get_stock_return(code, start_date,
-                                                          trade_date)
+        result.stock_return_20d = self._get_stock_return(code, start_date, trade_date)
         # 3. Sector 20d cumulative return
         result.sector_return_20d = self._get_sector_cumulative(
-            result.sector, start_date, trade_date)
+            result.sector, start_date, trade_date
+        )
         # 4. Market 20d return
-        result.market_return_20d = self._get_market_return(start_date,
-                                                           trade_date)
+        result.market_return_20d = self._get_market_return(start_date, trade_date)
 
         if result.sector_return_20d is None:
             # Sector data not available for this date range (pre-2024-06)
@@ -143,12 +139,9 @@ class SectorConfirmationScorer:
             result.sector_vs_market = result.sector_return_20d - result.market_return_20d
 
         # Subscores
-        result.relative_strength = self._score_relative_strength(
-            result.rs_vs_sector)
-        result.sector_strength = self._score_sector_strength(
-            result.sector_vs_market)
-        result.consistency = self._score_consistency(
-            code, result.sector, trade_date)
+        result.relative_strength = self._score_relative_strength(result.rs_vs_sector)
+        result.sector_strength = self._score_sector_strength(result.sector_vs_market)
+        result.consistency = self._score_consistency(code, result.sector, trade_date)
 
         # Composite
         result.score = (
@@ -163,7 +156,7 @@ class SectorConfirmationScorer:
     # Subscore computations
     # ------------------------------------------------------------------
 
-    def _score_relative_strength(self, rs: Optional[float]) -> float:
+    def _score_relative_strength(self, rs: float | None) -> float:
         """Score stock return minus sector return (50% weight).
 
         Positive = stock outperforms sector (genuine stock strength).
@@ -183,7 +176,7 @@ class SectorConfirmationScorer:
         else:
             return 15.0
 
-    def _score_sector_strength(self, sm: Optional[float]) -> float:
+    def _score_sector_strength(self, sm: float | None) -> float:
         """Score sector return minus market return (30% weight).
 
         Positive = sector is leading the market (sector momentum).
@@ -205,8 +198,7 @@ class SectorConfirmationScorer:
         else:
             return 20.0
 
-    def _score_consistency(self, code: str, sector: str,
-                           trade_date: str) -> float:
+    def _score_consistency(self, code: str, sector: str, trade_date: str) -> float:
         """Score daily outperformance consistency over last 5 days (20%).
 
         What fraction of the last 5 trading days did the stock outperform
@@ -245,8 +237,7 @@ class SectorConfirmationScorer:
         try:
             for d, sr in stock_rets:
                 sec_row = conn.execute(
-                    "SELECT return FROM industry_daily_returns "
-                    "WHERE industry=? AND trade_date=?",
+                    "SELECT return FROM industry_daily_returns WHERE industry=? AND trade_date=?",
                     (sector, d),
                 ).fetchone()
                 if sec_row and sec_row[0] is not None:
@@ -277,19 +268,17 @@ class SectorConfirmationScorer:
         finally:
             conn.close()
 
-    def _get_stock_return(self, code: str, start: str,
-                          end: str) -> float | None:
+    def _get_stock_return(self, code: str, start: str, end: str) -> float | None:
         try:
             kline = self.local.get_daily_kline(code, start, end)
             if kline is not None and not kline.empty and len(kline) >= 2:
                 close = kline["close"].values
                 return float((close[-1] - close[0]) / close[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return None
 
-    def _get_sector_cumulative(self, industry: str, start: str,
-                               end: str) -> float | None:
+    def _get_sector_cumulative(self, industry: str, start: str, end: str) -> float | None:
         conn = sqlite3.connect(self.cache_db)
         try:
             rows = conn.execute(
@@ -305,7 +294,7 @@ class SectorConfirmationScorer:
         cum = 1.0
         for r in rows:
             if r[0] is not None:
-                cum *= (1.0 + r[0])
+                cum *= 1.0 + r[0]
         return cum - 1.0
 
     def _get_market_return(self, start: str, end: str) -> float | None:
@@ -319,8 +308,7 @@ class SectorConfirmationScorer:
         conn = sqlite3.connect(self.cache_db)
         try:
             row = conn.execute(
-                "SELECT adj_close FROM market_index_daily "
-                "WHERE index_code=? AND trade_date=?",
+                "SELECT adj_close FROM market_index_daily WHERE index_code=? AND trade_date=?",
                 (code, trade_date),
             ).fetchone()
             if not row or row[0] is None:
@@ -336,8 +324,7 @@ class SectorConfirmationScorer:
             return None
         return float(row[0])
 
-    def _shift_trading_days(self, trade_date: str,
-                            offset: int) -> str | None:
+    def _shift_trading_days(self, trade_date: str, offset: int) -> str | None:
         """Shift a date by `offset` trading days (negative = backward)."""
         conn = sqlite3.connect(self.cache_db)
         try:

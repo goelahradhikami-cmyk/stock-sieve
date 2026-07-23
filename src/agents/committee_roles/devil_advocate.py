@@ -10,7 +10,20 @@ normalize_severity 归一到 0-1 后再比较。
 
 from ._common import as_thesis_dict, clamp, normalize_severity
 
-ABSOLUTE_WORDS = ["必然", "绝无", "唯一", "永远", "绝对", "必定", "100%", "无风险", "不可能", "guaranteed", "certainly", "impossible"]
+ABSOLUTE_WORDS = [
+    "必然",
+    "绝无",
+    "唯一",
+    "永远",
+    "绝对",
+    "必定",
+    "100%",
+    "无风险",
+    "不可能",
+    "guaranteed",
+    "certainly",
+    "impossible",
+]
 QUANT_OPS = ("<", ">", "==", "<=", ">=", "≤", "≥", "低于", "高于", "小于", "大于", "以下", "以上")
 
 
@@ -57,9 +70,7 @@ def score_devil_advocate(thesis, validation_result=None, factor_snapshot=None):
             )
         elif any("主观" in c for c in conds):
             survival -= 10
-            attack_points.append(
-                "SUBJECTIVE_INVALIDATION: 部分证伪条件依赖主观判断，可验证性存疑"
-            )
+            attack_points.append("SUBJECTIVE_INVALIDATION: 部分证伪条件依赖主观判断，可验证性存疑")
 
     # 4. 与已知反证/失败模式冲突
     for warn in _get_warnings(validation_result):

@@ -35,7 +35,6 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Optional
 
 import numpy as np
 
@@ -47,18 +46,19 @@ logger = get_logger(__name__)
 @dataclass
 class ConfidenceResult:
     """Recovery confidence assessment for one date."""
+
     date: str
-    confidence: float          # 0-100
-    anomaly_weight: float      # 0.0-1.0 (derived from confidence)
-    allows_anomaly: bool       # True if weight >= 0.5
+    confidence: float  # 0-100
+    anomaly_weight: float  # 0.0-1.0 (derived from confidence)
+    allows_anomaly: bool  # True if weight >= 0.5
 
     # Sub-scores
-    breadth_recovery: float    # 0-100
-    vol_repair: float          # 0-100
-    trend_confirm: float       # 0-100
+    breadth_recovery: float  # 0-100
+    vol_repair: float  # 0-100
+    trend_confirm: float  # 0-100
 
     # Diagnosis
-    confidence_band: str       # "blocked" / "small" / "normal" / "full"
+    confidence_band: str  # "blocked" / "small" / "normal" / "full"
     reason: str
 
     def to_dict(self) -> dict:
@@ -95,8 +95,7 @@ class RecoveryConfidence:
     while 2024-08 has improving breadth + strong vol contraction = high confidence.
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
 
@@ -116,11 +115,7 @@ class RecoveryConfidence:
 
         # Weighted composite (6-S.5.5b: vol_repair is strongest discriminator,
         # breadth has almost no variance across dates, trend is moderate)
-        confidence = (
-            0.10 * breadth
-            + 0.50 * vol_repair
-            + 0.40 * trend
-        )
+        confidence = 0.10 * breadth + 0.50 * vol_repair + 0.40 * trend
 
         # Anomaly permission from confidence
         # 6-S.5.5b: threshold raised from 50 to 55 to block 2022-08 type
@@ -275,10 +270,7 @@ class RecoveryConfidence:
 
         # Above MA60 -> bullish, below -> bearish
         # trend = (current - ma60) / ma60, range -1 to +1
-        if ma60 > 0:
-            trend = float(np.clip((current - ma60) / ma60, -1, 1))
-        else:
-            trend = 0.0
+        trend = float(np.clip((current - ma60) / ma60, -1, 1)) if ma60 > 0 else 0.0
 
         # Score: trend +0.10 -> 70, +0.00 -> 50, -0.10 -> 30
         trend_score = 50 + trend * 200

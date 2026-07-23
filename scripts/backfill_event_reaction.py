@@ -20,13 +20,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
-from collections import defaultdict
-
-import numpy as np
+import os
+import sqlite3
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -81,8 +78,7 @@ def backfill_v3_candidates():
 
         # Check if already computed
         existing = cache.execute(
-            "SELECT 1 FROM earnings_event_reaction "
-            "WHERE security_id = ? AND available_date = ?",
+            "SELECT 1 FROM earnings_event_reaction WHERE security_id = ? AND available_date = ?",
             (code, available_date),
         ).fetchone()
         if existing:
@@ -102,8 +98,10 @@ def backfill_v3_candidates():
         if len(batch) >= 50:
             _commit_batch(cache, batch)
             batch = []
-            print(f"  ... {i+1}/{len(candidates)} processed "
-                  f"({written} written, {skipped} skipped)", flush=True)
+            print(
+                f"  ... {i + 1}/{len(candidates)} processed ({written} written, {skipped} skipped)",
+                flush=True,
+            )
 
     if batch:
         _commit_batch(cache, batch)
@@ -137,8 +135,7 @@ def backfill_full(start_date: str = "2021-08-02"):
     for i, (code, available_date) in enumerate(announcements):
         # Check if already computed
         existing = cache.execute(
-            "SELECT 1 FROM earnings_event_reaction "
-            "WHERE security_id = ? AND available_date = ?",
+            "SELECT 1 FROM earnings_event_reaction WHERE security_id = ? AND available_date = ?",
             (code, available_date),
         ).fetchone()
         if existing:
@@ -156,8 +153,9 @@ def backfill_full(start_date: str = "2021-08-02"):
             _commit_batch(cache, batch)
             batch = []
             if (i + 1) % 1000 == 0:
-                print(f"  ... {i+1}/{len(announcements)} processed "
-                      f"({written} written)", flush=True)
+                print(
+                    f"  ... {i + 1}/{len(announcements)} processed ({written} written)", flush=True
+                )
 
     if batch:
         _commit_batch(cache, batch)
@@ -208,22 +206,38 @@ def backfill_single(code: str):
 
 def _result_to_tuple(result):
     return (
-        result.security_id, result.available_date, None,  # announcement_date
-        result.earnings_yoy_current, result.earnings_yoy_previous,
+        result.security_id,
+        result.available_date,
+        None,  # announcement_date
+        result.earnings_yoy_current,
+        result.earnings_yoy_previous,
         result.earnings_yoy_previous2,
-        result.earnings_acceleration, result.earnings_acceleration_2nd,
+        result.earnings_acceleration,
+        result.earnings_acceleration_2nd,
         result.frm_direction,
-        result.return_t1, result.return_t5, result.return_t10, result.return_t20,
-        result.market_return_t1, result.market_return_t5,
-        result.market_return_t10, result.market_return_t20,
-        result.market_adjusted_t1, result.market_adjusted_t5,
-        result.market_adjusted_t10, result.market_adjusted_t20,
+        result.return_t1,
+        result.return_t5,
+        result.return_t10,
+        result.return_t20,
+        result.market_return_t1,
+        result.market_return_t5,
+        result.market_return_t10,
+        result.market_return_t20,
+        result.market_adjusted_t1,
+        result.market_adjusted_t5,
+        result.market_adjusted_t10,
+        result.market_adjusted_t20,
         result.sector_code,
-        result.sector_return_t1, result.sector_return_t5,
-        result.sector_return_t10, result.sector_return_t20,
-        result.sector_adjusted_t1, result.sector_adjusted_t5,
-        result.sector_adjusted_t10, result.sector_adjusted_t20,
-        result.residual_t5, result.residual_t20,
+        result.sector_return_t1,
+        result.sector_return_t5,
+        result.sector_return_t10,
+        result.sector_return_t20,
+        result.sector_adjusted_t1,
+        result.sector_adjusted_t5,
+        result.sector_adjusted_t10,
+        result.sector_adjusted_t20,
+        result.residual_t5,
+        result.residual_t20,
     )
 
 
@@ -246,16 +260,15 @@ def _commit_batch(cache: sqlite3.Connection, batch: list):
 
 
 def _print_summary(cache: sqlite3.Connection):
-    print(f"\n=== earnings_event_reaction Summary ===", flush=True)
-    total = cache.execute(
-        "SELECT COUNT(*) FROM earnings_event_reaction").fetchone()[0]
+    print("\n=== earnings_event_reaction Summary ===", flush=True)
+    total = cache.execute("SELECT COUNT(*) FROM earnings_event_reaction").fetchone()[0]
     print(f"  Total rows: {total}", flush=True)
 
     if total == 0:
         return
 
     # By frm_direction
-    print(f"\n  By FRM direction:", flush=True)
+    print("\n  By FRM direction:", flush=True)
     for r in cache.execute(
         "SELECT frm_direction, COUNT(*) c, "
         "AVG(sector_adjusted_t5) avg_sa5, AVG(residual_t5) avg_res5 "
@@ -263,12 +276,14 @@ def _print_summary(cache: sqlite3.Connection):
         "WHERE sector_adjusted_t5 IS NOT NULL "
         "GROUP BY frm_direction ORDER BY c DESC"
     ).fetchall():
-        print(f"    {r[0] or 'null':14s}: N={r[1]:5d} "
-              f"avg_sector_adj_t5={r[2]:+.4f} avg_residual_t5={r[3]:+.4f}",
-              flush=True)
+        print(
+            f"    {r[0] or 'null':14s}: N={r[1]:5d} "
+            f"avg_sector_adj_t5={r[2]:+.4f} avg_residual_t5={r[3]:+.4f}",
+            flush=True,
+        )
 
     # Sector adjusted t5 distribution
-    print(f"\n  sector_adjusted_t5 distribution:", flush=True)
+    print("\n  sector_adjusted_t5 distribution:", flush=True)
     for r in cache.execute(
         "SELECT COUNT(*) c, AVG(sector_adjusted_t5) avg, "
         "MIN(sector_adjusted_t5) mn, MAX(sector_adjusted_t5) mx "
@@ -281,17 +296,13 @@ def _print_summary(cache: sqlite3.Connection):
         "FROM earnings_event_reaction WHERE sector_adjusted_t5 IS NOT NULL"
     ).fetchone()
     if row and row[0] > 0:
-        print(f"    N={row[0]} mean={row[1]:+.4f} min={row[2]:+.4f} max={row[3]:+.4f}",
-              flush=True)
+        print(f"    N={row[0]} mean={row[1]:+.4f} min={row[2]:+.4f} max={row[3]:+.4f}", flush=True)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Backfill Event Reaction Data (6-S.15.1)")
-    parser.add_argument("--full", action="store_true",
-                        help="Backfill ALL announcements (slow)")
-    parser.add_argument("--code", type=str, default=None,
-                        help="Single stock code")
+    parser = argparse.ArgumentParser(description="Backfill Event Reaction Data (6-S.15.1)")
+    parser.add_argument("--full", action="store_true", help="Backfill ALL announcements (slow)")
+    parser.add_argument("--code", type=str, default=None, help="Single stock code")
     args = parser.parse_args()
 
     if args.code:

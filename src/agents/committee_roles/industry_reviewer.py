@@ -12,7 +12,11 @@
 
 import re
 
+from src.utils.logger import get_logger
+
 from ._common import as_float, as_thesis_dict, clamp
+
+logger = get_logger(__name__)
 
 
 def score_industry(thesis, market_snapshot, factor_snapshot) -> float:
@@ -39,9 +43,8 @@ def score_industry(thesis, market_snapshot, factor_snapshot) -> float:
 
     # 2. 行业增长与 thesis 一致性（缺失视为中性）
     rg = fs.get("revenue_growth_yoy", fs.get("revenue_growth_1y"))
-    if rg is not None and thesis.get("family") == "growth":
-        if as_float(rg, 0.0) < 0.1:
-            score -= 20  # 成长预期与事实背离
+    if rg is not None and thesis.get("family") == "growth" and as_float(rg, 0.0) < 0.1:
+        score -= 20  # 成长预期与事实背离
 
     # 3. 催化剂时效性
     horizon = thesis.get("catalyst_horizon_months", thesis.get("horizon", 12))
@@ -65,8 +68,9 @@ def _parse_horizon(v) -> float:
 def _dataclass_to_dict(obj) -> dict:
     try:
         import dataclasses
+
         if dataclasses.is_dataclass(obj):
             return dataclasses.asdict(obj)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("operation failed (was silently ignored): %s", exc)
     return {}

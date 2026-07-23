@@ -48,8 +48,7 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -66,15 +65,15 @@ logger = get_logger(__name__)
 ALIGNMENT_MIN_REVENUE_RATIO = 0.30  # |revenue_yoy| >= 0.30 * |earnings_yoy|
 
 # Persistence
-CONSISTENCY_MAX_REVERSALS = 1       # reversal_count <= 1 (allows 1 sign flip, not V-shape)
+CONSISTENCY_MAX_REVERSALS = 1  # reversal_count <= 1 (allows 1 sign flip, not V-shape)
 
 # Margin normalization
-MARGIN_ZSCORE_PEAK = 1.5            # max(company_z, industry_z) < 1.5
-MARGIN_STD_FLOOR = 0.005            # avoid div-by-zero on near-constant margins
-MIN_INDUSTRY_PEERS = 5              # need >=5 industry peers for industry zscore
+MARGIN_ZSCORE_PEAK = 1.5  # max(company_z, industry_z) < 1.5
+MARGIN_STD_FLOOR = 0.005  # avoid div-by-zero on near-constant margins
+MIN_INDUSTRY_PEERS = 5  # need >=5 industry peers for industry zscore
 
 # Minimum data requirements
-MIN_PERIODS_FOR_3Q = 3              # need 3 vintage-aware periods for persistence/margin
+MIN_PERIODS_FOR_3Q = 3  # need 3 vintage-aware periods for persistence/margin
 
 
 @dataclass
@@ -84,38 +83,39 @@ class SustainabilityResult:
     All raw_* fields are stored even when flags fail, so threshold tuning
     in v3.4.1 does NOT require re-backfill (6-S.16.0a amendment).
     """
+
     security_id: str
     as_of_date: str
-    available_date: Optional[str] = None
-    report_date: Optional[str] = None
-    industry: Optional[str] = None
+    available_date: str | None = None
+    report_date: str | None = None
+    industry: str | None = None
 
     # Alignment (raw + flag)
-    revenue_yoy_current: Optional[float] = None
-    earnings_yoy_current: Optional[float] = None
-    profit_elasticity: Optional[float] = None
-    alignment_flag: Optional[int] = None
+    revenue_yoy_current: float | None = None
+    earnings_yoy_current: float | None = None
+    profit_elasticity: float | None = None
+    alignment_flag: int | None = None
 
     # Persistence (raw + flag)
-    accel_q0: Optional[float] = None
-    accel_q1: Optional[float] = None
-    accel_q2: Optional[float] = None
-    accel_trend: Optional[float] = None
-    accel_volatility: Optional[float] = None
-    reversal_count: Optional[int] = None
-    consistency_flag: Optional[int] = None
+    accel_q0: float | None = None
+    accel_q1: float | None = None
+    accel_q2: float | None = None
+    accel_trend: float | None = None
+    accel_volatility: float | None = None
+    reversal_count: int | None = None
+    consistency_flag: int | None = None
 
     # Margin normalization (raw + flag)
-    operating_margin_current: Optional[float] = None
-    operating_margin_3q_median: Optional[float] = None
-    operating_margin_3q_std: Optional[float] = None
-    company_margin_zscore: Optional[float] = None
-    industry_margin_zscore: Optional[float] = None
-    margin_normalization_flag: Optional[int] = None
+    operating_margin_current: float | None = None
+    operating_margin_3q_median: float | None = None
+    operating_margin_3q_std: float | None = None
+    company_margin_zscore: float | None = None
+    industry_margin_zscore: float | None = None
+    margin_normalization_flag: int | None = None
 
     # Composite
-    sustainability_pass: Optional[int] = None
-    failure_reason: Optional[str] = None
+    sustainability_pass: int | None = None
+    failure_reason: str | None = None
 
 
 class SustainabilityCalculator:
@@ -173,8 +173,7 @@ class SustainabilityCalculator:
     # Vintage-aware period loading (matches FRM/event_reaction convention)
     # ─────────────────────────────────────────────────────────────────
 
-    def _load_vintage_periods(self, code: str, as_of_date: str,
-                              limit: int = 3) -> list[dict]:
+    def _load_vintage_periods(self, code: str, as_of_date: str, limit: int = 3) -> list[dict]:
         """Load the most recent `limit` reporting periods available as of date.
 
         Vintage-aware: only uses reports whose available_date <= as_of_date.
@@ -203,26 +202,29 @@ class SustainabilityCalculator:
             rev = r["revenue"]
             if op is not None and rev and rev != 0:
                 operating_margin = op / rev
-            periods.append({
-                "report_date": r["report_date"],
-                "available_date": r["available_date"],
-                # akshare stores yoy as percent (20.0 = 20%); convert to fraction
-                "earnings_yoy": (r["earnings_yoy"] / 100.0)
-                                if r["earnings_yoy"] is not None else None,
-                "revenue_yoy": (r["revenue_yoy"] / 100.0)
-                               if r["revenue_yoy"] is not None else None,
-                "operating_margin": operating_margin,
-            })
+            periods.append(
+                {
+                    "report_date": r["report_date"],
+                    "available_date": r["available_date"],
+                    # akshare stores yoy as percent (20.0 = 20%); convert to fraction
+                    "earnings_yoy": (r["earnings_yoy"] / 100.0)
+                    if r["earnings_yoy"] is not None
+                    else None,
+                    "revenue_yoy": (r["revenue_yoy"] / 100.0)
+                    if r["revenue_yoy"] is not None
+                    else None,
+                    "operating_margin": operating_margin,
+                }
+            )
         return periods
 
-    def _load_industry(self, code: str) -> Optional[str]:
+    def _load_industry(self, code: str) -> str | None:
         """Load industry classification from security_master."""
         conn = sqlite3.connect(self.cache_db)
         conn.row_factory = sqlite3.Row
         try:
             row = conn.execute(
-                "SELECT industry FROM security_master WHERE security_id = ? "
-                "OR code = ? LIMIT 1",
+                "SELECT industry FROM security_master WHERE security_id = ? OR code = ? LIMIT 1",
                 (code, code),
             ).fetchone()
         finally:
@@ -233,8 +235,7 @@ class SustainabilityCalculator:
     # Sub-component 1: Alignment (revenue-earnings decoupling)
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_alignment(self, result: SustainabilityResult,
-                           q0: dict) -> None:
+    def _compute_alignment(self, result: SustainabilityResult, q0: dict) -> None:
         """profit_elasticity = earnings_yoy / revenue_yoy (raw, stored).
 
         alignment_flag (tunable default): sign match AND |rev| >= 0.3*|earn|.
@@ -259,7 +260,7 @@ class SustainabilityCalculator:
         # alignment_flag (tunable default)
         # 1 = sign match AND |rev| >= 0.3*|earn|
         # 0 = decouple (earnings up / revenue down, or extreme elasticity)
-        sign_match = (np.sign(rev_yoy) == np.sign(earn_yoy))
+        sign_match = np.sign(rev_yoy) == np.sign(earn_yoy)
         rev_supports_earn = abs(rev_yoy) >= ALIGNMENT_MIN_REVENUE_RATIO * abs(earn_yoy)
         result.alignment_flag = 1 if (sign_match and rev_supports_earn) else 0
 
@@ -267,8 +268,9 @@ class SustainabilityCalculator:
     # Sub-component 2: Persistence (3-quarter acceleration trend)
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_persistence(self, result: SustainabilityResult,
-                             q0: dict, q1: dict, q2: dict) -> None:
+    def _compute_persistence(
+        self, result: SustainabilityResult, q0: dict, q1: dict, q2: dict
+    ) -> None:
         """3-period acceleration trend, volatility, reversal count (raw).
 
         accel_qN = earnings_yoy_qN - earnings_yoy_q(N+1)  (1st derivative per period)
@@ -301,20 +303,25 @@ class SustainabilityCalculator:
 
         # Reversal count (sign flips)
         signs = [np.sign(a) for a in accels]
-        flips = sum(1 for i in range(1, len(signs)) if signs[i] != signs[i-1] and signs[i] != 0 and signs[i-1] != 0)
+        flips = sum(
+            1
+            for i in range(1, len(signs))
+            if signs[i] != signs[i - 1] and signs[i] != 0 and signs[i - 1] != 0
+        )
         result.reversal_count = int(flips)
 
         # consistency_flag (tunable default)
-        result.consistency_flag = 1 if (
-            result.accel_q0 > 0 and result.reversal_count <= CONSISTENCY_MAX_REVERSALS
-        ) else 0
+        result.consistency_flag = (
+            1 if (result.accel_q0 > 0 and result.reversal_count <= CONSISTENCY_MAX_REVERSALS) else 0
+        )
 
     # ─────────────────────────────────────────────────────────────────
     # Sub-component 3: Margin normalization (peak-margin mean-reversion)
     # ─────────────────────────────────────────────────────────────────
 
-    def _compute_margin_normalization(self, result: SustainabilityResult,
-                                      q0: dict, q1: dict, q2: dict) -> None:
+    def _compute_margin_normalization(
+        self, result: SustainabilityResult, q0: dict, q1: dict, q2: dict
+    ) -> None:
         """operating_margin peak detection (company + industry zscore, raw).
 
         company_margin_zscore = (current - 3q_median) / 3q_std  (own history)
@@ -324,7 +331,11 @@ class SustainabilityCalculator:
         Rejects: margin at peak relative to own history OR industry peers.
         Uses max() to avoid mis-killing growth industries (safeguard).
         """
-        margins = [q0.get("operating_margin"), q1.get("operating_margin"), q2.get("operating_margin")]
+        margins = [
+            q0.get("operating_margin"),
+            q1.get("operating_margin"),
+            q2.get("operating_margin"),
+        ]
         margins_valid = [m for m in margins if m is not None]
 
         if len(margins_valid) < MIN_PERIODS_FOR_3Q:
@@ -342,22 +353,26 @@ class SustainabilityCalculator:
 
         # Industry zscore (cross-section, same report_date as q0)
         result.industry_margin_zscore = self._industry_margin_zscore(
-            result.security_id, result.industry, result.report_date, current)
+            result.security_id, result.industry, result.report_date, current
+        )
 
         # margin_normalization_flag (tunable default)
         # max() safeguards growth industries: reject only if at peak in
         # BOTH own history AND industry context
-        zscores = [z for z in [result.company_margin_zscore, result.industry_margin_zscore]
-                   if z is not None]
+        zscores = [
+            z
+            for z in [result.company_margin_zscore, result.industry_margin_zscore]
+            if z is not None
+        ]
         peak_z = max(zscores) if zscores else None
         if peak_z is None:
             result.margin_normalization_flag = None
         else:
             result.margin_normalization_flag = 1 if (peak_z < MARGIN_ZSCORE_PEAK) else 0
 
-    def _industry_margin_zscore(self, code: str, industry: Optional[str],
-                                report_date: Optional[str],
-                                current_margin: float) -> Optional[float]:
+    def _industry_margin_zscore(
+        self, code: str, industry: str | None, report_date: str | None, current_margin: float
+    ) -> float | None:
         """Cross-sectional zscore vs industry peers at same report_date.
 
         Returns None if industry unknown or < MIN_INDUSTRY_PEERS peers.

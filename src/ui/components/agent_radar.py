@@ -1,4 +1,5 @@
 """Agent Radar Chart — Terminal-styled 8-dimension identity visualization."""
+
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -22,8 +23,16 @@ def agent_radar(identity_vectors: dict, selected_agents: list[str] = None):
         identity_vectors: {agent_id: {dim: value, ...}}
         selected_agents: list of agent_ids to display (max 2 for overlay)
     """
-    dims = ["valuation", "quality", "growth", "momentum",
-            "macro", "contrarian", "patience", "concentration"]
+    dims = [
+        "valuation",
+        "quality",
+        "growth",
+        "momentum",
+        "macro",
+        "contrarian",
+        "patience",
+        "concentration",
+    ]
     labels_cn = ["估值", "质量", "成长", "动量", "宏观", "逆向", "耐心", "集中"]
 
     if not selected_agents:
@@ -37,16 +46,18 @@ def agent_radar(identity_vectors: dict, selected_agents: list[str] = None):
         values.append(values[0])  # close the loop
 
         color = SERIES_COLORS[idx]
-        fig.add_trace(go.Scatterpolar(
-            r=values,
-            theta=labels_cn + [labels_cn[0]],
-            name=agent_id.replace("_v1", ""),
-            fill="toself",
-            fillcolor=_hex_to_rgba(color, 0.1),
-            opacity=0.6,
-            line=dict(color=color, width=2),
-            marker=dict(size=6, color=color, line=dict(color="#fff", width=1)),
-        ))
+        fig.add_trace(
+            go.Scatterpolar(
+                r=values,
+                theta=labels_cn + [labels_cn[0]],
+                name=agent_id.replace("_v1", ""),
+                fill="toself",
+                fillcolor=_hex_to_rgba(color, 0.1),
+                opacity=0.6,
+                line=dict(color=color, width=2),
+                marker=dict(size=6, color=color, line=dict(color="#fff", width=1)),
+            )
+        )
 
     fig.update_layout(
         **terminal_polar(),

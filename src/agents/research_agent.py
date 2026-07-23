@@ -27,10 +27,11 @@ from ..factors.engine import CompositeResult, FactorEngine
 @dataclass
 class ThesisObject:
     """Structured, verifiable investment thesis (agent_contract §8)."""
+
     thesis_id: str
-    family: str                    # growth / value / cycle / turnaround / special_situation / macro
-    pattern: str                   # quality_compound / technology_substitution / deep_value ...
-    claim: str                     # Core assertion
+    family: str  # growth / value / cycle / turnaround / special_situation / macro
+    pattern: str  # quality_compound / technology_substitution / deep_value ...
+    claim: str  # Core assertion
     evidence: list[dict] = field(default_factory=list)
     catalyst: str = ""
     invalidation: list[dict] = field(default_factory=list)
@@ -41,11 +42,12 @@ class ThesisObject:
 @dataclass
 class SecurityAnalysis:
     """Complete output of a Research Agent (agent_contract §3)."""
+
     agent_id: str
     stock_code: str
     timestamp: str
-    alpha_score: float             # 0-10
-    confidence: float              # 0-10
+    alpha_score: float  # 0-10
+    confidence: float  # 0-10
     thesis: ThesisObject | None = None
     factor_profile: dict = field(default_factory=dict)
     risk_assessment: dict = field(default_factory=dict)
@@ -110,10 +112,12 @@ class ResearchAgent:
         self.doctrine = None
         if self.engine_version == "v2_identity_driven":
             from src.agents.doctrine_engine import DoctrineEngine
+
             doctrine_engine = DoctrineEngine()
             doctrine_seed = raw.get("doctrine_seed", {}).get("preferred")
             self.doctrine = doctrine_engine.classify(
-                self.genome.identity_vector, doctrine_seed=doctrine_seed,
+                self.genome.identity_vector,
+                doctrine_seed=doctrine_seed,
             )
 
         # Agent memory (simplified - in production, loaded from evaluation_db)
@@ -169,8 +173,9 @@ class ResearchAgent:
             decision_graph=decision_graph,
         )
 
-    def analyze(self, market: MarketSnapshot, stock: StockSnapshot,
-                 factors: CompositeResult) -> SecurityAnalysis:
+    def analyze(
+        self, market: MarketSnapshot, stock: StockSnapshot, factors: CompositeResult
+    ) -> SecurityAnalysis:
         """Core analyze() method (agent_contract §2.2).
 
         Deterministic: same input → same output.
@@ -191,9 +196,7 @@ class ResearchAgent:
         risk = self._assess_risk(stock, factors, market)
 
         # ── 5. Decision fingerprint ────────────────────────
-        fingerprint = self._compute_fingerprint(
-            stock.code, now, alpha_score, thesis
-        )
+        fingerprint = self._compute_fingerprint(stock.code, now, alpha_score, thesis)
 
         return SecurityAnalysis(
             agent_id=self.genome.agent_id,
@@ -212,8 +215,9 @@ class ResearchAgent:
             decision_fingerprint=fingerprint,
         )
 
-    def _generate_thesis(self, stock: StockSnapshot,
-                          factors: CompositeResult) -> ThesisObject | None:
+    def _generate_thesis(
+        self, stock: StockSnapshot, factors: CompositeResult
+    ) -> ThesisObject | None:
         """Match stock+factors against thesis patterns.
 
         Uses genome's thesis_scoring weights to rank patterns.
@@ -228,10 +232,7 @@ class ResearchAgent:
 
             for factor_name, (min_val, max_val) in pattern_def["required_factors"].items():
                 # Find factor value from factors
-                factor = next(
-                    (f for f in factors.factors if f.name == factor_name),
-                    None
-                )
+                factor = next((f for f in factors.factors if f.name == factor_name), None)
                 if factor is None or factor.raw_value is None:
                     all_met = False
                     break
@@ -244,11 +245,13 @@ class ResearchAgent:
                     all_met = False
                     break
 
-                evidence.append({
-                    "metric": factor_name,
-                    "value": round(val, 4),
-                    "condition": f"{'>' if min_val else '<'}{min_val or max_val}",
-                })
+                evidence.append(
+                    {
+                        "metric": factor_name,
+                        "value": round(val, 4),
+                        "condition": f"{'>' if min_val else '<'}{min_val or max_val}",
+                    }
+                )
 
             if not all_met:
                 continue
@@ -289,8 +292,7 @@ class ResearchAgent:
 
         return best_thesis
 
-    def _derive_invalidation(self, pattern: str,
-                              factors: CompositeResult) -> list[dict]:
+    def _derive_invalidation(self, pattern: str, factors: CompositeResult) -> list[dict]:
         """Derive invalidation conditions from thesis pattern."""
         invalidations = {
             "quality_compound": [
@@ -315,9 +317,12 @@ class ResearchAgent:
                 {"condition": "roe < 0.0", "grace_period": "2_quarters"},
             ],
         }
-        return invalidations.get(pattern, [
-            {"condition": "alpha_score < 3.0", "grace_period": "1_quarter"},
-        ])
+        return invalidations.get(
+            pattern,
+            [
+                {"condition": "alpha_score < 3.0", "grace_period": "1_quarter"},
+            ],
+        )
 
     def _compute_alpha(self, factors: CompositeResult) -> float:
         """Compute alpha_score (0-10) from factor composite scores.
@@ -348,18 +353,21 @@ class ResearchAgent:
 
         # Weighted composite, scaled to 0-10
         raw = (
-            factors.quality_score * quality_w +
-            factors.value_score * value_w +
-            factors.growth_score * growth_w +
-            factors.momentum_score * momentum_w +
-            factors.risk_score * risk_w +
-            factors.sentiment_score * sentiment_w
-        ) / 100.0 * 10.0
+            (
+                factors.quality_score * quality_w
+                + factors.value_score * value_w
+                + factors.growth_score * growth_w
+                + factors.momentum_score * momentum_w
+                + factors.risk_score * risk_w
+                + factors.sentiment_score * sentiment_w
+            )
+            / 100.0
+            * 10.0
+        )
 
         return min(10.0, max(0.0, raw))
 
-    def _compute_confidence(self, thesis: ThesisObject | None,
-                             factors: CompositeResult) -> float:
+    def _compute_confidence(self, thesis: ThesisObject | None, factors: CompositeResult) -> float:
         """Compute confidence (0-10).
 
         v1_legacy: fixed formula (5.0 + evidence*0.8 + consistency*0.5).
@@ -387,8 +395,10 @@ class ResearchAgent:
 
             # Factor consistency: count families above 30
             family_scores = [
-                factors.quality_score, factors.value_score,
-                factors.growth_score, factors.momentum_score,
+                factors.quality_score,
+                factors.value_score,
+                factors.growth_score,
+                factors.momentum_score,
             ]
             consistent_count = sum(1 for s in family_scores if s > 30)
             confidence += consistent_count * cm.consistency_bonus
@@ -399,16 +409,19 @@ class ResearchAgent:
         confidence = 5.0
         confidence += min(3.0, len(thesis.evidence) * 0.8)
         family_scores = [
-            factors.quality_score, factors.value_score,
-            factors.growth_score, factors.momentum_score,
+            factors.quality_score,
+            factors.value_score,
+            factors.growth_score,
+            factors.momentum_score,
         ]
         consistent_count = sum(1 for s in family_scores if s > 30)
         confidence += consistent_count * 0.5
 
         return min(10.0, max(0.0, confidence))
 
-    def _assess_risk(self, stock: StockSnapshot, factors: CompositeResult,
-                      market: MarketSnapshot) -> dict:
+    def _assess_risk(
+        self, stock: StockSnapshot, factors: CompositeResult, market: MarketSnapshot
+    ) -> dict:
         """Assess idiosyncratic + market risk."""
         risks = []
 
@@ -433,24 +446,26 @@ class ResearchAgent:
             expected_dd = max(0.10, abs(dd_factor))
 
         return {
-            "idiosyncratic_risk": "high" if factors.risk_score < 30 else "medium" if factors.risk_score < 60 else "low",
+            "idiosyncratic_risk": "high"
+            if factors.risk_score < 30
+            else "medium"
+            if factors.risk_score < 60
+            else "low",
             "liquidity_risk": "low" if (stock.float_mcap and stock.float_mcap > 100) else "medium",
             "key_risks": risks if risks else ["无明显特殊风险"],
             "expected_drawdown_12m": round(expected_dd, 2),
         }
 
-    def _compute_fingerprint(self, stock_code: str, timestamp: str,
-                              alpha_score: float,
-                              thesis: ThesisObject | None) -> dict:
+    def _compute_fingerprint(
+        self, stock_code: str, timestamp: str, alpha_score: float, thesis: ThesisObject | None
+    ) -> dict:
         """Compute decision fingerprint (agent_contract §7)."""
         thesis_id = thesis.thesis_id if thesis else "none"
 
         raw = f"{self.genome.agent_id}|{stock_code}|{timestamp}|{alpha_score}|{thesis_id}"
         decision_hash = hashlib.sha256(raw.encode()).hexdigest()[:16]
 
-        input_hash = hashlib.sha256(
-            f"{stock_code}|{timestamp}".encode()
-        ).hexdigest()[:16]
+        input_hash = hashlib.sha256(f"{stock_code}|{timestamp}".encode()).hexdigest()[:16]
 
         return {
             "decision_hash": decision_hash,
@@ -467,8 +482,7 @@ class ResearchAgent:
                 return f.raw_value
         return None
 
-    def self_examine(self, decision: SecurityAnalysis,
-                      outcome: dict) -> dict:
+    def self_examine(self, decision: SecurityAnalysis, outcome: dict) -> dict:
         """Self-review after T+N evaluation (agent_contract §11.3)."""
         was_correct = outcome.get("alpha_positive", False)
         error_type = None

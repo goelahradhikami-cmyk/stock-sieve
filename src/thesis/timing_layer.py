@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -47,17 +46,19 @@ logger = get_logger(__name__)
 @dataclass
 class TimingAdjustment:
     """Thesis timing adjustment for one stock."""
+
     security_id: str
-    base_weight: float          # original equal weight (1/N)
-    timing_multiplier: float    # 1.0 = no change, >1 = overweight, <1 = underweight
-    final_weight: float         # base × multiplier (normalized)
-    timing_reason: str = ""     # why adjusted
-    vetoed: bool = False        # risk veto (removed from portfolio)
+    base_weight: float  # original equal weight (1/N)
+    timing_multiplier: float  # 1.0 = no change, >1 = overweight, <1 = underweight
+    final_weight: float  # base × multiplier (normalized)
+    timing_reason: str = ""  # why adjusted
+    vetoed: bool = False  # risk veto (removed from portfolio)
 
 
 @dataclass
 class TimingResult:
     """Result of applying thesis timing overlay to a portfolio."""
+
     adjustments: list[TimingAdjustment] = field(default_factory=list)
     vetoed_count: int = 0
     avg_timing_multiplier: float = 1.0
@@ -78,14 +79,13 @@ class ThesisTimingLayer:
     point-in-time snapshots, thesis uses deltas and context).
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
 
-    def apply_timing_overlay(self, picks: list[dict],
-                              doctrine: DoctrineGenome,
-                              trade_date: str) -> TimingResult:
+    def apply_timing_overlay(
+        self, picks: list[dict], doctrine: DoctrineGenome, trade_date: str
+    ) -> TimingResult:
         """Apply thesis timing overlay to factor-selected picks.
 
         Args:
@@ -145,10 +145,10 @@ class ThesisTimingLayer:
 
             # Weighted average of factor multipliers
             stock_timing = (
-                q_w * fam_mults.get("quality", 1.0) +
-                v_w * fam_mults.get("value", 1.0) +
-                g_w * fam_mults.get("growth", 1.0) +
-                m_w * fam_mults.get("momentum", 1.0)
+                q_w * fam_mults.get("quality", 1.0)
+                + v_w * fam_mults.get("value", 1.0)
+                + g_w * fam_mults.get("growth", 1.0)
+                + m_w * fam_mults.get("momentum", 1.0)
             )
             timing_mult *= stock_timing
             if abs(stock_timing - 1.0) > 0.05:
@@ -173,14 +173,16 @@ class ThesisTimingLayer:
             timing_mult = max(0.0, min(2.5, timing_mult))
             multipliers.append(timing_mult)
 
-            adjustments.append(TimingAdjustment(
-                security_id=sec_id,
-                base_weight=base_weight,
-                timing_multiplier=timing_mult,
-                final_weight=base_weight * timing_mult,  # will normalize later
-                timing_reason=", ".join(reasons) if reasons else "no_adjustment",
-                vetoed=risk_flags.get(bare, False),
-            ))
+            adjustments.append(
+                TimingAdjustment(
+                    security_id=sec_id,
+                    base_weight=base_weight,
+                    timing_multiplier=timing_mult,
+                    final_weight=base_weight * timing_mult,  # will normalize later
+                    timing_reason=", ".join(reasons) if reasons else "no_adjustment",
+                    vetoed=risk_flags.get(bare, False),
+                )
+            )
 
         # Normalize weights to sum to 1.0 (excluding vetoed)
         total_weight = sum(a.final_weight for a in adjustments if not a.vetoed)
@@ -199,9 +201,9 @@ class ThesisTimingLayer:
             factor_adjustments=factor_mults,
         )
 
-    def get_weighted_returns(self, picks: list[dict],
-                              pick_returns: list[float],
-                              timing_result: TimingResult) -> float:
+    def get_weighted_returns(
+        self, picks: list[dict], pick_returns: list[float], timing_result: TimingResult
+    ) -> float:
         """Compute timing-adjusted portfolio return.
 
         Control (equal weight): mean(pick_returns)
@@ -217,8 +219,7 @@ class ThesisTimingLayer:
 
         return weighted_return
 
-    def _compute_market_timing(self, trade_date: str,
-                                doctrine: DoctrineGenome) -> tuple[str, dict]:
+    def _compute_market_timing(self, trade_date: str, doctrine: DoctrineGenome) -> tuple[str, dict]:
         """Multi-layer regime detection (Commit 6-Q.4.1).
 
         Replaces the old MA60-only approach with three layers:
@@ -242,13 +243,41 @@ class ThesisTimingLayer:
 
         # Market regime -> base factor preferences
         if market_regime == "crash":
-            factor_mults = {"quality": 1.4, "value": 1.2, "momentum": 0.5, "growth": 0.6, "risk": 1.3, "sentiment": 0.5}
+            factor_mults = {
+                "quality": 1.4,
+                "value": 1.2,
+                "momentum": 0.5,
+                "growth": 0.6,
+                "risk": 1.3,
+                "sentiment": 0.5,
+            }
         elif market_regime == "bear":
-            factor_mults = {"quality": 1.3, "value": 1.25, "momentum": 0.6, "growth": 0.7, "risk": 1.2, "sentiment": 0.6}
+            factor_mults = {
+                "quality": 1.3,
+                "value": 1.25,
+                "momentum": 0.6,
+                "growth": 0.7,
+                "risk": 1.2,
+                "sentiment": 0.6,
+            }
         elif market_regime == "bull":
-            factor_mults = {"momentum": 1.4, "growth": 1.3, "value": 0.7, "quality": 0.9, "risk": 0.8, "sentiment": 1.2}
+            factor_mults = {
+                "momentum": 1.4,
+                "growth": 1.3,
+                "value": 0.7,
+                "quality": 0.9,
+                "risk": 0.8,
+                "sentiment": 1.2,
+            }
         elif market_regime == "high_volatility":
-            factor_mults = {"quality": 1.2, "value": 1.1, "momentum": 0.8, "growth": 0.9, "risk": 1.2, "sentiment": 0.7}
+            factor_mults = {
+                "quality": 1.2,
+                "value": 1.1,
+                "momentum": 0.8,
+                "growth": 0.9,
+                "risk": 1.2,
+                "sentiment": 0.7,
+            }
         else:  # sideway
             factor_mults = {}
 
@@ -351,18 +380,22 @@ class ThesisTimingLayer:
         finally:
             conn.close()
 
-    def _compute_convictions(self, picks: list[dict],
-                              trade_date: str) -> dict[str, float]:
+    def _compute_convictions(self, picks: list[dict], trade_date: str) -> dict[str, float]:
         """Per-stock conviction based on earnings acceleration.
 
         Returns: {code: conviction 0-1}
         """
         from src.thesis.signal_engine import ThesisSignalEngine
+
         engine = ThesisSignalEngine(cache_db=self.cache_db)
 
         convictions = {}
         for pick in picks:
-            bare = pick["security_id"].split(".")[0] if "." in pick["security_id"] else pick["security_id"]
+            bare = (
+                pick["security_id"].split(".")[0]
+                if "." in pick["security_id"]
+                else pick["security_id"]
+            )
             try:
                 signals = engine.compute_signals(bare, trade_date)
                 # Conviction = sigmoid(acceleration)
@@ -374,8 +407,7 @@ class ThesisTimingLayer:
 
         return convictions
 
-    def _compute_risk_vetoes(self, picks: list[dict],
-                               trade_date: str) -> dict[str, bool]:
+    def _compute_risk_vetoes(self, picks: list[dict], trade_date: str) -> dict[str, bool]:
         """Per-stock risk veto check.
 
         Veto if:
@@ -386,12 +418,16 @@ class ThesisTimingLayer:
         """
         vetoes = {}
         for pick in picks:
-            bare = pick["security_id"].split(".")[0] if "." in pick["security_id"] else pick["security_id"]
+            bare = (
+                pick["security_id"].split(".")[0]
+                if "." in pick["security_id"]
+                else pick["security_id"]
+            )
             risk_score = pick.get("risk_score", 50)
             quality_score = pick.get("quality_score", 50)
 
             # Veto: very high risk + low quality (lottery ticket)
-            veto = (risk_score < 20 and quality_score < 30)
+            veto = risk_score < 20 and quality_score < 30
             vetoes[bare] = veto
 
         return vetoes

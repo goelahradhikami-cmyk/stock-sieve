@@ -45,10 +45,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
+import os
+import sqlite3
+import sys
 from datetime import date
 
 import numpy as np
@@ -91,14 +91,17 @@ def load_all_candidates():
             gap = score.gap_score
         except Exception:
             pass
-        enriched.append({
-            "sid": r["security_id"], "td": r["trade_date"],
-            "alpha": r["residual_alpha"],
-            "frm": r["frm_score"],
-            "frm_dir": r["frm_direction"],
-            "rs_avail": r["rs_data_available"],
-            "gap": gap,
-        })
+        enriched.append(
+            {
+                "sid": r["security_id"],
+                "td": r["trade_date"],
+                "alpha": r["residual_alpha"],
+                "frm": r["frm_score"],
+                "frm_dir": r["frm_direction"],
+                "rs_avail": r["rs_data_available"],
+                "gap": gap,
+            }
+        )
     return enriched
 
 
@@ -107,7 +110,8 @@ def _stats(rows, label=""):
         return {"label": label, "n": 0}
     ra = np.array([r["alpha"] for r in rows])
     return {
-        "label": label, "n": len(rows),
+        "label": label,
+        "n": len(rows),
         "alpha_pct": float(np.mean(ra) * 100),
         "median_pct": float(np.median(ra) * 100),
         "positive_rate_pct": float(100.0 * np.sum(ra > 0) / len(ra)),
@@ -120,9 +124,11 @@ def _print_stats(s, indent=4):
     if s["n"] == 0:
         print(f"{pad}{s['label']}: EMPTY", flush=True)
         return
-    print(f"{pad}{s['label']}: N={s['n']}  alpha={s['alpha_pct']:+.2f}%  "
-          f"positive={s['positive_rate_pct']:.1f}%  median={s['median_pct']:+.2f}%",
-          flush=True)
+    print(
+        f"{pad}{s['label']}: N={s['n']}  alpha={s['alpha_pct']:+.2f}%  "
+        f"positive={s['positive_rate_pct']:.1f}%  median={s['median_pct']:+.2f}%",
+        flush=True,
+    )
 
 
 def _quintile(values, n_quintiles=5):
@@ -149,7 +155,9 @@ def discipline1_rank_vs_continuous(enriched):
 
     # Compute z-scores (cross-sectional)
     frm_vals = np.array([e["frm"] or np.nan for e in enriched], dtype=float)
-    gap_vals = np.array([e["gap"] if e["gap"] is not None else np.nan for e in enriched], dtype=float)
+    gap_vals = np.array(
+        [e["gap"] if e["gap"] is not None else np.nan for e in enriched], dtype=float
+    )
 
     frm_z = (frm_vals - np.nanmean(frm_vals)) / np.nanstd(frm_vals)
     gap_z = (gap_vals - np.nanmean(gap_vals)) / np.nanstd(gap_vals)
@@ -171,13 +179,13 @@ def discipline1_rank_vs_continuous(enriched):
         e["gap_q"] = gap_q[i]
 
     # --- Rank-based: Q3×Q3 ---
-    print(f"\n  --- Rank-based (quintile) ---", flush=True)
+    print("\n  --- Rank-based (quintile) ---", flush=True)
     q3xq3 = [e for e in enriched if e["frm_q"] == 3 and e["gap_q"] == 3]
     s_q3 = _stats(q3xq3, "Q3 FRM × Q3 Gap")
     _print_stats(s_q3)
 
     # Full 5×5 matrix (compact)
-    print(f"\n  Rank-based 5×5 matrix (alpha%):", flush=True)
+    print("\n  Rank-based 5×5 matrix (alpha%):", flush=True)
     print(f"  {'':8s}", end="", flush=True)
     for gq in range(1, 6):
         print(f"  Gap Q{gq:1d}      ", end="", flush=True)
@@ -190,11 +198,11 @@ def discipline1_rank_vs_continuous(enriched):
             if s["n"] > 0:
                 print(f" {s['alpha_pct']:+5.1f}%(N={s['n']:2d})", end="", flush=True)
             else:
-                print(f"    EMPTY    ", end="", flush=True)
+                print("    EMPTY    ", end="", flush=True)
         print(flush=True)
 
     # --- Continuous: uncertainty_score ---
-    print(f"\n  --- Continuous (uncertainty_score = -|FRM_z| - |Gap_z|) ---", flush=True)
+    print("\n  --- Continuous (uncertainty_score = -|FRM_z| - |Gap_z|) ---", flush=True)
     valid_us = [e for e in enriched if e["uncertainty_score"] is not None]
     print(f"  N with uncertainty_score: {len(valid_us)}", flush=True)
 
@@ -204,21 +212,21 @@ def discipline1_rank_vs_continuous(enriched):
     for i, e in enumerate(valid_us):
         e["us_q"] = us_q[i]
 
-    print(f"\n  uncertainty_score quintile vs alpha:", flush=True)
+    print("\n  uncertainty_score quintile vs alpha:", flush=True)
     print(f"  {'quintile':10s} {'n':>4} {'us_range':>16} {'alpha':>8} {'positive':>9}", flush=True)
     us_quintile_stats = {}
     for qi in range(1, 6):
         sub = [e for e in valid_us if e["us_q"] == qi]
         s = _stats(sub, f"Q{qi}")
         us_vals_sub = [e["uncertainty_score"] for e in sub]
-        if us_vals_sub:
-            us_range = f"[{min(us_vals_sub):.2f},{max(us_vals_sub):.2f}]"
-        else:
-            us_range = "EMPTY"
+        us_range = f"[{min(us_vals_sub):.2f},{max(us_vals_sub):.2f}]" if us_vals_sub else "EMPTY"
         us_quintile_stats[f"Q{qi}"] = s
         if s["n"] > 0:
-            print(f"  Q{qi:1d}         {s['n']:4d} {us_range:>16} "
-                  f"{s['alpha_pct']:+6.2f}% {s['positive_rate_pct']:7.1f}%", flush=True)
+            print(
+                f"  Q{qi:1d}         {s['n']:4d} {us_range:>16} "
+                f"{s['alpha_pct']:+6.2f}% {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
 
     # Correlation: uncertainty_score vs alpha
     us_arr = np.array([e["uncertainty_score"] for e in valid_us])
@@ -226,10 +234,13 @@ def discipline1_rank_vs_continuous(enriched):
     corr = float(np.corrcoef(us_arr, alpha_arr)[0, 1])
     print(f"\n  Correlation(uncertainty_score, alpha) = {corr:.4f}", flush=True)
     if corr > 0:
-        print(f"  -> POSITIVE: higher uncertainty_score (closer to center) -> higher alpha", flush=True)
-        print(f"     Theory SUPPORTED: distance from extreme predicts alpha", flush=True)
+        print(
+            "  -> POSITIVE: higher uncertainty_score (closer to center) -> higher alpha",
+            flush=True,
+        )
+        print("     Theory SUPPORTED: distance from extreme predicts alpha", flush=True)
     else:
-        print(f"  -> NEGATIVE/ZERO: continuous uncertainty does NOT predict alpha", flush=True)
+        print("  -> NEGATIVE/ZERO: continuous uncertainty does NOT predict alpha", flush=True)
 
     return {
         "q3xq3": s_q3,
@@ -242,7 +253,10 @@ def discipline1_rank_vs_continuous(enriched):
 def discipline2_null_model(enriched, target_n, target_alpha):
     """Discipline 2: Bootstrap null model - is target_alpha significant?"""
     print("\n" + "=" * 70, flush=True)
-    print(f"DISCIPLINE 2: Null Model Bootstrap (N={target_n}, target alpha={target_alpha:+.2f}%)", flush=True)
+    print(
+        f"DISCIPLINE 2: Null Model Bootstrap (N={target_n}, target alpha={target_alpha:+.2f}%)",
+        flush=True,
+    )
     print("=" * 70, flush=True)
 
     all_alphas = np.array([e["alpha"] for e in enriched])
@@ -272,18 +286,29 @@ def discipline2_null_model(enriched, target_n, target_alpha):
     print(f"  95th percentile: {p95:+.2f}%", flush=True)
     print(f"  99th percentile: {p99:+.2f}%", flush=True)
     print(f"  Target alpha:    {target_alpha:+.2f}%", flush=True)
-    print(f"  Percentile rank: {percentile_rank:.1f}% (target exceeds {percentile_rank:.1f}% of random)", flush=True)
+    print(
+        f"  Percentile rank: {percentile_rank:.1f}% (target exceeds {percentile_rank:.1f}% of random)",
+        flush=True,
+    )
 
     significant_95 = target_alpha > p95
     significant_99 = target_alpha > p99
-    print(f"\n  Significant at 5%:  {'YES' if significant_95 else 'NO'} "
-          f"(target > 95th percentile {p95:+.2f}%)", flush=True)
-    print(f"  Significant at 1%:  {'YES' if significant_99 else 'NO'} "
-          f"(target > 99th percentile {p99:+.2f}%)", flush=True)
+    print(
+        f"\n  Significant at 5%:  {'YES' if significant_95 else 'NO'} "
+        f"(target > 95th percentile {p95:+.2f}%)",
+        flush=True,
+    )
+    print(
+        f"  Significant at 1%:  {'YES' if significant_99 else 'NO'} "
+        f"(target > 99th percentile {p99:+.2f}%)",
+        flush=True,
+    )
 
     return {
-        "bootstrap_mean": boot_mean, "bootstrap_std": boot_std,
-        "p95": p95, "p99": p99,
+        "bootstrap_mean": boot_mean,
+        "bootstrap_std": boot_std,
+        "p95": p95,
+        "p99": p99,
         "target_alpha": target_alpha,
         "percentile_rank": percentile_rank,
         "significant_95": bool(significant_95),
@@ -301,27 +326,36 @@ def discipline3_group_split(enriched):
     group_c = [e for e in enriched if e["rs_avail"] == 1]
 
     # Mid×Mid (Q3×Q3) in each group
-    print(f"\n  --- Mid×Mid (Q3×Q3) by Group ---", flush=True)
+    print("\n  --- Mid×Mid (Q3×Q3) by Group ---", flush=True)
     print(f"  {'segment':25s} {'n_total':>7} {'n_mid':>7} {'alpha':>8} {'positive':>9}", flush=True)
 
     results = {}
-    for label, grp in [("Group A (no RS)", group_a),
-                       ("Group C (RS-filtered)", group_c),
-                       ("Combined", enriched)]:
+    for label, grp in [
+        ("Group A (no RS)", group_a),
+        ("Group C (RS-filtered)", group_c),
+        ("Combined", enriched),
+    ]:
         mid_mid = [e for e in grp if e["frm_q"] == 3 and e["gap_q"] == 3]
         s = _stats(mid_mid, label)
-        results[label] = {"n_total": len(grp), "n_mid_mid": s["n"],
-                          "alpha_pct": s["alpha_pct"], "positive_rate_pct": s["positive_rate_pct"]}
+        results[label] = {
+            "n_total": len(grp),
+            "n_mid_mid": s["n"],
+            "alpha_pct": s["alpha_pct"],
+            "positive_rate_pct": s["positive_rate_pct"],
+        }
         if s["n"] > 0:
-            print(f"  {label:25s} {len(grp):7d} {s['n']:7d} {s['alpha_pct']:+7.2f}% "
-                  f"{s['positive_rate_pct']:7.1f}%", flush=True)
+            print(
+                f"  {label:25s} {len(grp):7d} {s['n']:7d} {s['alpha_pct']:+7.2f}% "
+                f"{s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
         else:
             print(f"  {label:25s} {len(grp):7d} {s['n']:7d}    EMPTY", flush=True)
 
     # Single-variable decomposition
-    print(f"\n  --- Single-Variable Decomposition (Combined) ---", flush=True)
+    print("\n  --- Single-Variable Decomposition (Combined) ---", flush=True)
     print(f"  {'strategy':30s} {'n':>5} {'alpha':>8} {'positive':>9}", flush=True)
-    print(f"  {'-'*55}", flush=True)
+    print(f"  {'-' * 55}", flush=True)
 
     comparisons = {
         "FRM direction only (all)": enriched,
@@ -334,8 +368,10 @@ def discipline3_group_split(enriched):
     for label, sub in comparisons.items():
         s = _stats(sub, label)
         if s["n"] > 0:
-            print(f"  {label:30s} {s['n']:5d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
-                  flush=True)
+            print(
+                f"  {label:30s} {s['n']:5d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
         else:
             print(f"  {label:30s}     0    EMPTY", flush=True)
         results[label] = s
@@ -346,7 +382,7 @@ def discipline3_group_split(enriched):
     gap_q3_alpha = results.get("Gap Q3 only (all frm)", {}).get("alpha_pct")
 
     if all(a is not None for a in [mid_mid_alpha, frm_q3_alpha, gap_q3_alpha]):
-        print(f"\n  Intersection test:", flush=True)
+        print("\n  Intersection test:", flush=True)
         print(f"    FRM Q3 only:    {frm_q3_alpha:+.2f}%", flush=True)
         print(f"    Gap Q3 only:    {gap_q3_alpha:+.2f}%", flush=True)
         print(f"    Mid×Mid:        {mid_mid_alpha:+.2f}%", flush=True)
@@ -355,9 +391,9 @@ def discipline3_group_split(enriched):
         print(f"    Mid×Mid - FRM Q3: {delta_frm:+.2f}pp", flush=True)
         print(f"    Mid×Mid - Gap Q3: {delta_gap:+.2f}pp", flush=True)
         if delta_frm > 1 and delta_gap > 1:
-            print(f"    -> INTERSECTION creates alpha (not two weak signals stacked)", flush=True)
+            print("    -> INTERSECTION creates alpha (not two weak signals stacked)", flush=True)
         else:
-            print(f"    -> Intersection does NOT add value beyond single variables", flush=True)
+            print("    -> Intersection does NOT add value beyond single variables", flush=True)
         results["intersection_delta_frm"] = float(delta_frm)
         results["intersection_delta_gap"] = float(delta_gap)
 
@@ -381,20 +417,25 @@ def discipline4_extreme_penalty(enriched):
     print(f"\n  {'cell':20s} {'n':>5} {'alpha':>8} {'positive':>9}", flush=True)
     for s in [s_mm, s_hh, s_ll]:
         if s["n"] > 0:
-            print(f"  {s['label']:20s} {s['n']:5d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
-                  flush=True)
+            print(
+                f"  {s['label']:20s} {s['n']:5d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
 
     if s_mm["n"] > 0 and s_hh["n"] > 0:
         penalty = s_mm["alpha_pct"] - s_hh["alpha_pct"]
         print(f"\n  Mid×Mid - High×High = {penalty:+.2f}pp", flush=True)
         if penalty > 3:
-            print(f"  -> Extreme penalty PERSISTS at N=194 (market punishes certainty)", flush=True)
+            print("  -> Extreme penalty PERSISTS at N=194 (market punishes certainty)", flush=True)
         elif penalty > 0:
-            print(f"  -> Extreme penalty present but weak", flush=True)
+            print("  -> Extreme penalty present but weak", flush=True)
         else:
-            print(f"  -> Extreme penalty does NOT persist (H×H >= Mid×Mid)", flush=True)
-        return {"mid_mid_alpha": s_mm["alpha_pct"], "hh_alpha": s_hh["alpha_pct"],
-                "penalty_pp": float(penalty)}
+            print("  -> Extreme penalty does NOT persist (H×H >= Mid×Mid)", flush=True)
+        return {
+            "mid_mid_alpha": s_mm["alpha_pct"],
+            "hh_alpha": s_hh["alpha_pct"],
+            "penalty_pp": float(penalty),
+        }
     return {"skipped": True}
 
 
@@ -405,14 +446,14 @@ def run_exp11a():
     print("Turn N=8 story into N=194 statistical fact", flush=True)
     print("=" * 70, flush=True)
     print(f"\nTotal candidates: N={len(enriched)}", flush=True)
-    print(f"  Group A (no RS): {sum(1 for e in enriched if e['rs_avail']==0)}", flush=True)
-    print(f"  Group C (RS):    {sum(1 for e in enriched if e['rs_avail']==1)}", flush=True)
+    print(f"  Group A (no RS): {sum(1 for e in enriched if e['rs_avail'] == 0)}", flush=True)
+    print(f"  Group C (RS):    {sum(1 for e in enriched if e['rs_avail'] == 1)}", flush=True)
 
     # Run all 4 disciplines
     d1 = discipline1_rank_vs_continuous(enriched)
-    d2 = discipline2_null_model(enriched,
-                                 target_n=d1["q3xq3"]["n"],
-                                 target_alpha=d1["q3xq3"]["alpha_pct"])
+    d2 = discipline2_null_model(
+        enriched, target_n=d1["q3xq3"]["n"], target_alpha=d1["q3xq3"]["alpha_pct"]
+    )
     d3 = discipline3_group_split(enriched)
     d4 = discipline4_extreme_penalty(enriched)
 
@@ -439,7 +480,7 @@ def run_exp11a():
     # Check 4: Group A and Group C both positive
     ga_mm = d3.get("Group A (no RS)", {})
     gc_mm = d3.get("Group C (RS-filtered)", {})
-    checks["both_groups_positive"] = (ga_mm.get("alpha_pct", 0) > 0 and gc_mm.get("alpha_pct", 0) > 0)
+    checks["both_groups_positive"] = ga_mm.get("alpha_pct", 0) > 0 and gc_mm.get("alpha_pct", 0) > 0
 
     # Check 5: null model significant at 5%
     checks["null_significant"] = d2.get("significant_95", False) if not d2.get("skipped") else False
@@ -450,21 +491,42 @@ def run_exp11a():
     # Check 7: extreme penalty persists
     checks["extreme_penalty"] = d4.get("penalty_pp", 0) > 3 if "penalty_pp" in d4 else False
 
-    print(f"\n  Validation checks:", flush=True)
-    print(f"    Mid×Mid alpha > 0, N>=30:     {'PASS' if checks['mid_mid_positive'] else 'FAIL'} "
-          f"(alpha={mm_alpha}, N={mm_n})", flush=True)
-    print(f"    Positive rate > 55%:          {'PASS' if checks['positive_rate_55'] else 'FAIL'} "
-          f"({d1['q3xq3']['positive_rate_pct']:.1f}%)", flush=True)
-    print(f"    Spread vs baseline > 3pp:     {'PASS' if checks['spread_3pp'] else 'FAIL'} "
-          f"(spread={spread:+.2f}pp)", flush=True)
-    print(f"    Both Group A & C positive:    {'PASS' if checks['both_groups_positive'] else 'FAIL'} "
-          f"(A={ga_mm.get('alpha_pct','?')}, C={gc_mm.get('alpha_pct','?')})", flush=True)
-    print(f"    Null model significant 5%:    {'PASS' if checks['null_significant'] else 'FAIL'} "
-          f"(rank={d2.get('percentile_rank','?')}%)", flush=True)
-    print(f"    Continuous corr > 0:          {'PASS' if checks['continuous_positive'] else 'FAIL'} "
-          f"(corr={d1.get('correlation','?'):.4f})", flush=True)
-    print(f"    Extreme penalty > 3pp:        {'PASS' if checks['extreme_penalty'] else 'FAIL'} "
-          f"(penalty={d4.get('penalty_pp','?')}pp)", flush=True)
+    print("\n  Validation checks:", flush=True)
+    print(
+        f"    Mid×Mid alpha > 0, N>=30:     {'PASS' if checks['mid_mid_positive'] else 'FAIL'} "
+        f"(alpha={mm_alpha}, N={mm_n})",
+        flush=True,
+    )
+    print(
+        f"    Positive rate > 55%:          {'PASS' if checks['positive_rate_55'] else 'FAIL'} "
+        f"({d1['q3xq3']['positive_rate_pct']:.1f}%)",
+        flush=True,
+    )
+    print(
+        f"    Spread vs baseline > 3pp:     {'PASS' if checks['spread_3pp'] else 'FAIL'} "
+        f"(spread={spread:+.2f}pp)",
+        flush=True,
+    )
+    print(
+        f"    Both Group A & C positive:    {'PASS' if checks['both_groups_positive'] else 'FAIL'} "
+        f"(A={ga_mm.get('alpha_pct', '?')}, C={gc_mm.get('alpha_pct', '?')})",
+        flush=True,
+    )
+    print(
+        f"    Null model significant 5%:    {'PASS' if checks['null_significant'] else 'FAIL'} "
+        f"(rank={d2.get('percentile_rank', '?')}%)",
+        flush=True,
+    )
+    print(
+        f"    Continuous corr > 0:          {'PASS' if checks['continuous_positive'] else 'FAIL'} "
+        f"(corr={d1.get('correlation', '?'):.4f})",
+        flush=True,
+    )
+    print(
+        f"    Extreme penalty > 3pp:        {'PASS' if checks['extreme_penalty'] else 'FAIL'} "
+        f"(penalty={d4.get('penalty_pp', '?')}pp)",
+        flush=True,
+    )
 
     all_pass = all(checks.values())
     n_pass = sum(checks.values())
@@ -472,13 +534,17 @@ def run_exp11a():
 
     if all_pass:
         verdict = "ALL CHECKS PASS - Mid×Mid survives N=194. Statistical fact confirmed."
-        recommendation = "Proceed to Exp11B (time split out-of-sample). v3.6 architecture candidate viable."
+        recommendation = (
+            "Proceed to Exp11B (time split out-of-sample). v3.6 architecture candidate viable."
+        )
     elif n_pass >= 5:
         verdict = f"PARTIAL ({n_pass}/{n_total} pass) - promising but not all checks met"
         recommendation = "Analyze which checks failed. May need to adjust before Exp11B."
     else:
         verdict = f"FAIL ({n_pass}/{n_total} pass) - Mid×Mid does NOT survive N=194"
-        recommendation = "Mid×Mid was sample-specific. Do NOT build v3.6 on it. Explore other intersections."
+        recommendation = (
+            "Mid×Mid was sample-specific. Do NOT build v3.6 on it. Explore other intersections."
+        )
 
     print(f"\n  >>> VERDICT: {verdict}", flush=True)
     print(f"  >>> RECOMMENDATION: {recommendation}", flush=True)
@@ -496,8 +562,10 @@ def run_exp11a():
         "discipline4_extreme_penalty": d4,
         "overall_alpha_pct": overall_alpha,
         "checks": checks,
-        "n_pass": n_pass, "n_total_checks": n_total,
-        "verdict": verdict, "recommendation": recommendation,
+        "n_pass": n_pass,
+        "n_total_checks": n_total,
+        "verdict": verdict,
+        "recommendation": recommendation,
     }
     report_path = os.path.join(REPORT_DIR, f"v3_5_2_exp11a_universe_{date.today()}.json")
     with open(report_path, "w", encoding="utf-8") as f:

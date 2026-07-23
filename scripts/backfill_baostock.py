@@ -19,6 +19,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlite3
+
 from src.data.baostock_provider import BaostockProvider
 from src.utils.logger import get_logger
 
@@ -29,8 +30,7 @@ def get_universe(db_path: str = "data/cache.db") -> list[str]:
     """All active non-ST A-share codes, sorted."""
     conn = sqlite3.connect(db_path)
     rows = conn.execute(
-        "SELECT code FROM security_master WHERE status='active' AND is_st=0 "
-        "ORDER BY code"
+        "SELECT code FROM security_master WHERE status='active' AND is_st=0 ORDER BY code"
     ).fetchall()
     conn.close()
     return [r[0] for r in rows]
@@ -49,7 +49,7 @@ def main(limit: int = None, log_every: int = 50):
     cached = get_cached_codes()
     todo = [c for c in universe if c not in cached]
 
-    print(f"=== Baostock Financial Backfill ===")
+    print("=== Baostock Financial Backfill ===")
     print(f"Universe: {len(universe)} stocks")
     print(f"Already cached: {len(cached)}")
     print(f"To fetch: {len(todo)}")
@@ -85,11 +85,13 @@ def main(limit: int = None, log_every: int = 50):
             elapsed = time.time() - t_start
             rate = (i + 1) / elapsed
             eta = (len(todo) - i - 1) / rate / 3600 if rate > 0 else 0
-            print(f"  [{i+1}/{len(todo)}] success={success} failed={failed} "
-                  f"rate={rate:.2f}/s ETA={eta:.1f}h")
+            print(
+                f"  [{i + 1}/{len(todo)}] success={success} failed={failed} "
+                f"rate={rate:.2f}/s ETA={eta:.1f}h"
+            )
 
     elapsed = time.time() - t_start
-    print(f"\n=== Done in {elapsed/3600:.1f}h ===")
+    print(f"\n=== Done in {elapsed / 3600:.1f}h ===")
     print(f"Success: {success}")
     print(f"Failed:  {failed}")
     print(f"Total cached now: {len(cached) + success}")
@@ -97,6 +99,7 @@ def main(limit: int = None, log_every: int = 50):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--log-every", type=int, default=50)

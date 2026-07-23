@@ -6,34 +6,40 @@ Centralized CSS injection + Plotly layout presets + color constants.
 """
 
 # ── Color Palette ──────────────────────────────────────────
-BG_PRIMARY   = "#0b0e14"    # Deepest background
-BG_SECONDARY = "#131720"    # Card / container background
-BG_TERTIARY  = "#1a1f2e"    # Elevated elements
-BG_SIDEBAR   = "#0d1117"    # Sidebar background
+BG_PRIMARY = "#0b0e14"  # Deepest background
+BG_SECONDARY = "#131720"  # Card / container background
+BG_TERTIARY = "#1a1f2e"  # Elevated elements
+BG_SIDEBAR = "#0d1117"  # Sidebar background
 
-TEXT_PRIMARY   = "#e6edf3"   # Main text
-TEXT_SECONDARY = "#8b949e"   # Muted text
-TEXT_ACCENT    = "#58a6ff"   # Accent / link color
+TEXT_PRIMARY = "#e6edf3"  # Main text
+TEXT_SECONDARY = "#8b949e"  # Muted text
+TEXT_ACCENT = "#58a6ff"  # Accent / link color
 
-GAIN           = "#00e676"   # Green for positive values
-GAIN_DIM       = "#1b5e20"   # Dim green
-LOSS           = "#ff5252"   # Red for negative values
-LOSS_DIM       = "#b71c1c"   # Dim red
-WARN           = "#ffab40"   # Orange / warning
-NEUTRAL        = "#78909c"   # Gray for neutral
+GAIN = "#00e676"  # Green for positive values
+GAIN_DIM = "#1b5e20"  # Dim green
+LOSS = "#ff5252"  # Red for negative values
+LOSS_DIM = "#b71c1c"  # Dim red
+WARN = "#ffab40"  # Orange / warning
+NEUTRAL = "#78909c"  # Gray for neutral
 
-ACCENT_CYAN    = "#00bcd4"   # Cyan accent
-ACCENT_BLUE    = "#2196f3"   # Blue accent
-ACCENT_PURPLE  = "#7c4dff"   # Purple accent
-ACCENT_GOLD    = "#ffd740"   # Gold / highlight
+ACCENT_CYAN = "#00bcd4"  # Cyan accent
+ACCENT_BLUE = "#2196f3"  # Blue accent
+ACCENT_PURPLE = "#7c4dff"  # Purple accent
+ACCENT_GOLD = "#ffd740"  # Gold / highlight
 
-BORDER_COLOR   = "#21262d"   # Subtle borders
-GRID_COLOR     = "#1c2333"   # Chart gridlines
+BORDER_COLOR = "#21262d"  # Subtle borders
+GRID_COLOR = "#1c2333"  # Chart gridlines
 
 # Agent series colors
 SERIES_COLORS = [
-    "#00bcd4", "#ff7043", "#66bb6a", "#ab47bc",
-    "#ffa726", "#42a5f5", "#ef5350", "#26c6da",
+    "#00bcd4",
+    "#ff7043",
+    "#66bb6a",
+    "#ab47bc",
+    "#ffa726",
+    "#42a5f5",
+    "#ef5350",
+    "#26c6da",
 ]
 
 
@@ -404,8 +410,10 @@ def terminal_polar(**overrides) -> dict:
             font=dict(color=TEXT_PRIMARY, size=11),
             bgcolor="rgba(0,0,0,0)",
             orientation="h",
-            x=0.5, xanchor="center",
-            y=-0.06, yanchor="top",
+            x=0.5,
+            xanchor="center",
+            y=-0.06,
+            yanchor="top",
         ),
         margin=dict(l=40, r=40, t=20, b=20),
         colorway=SERIES_COLORS,

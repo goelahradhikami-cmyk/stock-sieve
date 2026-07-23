@@ -8,14 +8,15 @@ Usage:
 """
 
 import argparse
+import contextlib
 import os
 import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def cmd_factor(args):
@@ -25,6 +26,7 @@ def cmd_factor(args):
     print()
 
     from src.factors.engine import FactorEngine
+
     engine = FactorEngine()
     for family in engine.get_family_names():
         print(f"  [{family}]")
@@ -39,6 +41,7 @@ def cmd_screen(args):
     print(f"   Top {args.top} picks")
     try:
         from src.daily_run import daily_run
+
         daily_run(sample_size=args.top)
     except Exception as e:
         logger.warning("cli: screen failed: %s", e)
@@ -64,9 +67,12 @@ def cmd_evolve(args):
         print(f"   Dry-run: {result.get('eliminated_candidates', [])} candidates")
     else:
         from src.evolution.risk_genome import KillSwitch
+
         ks = KillSwitch()
         if not ks.can_evolve():
-            print(f"   🛑 Evolution blocked: governance state = {ks.current_state() if hasattr(ks,'current_state') else 'N/A'}")
+            print(
+                f"   🛑 Evolution blocked: governance state = {ks.current_state() if hasattr(ks, 'current_state') else 'N/A'}"
+            )
             return
         engine = EvolutionEngineV1(dry_run=False)
         engine.MIN_SAMPLES = 5
@@ -113,7 +119,16 @@ def cmd_fuse(args):
         gb = yaml.safe_load(f)
 
     alpha = max(0.3, min(0.7, args.alpha))
-    dims = ["valuation", "quality", "growth", "momentum", "macro", "contrarian", "patience", "concentration"]
+    dims = [
+        "valuation",
+        "quality",
+        "growth",
+        "momentum",
+        "macro",
+        "contrarian",
+        "patience",
+        "concentration",
+    ]
 
     print(f"🧬 Fusing {args.parent_a} × {args.parent_b} (α={alpha:.2f})")
     print()
@@ -180,12 +195,8 @@ def cmd_status(args):
     agent_count = conn.execute(
         "SELECT COUNT(*) FROM agent_genome_snapshots WHERE status='active'"
     ).fetchone()[0]
-    committee_count = conn.execute(
-        "SELECT COUNT(*) FROM committee_decisions"
-    ).fetchone()[0]
-    evaluation_count = conn.execute(
-        "SELECT COUNT(*) FROM evaluation_results"
-    ).fetchone()[0]
+    committee_count = conn.execute("SELECT COUNT(*) FROM committee_decisions").fetchone()[0]
+    evaluation_count = conn.execute("SELECT COUNT(*) FROM evaluation_results").fetchone()[0]
     conn.close()
 
     print("🧬 Stock Sieve System Status")
@@ -218,25 +229,41 @@ def cmd_reconcile(args):
         print(f"🔍 Reconciliation — research_decision_id={args.decision}")
         print("=" * 56)
         for k in (
-            "research_decision_id", "agent_id", "security_id", "entry_date",
-            "has_signal_snapshot", "has_committee", "committee_verdict",
-            "has_portfolio", "portfolio_action", "has_execution",
-            "exec_fill_price", "exec_quantity", "has_eval",
-            "eval_horizon_days", "eval_alpha_vs_market", "eval_alpha_error",
-            "net_alpha_after_cost", "cost_drag_pct", "pipeline_stage_reached",
-            "three_price_mismatch_flag", "eval_portfolio_link_broken",
-            "counted_in_fitness", "fitness_invisible_reason",
-            "signal_snapshot_missing_reason", "committee_missing_reason",
-            "portfolio_missing_reason", "execution_missing_reason",
-            "eval_missing_reason", "reconciliation_version",
+            "research_decision_id",
+            "agent_id",
+            "security_id",
+            "entry_date",
+            "has_signal_snapshot",
+            "has_committee",
+            "committee_verdict",
+            "has_portfolio",
+            "portfolio_action",
+            "has_execution",
+            "exec_fill_price",
+            "exec_quantity",
+            "has_eval",
+            "eval_horizon_days",
+            "eval_alpha_vs_market",
+            "eval_alpha_error",
+            "net_alpha_after_cost",
+            "cost_drag_pct",
+            "pipeline_stage_reached",
+            "three_price_mismatch_flag",
+            "eval_portfolio_link_broken",
+            "counted_in_fitness",
+            "fitness_invisible_reason",
+            "signal_snapshot_missing_reason",
+            "committee_missing_reason",
+            "portfolio_missing_reason",
+            "execution_missing_reason",
+            "eval_missing_reason",
+            "reconciliation_version",
         ):
             print(f"  {k:32s}: {row.get(k)}")
         flags = row.get("anomaly_flags")
         if isinstance(flags, str):
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 flags = __import__("json").loads(flags)
-            except (ValueError, TypeError):
-                pass
         print(f"  {'anomaly_flags':32s}: {flags}")
         return
 
@@ -306,11 +333,14 @@ def main():
 
     # export
     ex = sub.add_parser("export", help="Export reports")
-    ex.add_argument("--type", "-t", required=True,
-                     choices=["committee", "performance", "thesis", "evolution"],
-                     help="Report type")
-    ex.add_argument("--format", "-f", default="md", choices=["md", "xlsx"],
-                     help="Export format")
+    ex.add_argument(
+        "--type",
+        "-t",
+        required=True,
+        choices=["committee", "performance", "thesis", "evolution"],
+        help="Report type",
+    )
+    ex.add_argument("--format", "-f", default="md", choices=["md", "xlsx"], help="Export format")
     ex.add_argument("--output", "-o", help="Output file path")
     ex.add_argument("--stock", help="Stock code (for thesis trace)")
     ex.add_argument("--start-date", help="Start date (YYYY-MM-DD)")
@@ -320,7 +350,9 @@ def main():
     sub.add_parser("status", help="Show system status")
 
     # reconcile
-    rc = sub.add_parser("reconcile", help="Atomic decision reconciliation (6 tables → 1 row/decision)")
+    rc = sub.add_parser(
+        "reconcile", help="Atomic decision reconciliation (6 tables → 1 row/decision)"
+    )
     rc.add_argument("--range", help="Date range 'START:END' (e.g. 2026-01-01:2026-07-17)")
     rc.add_argument("--decision", type=int, help="Inspect one research_decision_id")
     rc.add_argument("--funnel", action="store_true", help="Print funnel overview")

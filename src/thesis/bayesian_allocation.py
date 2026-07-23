@@ -24,10 +24,9 @@ Usage:
 
 from __future__ import annotations
 
-import sqlite3
 import math
-from dataclasses import dataclass, field
-from typing import Optional
+import sqlite3
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -39,6 +38,7 @@ logger = get_logger(__name__)
 @dataclass
 class DoctrineBayesianStats:
     """Bayesian statistics for one doctrine in one market state."""
+
     doctrine: str
     market_state: str
     # Raw counts
@@ -50,7 +50,7 @@ class DoctrineBayesianStats:
     return_std: float
     # Bayesian posterior
     alpha: float  # successes + prior
-    beta: float   # failures + prior
+    beta: float  # failures + prior
     posterior_win_prob: float  # alpha / (alpha + beta)
     # Adjusted score
     return_quality: float  # sharpe-like
@@ -81,8 +81,7 @@ class BayesianAllocationEngine:
     def __init__(self, eval_db: str = "data/evaluation.db"):
         self.eval_db = eval_db
 
-    def compute_allocation(self, market_state: str,
-                            as_of_date: str = None) -> dict[str, float]:
+    def compute_allocation(self, market_state: str, as_of_date: str = None) -> dict[str, float]:
         """Compute doctrine allocation for a market state.
 
         Args:
@@ -93,6 +92,7 @@ class BayesianAllocationEngine:
         """
         if as_of_date is None:
             from datetime import date
+
             as_of_date = date.today().isoformat()
 
         stats = {}
@@ -127,8 +127,9 @@ class BayesianAllocationEngine:
         allocation = {d: float(softmax[i]) for i, d in enumerate(doctrines_ordered)}
         return allocation
 
-    def _compute_doctrine_stats(self, doctrine: str, market_state: str,
-                                 as_of_date: str) -> DoctrineBayesianStats | None:
+    def _compute_doctrine_stats(
+        self, doctrine: str, market_state: str, as_of_date: str
+    ) -> DoctrineBayesianStats | None:
         """Compute Bayesian stats for one doctrine in one state."""
         col = f"{doctrine}_verdict"
 
@@ -172,6 +173,7 @@ class BayesianAllocationEngine:
 
         # Time decay: weight recent theses more
         from datetime import date
+
         as_of = date.fromisoformat(as_of_date)
         decay_lambda = math.log(2) / self.TIME_DECAY_HALF_LIFE_DAYS
 
@@ -188,10 +190,19 @@ class BayesianAllocationEngine:
         # Time-weighted average return
         total_weight = sum(time_weights)
         if total_weight > 0:
-            weighted_return = sum(w * r for w, r in zip(time_weights, returns)) / total_weight
-            weighted_std = max(0.01, np.sqrt(
-                sum(w * (r - weighted_return) ** 2 for w, r in zip(time_weights, returns)) / total_weight
-            ))
+            weighted_return = (
+                sum(w * r for w, r in zip(time_weights, returns, strict=False)) / total_weight
+            )
+            weighted_std = max(
+                0.01,
+                np.sqrt(
+                    sum(
+                        w * (r - weighted_return) ** 2
+                        for w, r in zip(time_weights, returns, strict=False)
+                    )
+                    / total_weight
+                ),
+            )
             weighted_sharpe = weighted_return / weighted_std
             time_weighted_score = posterior * (1.0 + max(-0.5, min(2.0, weighted_sharpe)))
         else:
@@ -234,6 +245,12 @@ class BayesianAllocationEngine:
                         "allocation": alloc.get(d, 0),
                     }
                 else:
-                    stats[d] = {"n": 0, "win_rate": 0.5, "avg_return": 0, "sharpe": 0, "allocation": alloc.get(d, 0)}
+                    stats[d] = {
+                        "n": 0,
+                        "win_rate": 0.5,
+                        "avg_return": 0,
+                        "sharpe": 0,
+                        "allocation": alloc.get(d, 0),
+                    }
             result[state] = {"allocation": alloc, "stats": stats}
         return result

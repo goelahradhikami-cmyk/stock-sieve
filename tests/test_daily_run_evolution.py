@@ -9,6 +9,7 @@ Covers the three items that previously had no test protection:
 These guard the "evolution -> decision" closed loop and the real regime wiring
 (P1) so a future regression turns the suite red instead of silently passing.
 """
+
 import os
 import sqlite3
 import tempfile
@@ -20,6 +21,7 @@ from src.daily_run import (
     MAX_ACTIVE_AGENTS,
 )
 from src.evolution.risk_genome import KillSwitch
+import contextlib
 
 
 # ── helpers ──────────────────────────────────────────────
@@ -38,12 +40,9 @@ class FakeEvalDB:
             "CREATE TABLE agent_genome_snapshots ("
             "agent_id TEXT, genome_yaml TEXT, birth_date TEXT, status TEXT)"
         )
+        conn.execute("CREATE TABLE research_decisions (id INTEGER PRIMARY KEY, agent_id TEXT)")
         conn.execute(
-            "CREATE TABLE research_decisions (id INTEGER PRIMARY KEY, agent_id TEXT)"
-        )
-        conn.execute(
-            "CREATE TABLE evaluation_results ("
-            "research_decision_id INTEGER, alpha_vs_market REAL)"
+            "CREATE TABLE evaluation_results (research_decision_id INTEGER, alpha_vs_market REAL)"
         )
         conn.commit()
         conn.close()
@@ -134,14 +133,10 @@ def test_killswitch_can_evolve_normal_and_emergency():
         assert ks.current_state() == "NORMAL"
         assert ks.can_evolve() is True
     finally:
-        try:
+        with contextlib.suppress(Exception):
             ks.db.close()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp.name)
-        except OSError:
-            pass
 
 
 # ── 3. market regime fallback ───────────────────────────
@@ -203,4 +198,3 @@ def test_skip_stock_when_data_missing():
     assert _skip_due_to_missing_data({"pe_ttm": 12}, full) is False
     # both present -> do NOT skip (real factors will be computed)
     assert _skip_due_to_missing_data({"roe": 0.15}, full) is False
-

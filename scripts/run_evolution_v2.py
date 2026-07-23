@@ -22,31 +22,32 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import json
 import math
-import sqlite3
+import os
 import random
+import sqlite3
+import sys
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.agents.doctrine_engine import (
-    DoctrineEngine, DoctrineGenome, DoctrineRegistry,
+    DoctrineEngine,
+    DoctrineGenome,
+    DoctrineRegistry,
+)
+from src.evolution.alpha_ecology import AlphaEcology
+from src.evolution.alpha_quality import AlphaQualityCalculator
+from src.evolution.fitness import FitnessCalculator
+from src.evolution.selection_guard import (
+    DoctrineFitnessInfo,
+    EvolutionSelectionGuard,
 )
 from src.evolution.survival_arena import DoctrineSurvivalArena
-from src.evolution.fitness import FitnessCalculator
-from src.evolution.alpha_quality import AlphaQualityCalculator
-from src.evolution.alpha_ecology import AlphaEcology
-from src.evolution.selection_guard import (
-    EvolutionSelectionGuard, DoctrineFitnessInfo,
-)
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,15 +56,16 @@ logger = get_logger(__name__)
 @dataclass
 class GenerationHealth:
     """Health metrics for one generation (Evolution Health Dashboard)."""
+
     generation: int
     population_size: int
     family_count: int
-    shannon_diversity: float        # -Σ p_i ln(p_i) over families
-    identity_entropy: float         # entropy over identity vectors
+    shannon_diversity: float  # -Σ p_i ln(p_i) over families
+    identity_entropy: float  # entropy over identity vectors
     fitness_mean: float
     fitness_max: float
     fitness_min: float
-    fitness_spread: float           # max - min
+    fitness_spread: float  # max - min
     avg_alpha_quality: float
     avg_selection_alpha: float
     avg_crowding: float
@@ -88,19 +90,18 @@ class EvolutionEngineV2:
     """
 
     # Extinction config
-    EXTINCTION_MIN_AGE = 5          # doctrine must exist >= 5 gens before eligible
+    EXTINCTION_MIN_AGE = 5  # doctrine must exist >= 5 gens before eligible
     EXTINCTION_FITNESS_THRESHOLD = 0.35  # below this for EXTINCTION_CONSECUTIVE gens
-    EXTINCTION_CONSECUTIVE = 5      # consecutive bad gens -> extinct
+    EXTINCTION_CONSECUTIVE = 5  # consecutive bad gens -> extinct
 
     # Adaptive mutation
     BASE_MUTATION_RATE = 0.05
-    CROWDING_MUTATION_BOOST = 1.5   # crowding > 0.7 -> rate *= 1.5
-    DECAY_MUTATION_BOOST = 2.0      # decay < -0.05 -> rate *= 2.0
+    CROWDING_MUTATION_BOOST = 1.5  # crowding > 0.7 -> rate *= 1.5
+    DECAY_MUTATION_BOOST = 2.0  # decay < -0.05 -> rate *= 2.0
     CROWDING_THRESHOLD = 0.7
     DECAY_THRESHOLD = -0.05
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.engine = DoctrineEngine()
@@ -115,9 +116,12 @@ class EvolutionEngineV2:
         self.doctrine_ages: dict[str, int] = {}
         self.consecutive_bad: dict[str, int] = {}
 
-    def run(self, generations: int = 50,
-            target_population: int = 32,
-            backtest_dates: list[str] | None = None) -> list[GenerationHealth]:
+    def run(
+        self,
+        generations: int = 50,
+        target_population: int = 32,
+        backtest_dates: list[str] | None = None,
+    ) -> list[GenerationHealth]:
         """Run long-horizon evolution.
 
         Args:
@@ -128,12 +132,11 @@ class EvolutionEngineV2:
         Returns: list of GenerationHealth (the evolution trajectory).
         """
         if backtest_dates is None:
-            backtest_dates = ['2026-04-15', '2026-04-29', '2026-05-13',
-                              '2026-05-27', '2026-06-10']
+            backtest_dates = ["2026-04-15", "2026-04-29", "2026-05-13", "2026-05-27", "2026-06-10"]
 
         # Initialize population: 8 base doctrines + 24 initial children
         population = self._initialize_population(target_population)
-        print(f"=== Evolution Engine v2 ===")
+        print("=== Evolution Engine v2 ===")
         print(f"Generations: {generations}, Population: {target_population}")
         print(f"Initial population: {len(population)} doctrines")
         print()
@@ -209,7 +212,9 @@ class EvolutionEngineV2:
         # Breed initial children to reach target
         while len(population) < target:
             parent_a = random.choice(population)
-            parent_b = random.choice([d for d in population if d.doctrine_id != parent_a.doctrine_id])
+            parent_b = random.choice(
+                [d for d in population if d.doctrine_id != parent_a.doctrine_id]
+            )
             child = self.engine.crossover(parent_a, parent_b)
             mutated = self.engine.mutate(child, mutation_rate=0.1)
             if mutated:
@@ -228,8 +233,7 @@ class EvolutionEngineV2:
         conn.commit()
         conn.close()
 
-    def _record_ecology(self, gen: int, population: list[DoctrineGenome],
-                         trade_date: str):
+    def _record_ecology(self, gen: int, population: list[DoctrineGenome], trade_date: str):
         """Record alpha ecology for this generation."""
         conn = sqlite3.connect(self.eval_db)
         conn.row_factory = sqlite3.Row
@@ -245,8 +249,12 @@ class EvolutionEngineV2:
         for row in rows:
             did = row["doctrine_id"]
             if did not in doctrine_stats:
-                doctrine_stats[did] = {"factor_alphas": [], "selection_alphas": [],
-                                        "origin_qualities": [], "regimes": []}
+                doctrine_stats[did] = {
+                    "factor_alphas": [],
+                    "selection_alphas": [],
+                    "origin_qualities": [],
+                    "regimes": [],
+                }
             if row["factor_alpha"] is not None:
                 doctrine_stats[did]["factor_alphas"].append(row["factor_alpha"])
             if row["selection_alpha"] is not None:
@@ -257,20 +265,27 @@ class EvolutionEngineV2:
                 doctrine_stats[did]["regimes"].append(row["market_regime"])
 
         from src.factors.snapshot_builder import FactorSnapshotBuilder
+
         builder = FactorSnapshotBuilder()
         ecology_map = {}
         for d in population:
             stats = doctrine_stats.get(d.doctrine_id, {})
-            avg_sel = float(np.mean(stats["selection_alphas"])) if stats.get("selection_alphas") else 0.0
+            avg_sel = (
+                float(np.mean(stats["selection_alphas"])) if stats.get("selection_alphas") else 0.0
+            )
             avg_fact = float(np.mean(stats["factor_alphas"])) if stats.get("factor_alphas") else 0.0
-            avg_oq = float(np.mean(stats["origin_qualities"])) if stats.get("origin_qualities") else 0.5
+            avg_oq = (
+                float(np.mean(stats["origin_qualities"])) if stats.get("origin_qualities") else 0.5
+            )
 
             picks = builder.score_universe(trade_date, d.factor_bias, top_n=20)
             crowd_info = self.ecology.compute_crowding(d, picks, population, trade_date)
 
             ecology_map[d.doctrine_id] = {
-                "factor_alpha": avg_fact, "selection_alpha": avg_sel,
-                "origin_quality": avg_oq, "crowding_score": crowd_info.crowding_score,
+                "factor_alpha": avg_fact,
+                "selection_alpha": avg_sel,
+                "origin_quality": avg_oq,
+                "crowding_score": crowd_info.crowding_score,
             }
 
             family = d.doctrine_id.split("_")[0] if "_" in d.doctrine_id else d.doctrine_id
@@ -279,8 +294,9 @@ class EvolutionEngineV2:
 
         self.ecology.record_generation(gen, ecology_map)
 
-    def _compute_fitness(self, population: list[DoctrineGenome],
-                          population_counts: dict[str, int]) -> dict[str, DoctrineFitnessInfo]:
+    def _compute_fitness(
+        self, population: list[DoctrineGenome], population_counts: dict[str, int]
+    ) -> dict[str, DoctrineFitnessInfo]:
         """Compute fitness for all doctrines."""
         fitness_map = {}
         for d in population:
@@ -298,8 +314,9 @@ class EvolutionEngineV2:
                 )
         return fitness_map
 
-    def _check_extinction(self, gen: int, fitness_map: dict,
-                           population: list[DoctrineGenome]) -> list[str]:
+    def _check_extinction(
+        self, gen: int, fitness_map: dict, population: list[DoctrineGenome]
+    ) -> list[str]:
         """Check for doctrine extinction + record death memory (6-N.2b).
 
         A doctrine goes EXTINCT if:
@@ -307,6 +324,7 @@ class EvolutionEngineV2:
           - fitness < EXTINCTION_FITNESS_THRESHOLD for EXTINCTION_CONSECUTIVE consecutive gens
         """
         from src.evolution.competition import CompetitionEngine
+
         comp = CompetitionEngine(eval_db=self.eval_db, cache_db=self.cache_db)
 
         extinct_ids = []
@@ -319,8 +337,10 @@ class EvolutionEngineV2:
             else:
                 self.consecutive_bad[d.doctrine_id] = 0
 
-            if (age >= self.EXTINCTION_MIN_AGE and
-                self.consecutive_bad.get(d.doctrine_id, 0) >= self.EXTINCTION_CONSECUTIVE):
+            if (
+                age >= self.EXTINCTION_MIN_AGE
+                and self.consecutive_bad.get(d.doctrine_id, 0) >= self.EXTINCTION_CONSECUTIVE
+            ):
                 extinct_ids.append(d.doctrine_id)
                 self.registry.extinct(d.doctrine_id)
 
@@ -353,13 +373,19 @@ class EvolutionEngineV2:
                     avg_crowding=avg_crowding,
                 )
 
-                logger.info("EXTINCTION: %s (age=%d, consecutive_bad=%d, half_life=%d)",
-                           d.doctrine_id, age, self.consecutive_bad[d.doctrine_id], half_life)
+                logger.info(
+                    "EXTINCTION: %s (age=%d, consecutive_bad=%d, half_life=%d)",
+                    d.doctrine_id,
+                    age,
+                    self.consecutive_bad[d.doctrine_id],
+                    half_life,
+                )
 
         return extinct_ids
 
-    def _breed_adaptive(self, survivors: list[DoctrineGenome],
-                         breeding_plans: list, gen: int) -> list[DoctrineGenome]:
+    def _breed_adaptive(
+        self, survivors: list[DoctrineGenome], breeding_plans: list, gen: int
+    ) -> list[DoctrineGenome]:
         """Breed children with adaptive mutation rate.
 
         Mutation rate increases when:
@@ -377,9 +403,8 @@ class EvolutionEngineV2:
             # Adaptive mutation rate
             mutation_rate = self.BASE_MUTATION_RATE
             decay_info = self.ecology.get_decay_info(parent.doctrine_id)
-            if decay_info:
-                if decay_info.decay_rate < self.DECAY_THRESHOLD:
-                    mutation_rate *= self.DECAY_MUTATION_BOOST
+            if decay_info and decay_info.decay_rate < self.DECAY_THRESHOLD:
+                mutation_rate *= self.DECAY_MUTATION_BOOST
             # Check crowding from latest ecology record
             conn = sqlite3.connect(self.eval_db)
             try:
@@ -419,15 +444,29 @@ class EvolutionEngineV2:
     def _record_birth(self, doctrine: DoctrineGenome, gen: int, reason: str):
         """Record a doctrine's birth to survival memory (6-N.2b)."""
         from src.evolution.competition import CompetitionEngine
+
         comp = CompetitionEngine(eval_db=self.eval_db, cache_db=self.cache_db)
-        family = doctrine.doctrine_id.split("_")[0] if "_" in doctrine.doctrine_id else doctrine.doctrine_id
+        family = (
+            doctrine.doctrine_id.split("_")[0]
+            if "_" in doctrine.doctrine_id
+            else doctrine.doctrine_id
+        )
         comp.record_birth(doctrine.doctrine_id, family, gen, reason)
 
-    def _compute_health(self, gen: int, population: list[DoctrineGenome],
-                         fitness_map: dict, children: list, extinct_ids: list) -> GenerationHealth:
+    def _compute_health(
+        self,
+        gen: int,
+        population: list[DoctrineGenome],
+        fitness_map: dict,
+        children: list,
+        extinct_ids: list,
+    ) -> GenerationHealth:
         """Compute Shannon diversity + health metrics."""
         # Family distribution
-        family_counts = Counter(d.doctrine_id.split("_")[0] if "_" in d.doctrine_id else d.doctrine_id for d in population)
+        family_counts = Counter(
+            d.doctrine_id.split("_")[0] if "_" in d.doctrine_id else d.doctrine_id
+            for d in population
+        )
         total = sum(family_counts.values())
 
         # Shannon diversity
@@ -439,8 +478,12 @@ class EvolutionEngineV2:
 
         # Fitness stats
         fitnesses = [info.fitness for info in fitness_map.values()] if fitness_map else []
-        avg_quality = np.mean([info.alpha_quality for info in fitness_map.values()]) if fitness_map else 0
-        avg_sel = np.mean([info.alpha_quality for info in fitness_map.values()]) if fitness_map else 0
+        avg_quality = (
+            np.mean([info.alpha_quality for info in fitness_map.values()]) if fitness_map else 0
+        )
+        avg_sel = (
+            np.mean([info.alpha_quality for info in fitness_map.values()]) if fitness_map else 0
+        )
 
         # Ecology stats
         avg_crowding = 0.0
@@ -458,7 +501,11 @@ class EvolutionEngineV2:
             conn.close()
 
         # Top/bottom
-        ranked = sorted(fitness_map.values(), key=lambda x: x.fitness, reverse=True) if fitness_map else []
+        ranked = (
+            sorted(fitness_map.values(), key=lambda x: x.fitness, reverse=True)
+            if fitness_map
+            else []
+        )
 
         return GenerationHealth(
             generation=gen,
@@ -484,30 +531,105 @@ class EvolutionEngineV2:
 
     def _print_dashboard(self, health: GenerationHealth, elapsed: float):
         """Print one-line health dashboard per generation."""
-        print(f"Gen {health.generation:3d} | "
-              f"Pop={health.population_size:2d} Fam={health.family_count} "
-              f"H={health.shannon_diversity:.2f} | "
-              f"Fit: {health.fitness_mean:.3f}±{health.fitness_spread:.3f} "
-              f"[{health.fitness_min:.3f}~{health.fitness_max:.3f}] | "
-              f"Crowd={health.avg_crowding:.2f} Decay={health.avg_decay:+.2%} | "
-              f"Extinct={health.extinct_count} Born={health.born_count} | "
-              f"{elapsed:.1f}s")
+        print(
+            f"Gen {health.generation:3d} | "
+            f"Pop={health.population_size:2d} Fam={health.family_count} "
+            f"H={health.shannon_diversity:.2f} | "
+            f"Fit: {health.fitness_mean:.3f}±{health.fitness_spread:.3f} "
+            f"[{health.fitness_min:.3f}~{health.fitness_max:.3f}] | "
+            f"Crowd={health.avg_crowding:.2f} Decay={health.avg_decay:+.2%} | "
+            f"Extinct={health.extinct_count} Born={health.born_count} | "
+            f"{elapsed:.1f}s"
+        )
 
     def _base_identities(self) -> list[dict]:
         return [
-            {"valuation": 90, "quality": 85, "growth": 40, "momentum": 15, "macro": 30, "contrarian": 80, "patience": 95, "concentration": 70},
-            {"valuation": 50, "quality": 70, "growth": 90, "momentum": 40, "macro": 45, "contrarian": 20, "patience": 50, "concentration": 60},
-            {"valuation": 10, "quality": 40, "growth": 40, "momentum": 95, "macro": 50, "contrarian": 5, "patience": 20, "concentration": 55},
-            {"valuation": 85, "quality": 50, "growth": 15, "momentum": 5, "macro": 60, "contrarian": 95, "patience": 85, "concentration": 65},
-            {"valuation": 75, "quality": 70, "growth": 25, "momentum": 10, "macro": 35, "contrarian": 55, "patience": 85, "concentration": 50},
-            {"valuation": 50, "quality": 95, "growth": 55, "momentum": 15, "macro": 25, "contrarian": 35, "patience": 90, "concentration": 80},
-            {"valuation": 40, "quality": 50, "growth": 50, "momentum": 55, "macro": 65, "contrarian": 30, "patience": 30, "concentration": 40},
-            {"valuation": 55, "quality": 55, "growth": 50, "momentum": 35, "macro": 40, "contrarian": 45, "patience": 60, "concentration": 65},
+            {
+                "valuation": 90,
+                "quality": 85,
+                "growth": 40,
+                "momentum": 15,
+                "macro": 30,
+                "contrarian": 80,
+                "patience": 95,
+                "concentration": 70,
+            },
+            {
+                "valuation": 50,
+                "quality": 70,
+                "growth": 90,
+                "momentum": 40,
+                "macro": 45,
+                "contrarian": 20,
+                "patience": 50,
+                "concentration": 60,
+            },
+            {
+                "valuation": 10,
+                "quality": 40,
+                "growth": 40,
+                "momentum": 95,
+                "macro": 50,
+                "contrarian": 5,
+                "patience": 20,
+                "concentration": 55,
+            },
+            {
+                "valuation": 85,
+                "quality": 50,
+                "growth": 15,
+                "momentum": 5,
+                "macro": 60,
+                "contrarian": 95,
+                "patience": 85,
+                "concentration": 65,
+            },
+            {
+                "valuation": 75,
+                "quality": 70,
+                "growth": 25,
+                "momentum": 10,
+                "macro": 35,
+                "contrarian": 55,
+                "patience": 85,
+                "concentration": 50,
+            },
+            {
+                "valuation": 50,
+                "quality": 95,
+                "growth": 55,
+                "momentum": 15,
+                "macro": 25,
+                "contrarian": 35,
+                "patience": 90,
+                "concentration": 80,
+            },
+            {
+                "valuation": 40,
+                "quality": 50,
+                "growth": 50,
+                "momentum": 55,
+                "macro": 65,
+                "contrarian": 30,
+                "patience": 30,
+                "concentration": 40,
+            },
+            {
+                "valuation": 55,
+                "quality": 55,
+                "growth": 50,
+                "momentum": 35,
+                "macro": 40,
+                "contrarian": 45,
+                "patience": 60,
+                "concentration": 65,
+            },
         ]
 
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Evolution Engine v2")
     parser.add_argument("--generations", type=int, default=50)
     parser.add_argument("--population", type=int, default=32)
@@ -517,21 +639,27 @@ def main():
     trajectory = engine.run(generations=args.generations, target_population=args.population)
 
     # Final analysis
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("EVOLUTION HEALTH ANALYSIS")
-    print(f"{'='*70}")
-    print(f"\n{'Gen':>4} {'Pop':>4} {'Fam':>4} {'Shannon':>8} {'FitMean':>8} {'Spread':>8} {'Crowd':>6} {'Decay':>8} {'Ext':>4} {'Born':>4}")
+    print(f"{'=' * 70}")
+    print(
+        f"\n{'Gen':>4} {'Pop':>4} {'Fam':>4} {'Shannon':>8} {'FitMean':>8} {'Spread':>8} {'Crowd':>6} {'Decay':>8} {'Ext':>4} {'Born':>4}"
+    )
     for h in trajectory:
-        print(f"{h.generation:4d} {h.population_size:4d} {h.family_count:4d} "
-              f"{h.shannon_diversity:8.3f} {h.fitness_mean:8.3f} {h.fitness_spread:8.3f} "
-              f"{h.avg_crowding:6.2f} {h.avg_decay:+8.2%} {h.extinct_count:4d} {h.born_count:4d}")
+        print(
+            f"{h.generation:4d} {h.population_size:4d} {h.family_count:4d} "
+            f"{h.shannon_diversity:8.3f} {h.fitness_mean:8.3f} {h.fitness_spread:8.3f} "
+            f"{h.avg_crowding:6.2f} {h.avg_decay:+8.2%} {h.extinct_count:4d} {h.born_count:4d}"
+        )
 
     # Summary
     first = trajectory[0]
     last = trajectory[-1]
     print(f"\n=== Summary (Gen {first.generation} -> Gen {last.generation}) ===")
-    print(f"Shannon diversity: {first.shannon_diversity:.3f} -> {last.shannon_diversity:.3f} "
-          f"({'stable' if abs(last.shannon_diversity - first.shannon_diversity) < 0.3 else 'CHANGED'})")
+    print(
+        f"Shannon diversity: {first.shannon_diversity:.3f} -> {last.shannon_diversity:.3f} "
+        f"({'stable' if abs(last.shannon_diversity - first.shannon_diversity) < 0.3 else 'CHANGED'})"
+    )
     print(f"Family count: {first.family_count} -> {last.family_count}")
     print(f"Fitness mean: {first.fitness_mean:.3f} -> {last.fitness_mean:.3f}")
     print(f"Total extinctions: {sum(h.extinct_count for h in trajectory)}")

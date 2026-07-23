@@ -30,10 +30,8 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
-import pandas as pd
 
 from src.data.local_provider import LocalDataProvider
 from src.utils.logger import get_logger
@@ -44,6 +42,7 @@ logger = get_logger(__name__)
 @dataclass
 class FactorClimate:
     """Factor momentum + crowding climate for one date."""
+
     date: str
     factors: dict = field(default_factory=dict)  # {factor: {momentum_20d, momentum_60d, ...}}
     market_regime: str = "unknown"
@@ -52,15 +51,13 @@ class FactorClimate:
         """Which factor has the strongest momentum."""
         if not self.factors:
             return "neutral"
-        return max(self.factors.keys(),
-                   key=lambda f: self.factors[f].get(window, 0))
+        return max(self.factors.keys(), key=lambda f: self.factors[f].get(window, 0))
 
     def get_weakest_factor(self, window: str = "momentum_60d") -> str:
         """Which factor has the weakest momentum."""
         if not self.factors:
             return "neutral"
-        return min(self.factors.keys(),
-                   key=lambda f: self.factors[f].get(window, 0))
+        return min(self.factors.keys(), key=lambda f: self.factors[f].get(window, 0))
 
 
 class FactorMomentumEngine:
@@ -78,16 +75,14 @@ class FactorMomentumEngine:
 
     FACTOR_FAMILIES = ["quality", "value", "growth", "momentum", "risk", "sentiment"]
     LS_PERCENTILE = 0.20  # top 20% long, bottom 20% short
-    HORIZON = 20          # 20-day forward return for L-S computation
+    HORIZON = 20  # 20-day forward return for L-S computation
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.local = LocalDataProvider()
 
-    def compute_factor_climate(self, trade_date: str,
-                                lookback_days: int = 120) -> FactorClimate:
+    def compute_factor_climate(self, trade_date: str, lookback_days: int = 120) -> FactorClimate:
         """Compute factor climate for a date.
 
         Uses historical factor snapshots before trade_date to compute
@@ -107,9 +102,7 @@ class FactorMomentumEngine:
             return FactorClimate(date=trade_date, market_regime=market_regime)
 
         # For each past snapshot date, compute factor L-S returns
-        ls_returns_by_factor: dict[str, list[float]] = {
-            f: [] for f in self.FACTOR_FAMILIES
-        }
+        ls_returns_by_factor: dict[str, list[float]] = {f: [] for f in self.FACTOR_FAMILIES}
 
         for past_date in past_dates:
             ls_returns = self._compute_ls_returns_for_date(past_date)
@@ -123,8 +116,11 @@ class FactorMomentumEngine:
             returns = ls_returns_by_factor[factor]
             if not returns:
                 factors_climate[factor] = {
-                    "momentum_20d": 0.0, "momentum_60d": 0.0,
-                    "momentum_120d": 0.0, "win_rate": 0.5, "n_samples": 0,
+                    "momentum_20d": 0.0,
+                    "momentum_60d": 0.0,
+                    "momentum_120d": 0.0,
+                    "win_rate": 0.5,
+                    "n_samples": 0,
                 }
                 continue
 
@@ -208,8 +204,7 @@ class FactorMomentumEngine:
 
         return results
 
-    def _compute_group_returns(self, security_ids: list[str],
-                                start: str, end: str) -> list[float]:
+    def _compute_group_returns(self, security_ids: list[str], start: str, end: str) -> list[float]:
         """Compute forward returns for a group of stocks."""
         returns = []
         for sec_id in security_ids:
@@ -219,12 +214,11 @@ class FactorMomentumEngine:
                 if kline is not None and not kline.empty and len(kline) >= 2:
                     close = kline["close"].values
                     returns.append((close[-1] - close[0]) / close[0])
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
         return returns
 
-    def _get_past_snapshot_dates(self, trade_date: str,
-                                  lookback: int) -> list[str]:
+    def _get_past_snapshot_dates(self, trade_date: str, lookback: int) -> list[str]:
         """Get snapshot dates before trade_date (for momentum computation)."""
         conn = sqlite3.connect(self.eval_db)
         try:

@@ -20,10 +20,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
+import os
+import sqlite3
+import sys
 
 import numpy as np
 
@@ -92,8 +92,7 @@ class V3AttributionBackfiller:
         self._stock_return_cache[key] = None
         return None
 
-    def _get_sector_cumulative_return(self, industry: str,
-                                       start: str, end: str) -> float | None:
+    def _get_sector_cumulative_return(self, industry: str, start: str, end: str) -> float | None:
         if not industry:
             return None
         rows = self.cache.execute(
@@ -107,7 +106,7 @@ class V3AttributionBackfiller:
         cumulative = 1.0
         for r in rows:
             if r[0] is not None:
-                cumulative *= (1.0 + r[0])
+                cumulative *= 1.0 + r[0]
         return cumulative - 1.0
 
     def _get_sector_code(self, stock_code: str) -> str | None:
@@ -126,8 +125,7 @@ class V3AttributionBackfiller:
 
     def _index_close(self, code: str, trade_date: str) -> float | None:
         row = self.cache.execute(
-            "SELECT adj_close FROM market_index_daily "
-            "WHERE index_code=? AND trade_date=?",
+            "SELECT adj_close FROM market_index_daily WHERE index_code=? AND trade_date=?",
             (code, trade_date),
         ).fetchone()
         if not row or row[0] is None:
@@ -154,15 +152,18 @@ class V3AttributionBackfiller:
             ).fetchall()
         else:
             candidates = self.shadow.execute(
-                "SELECT id, episode_id, security_id FROM shadow_candidates_v3 "
-                "ORDER BY id"
+                "SELECT id, episode_id, security_id FROM shadow_candidates_v3 ORDER BY id"
             ).fetchall()
 
         print(f"v3 candidates to process: {len(candidates)}", flush=True)
 
         stats = {
-            "total": 0, "stock_return": 0, "market_return": 0,
-            "sector_code": 0, "sector_return": 0, "residual_alpha": 0,
+            "total": 0,
+            "stock_return": 0,
+            "market_return": 0,
+            "sector_code": 0,
+            "sector_return": 0,
+            "residual_alpha": 0,
             "sector_unavailable": 0,
         }
 
@@ -175,8 +176,11 @@ class V3AttributionBackfiller:
             if len(batch) >= 100:
                 self._commit_batch(batch)
                 batch = []
-                print(f"  ... {i+1}/{len(candidates)} processed "
-                      f"({stats['residual_alpha']} with residual)", flush=True)
+                print(
+                    f"  ... {i + 1}/{len(candidates)} processed "
+                    f"({stats['residual_alpha']} with residual)",
+                    flush=True,
+                )
 
         if batch:
             self._commit_batch(batch)
@@ -211,8 +215,7 @@ class V3AttributionBackfiller:
 
         sector_return = None
         if sector_code:
-            sector_return = self._get_sector_cumulative_return(
-                sector_code, trade_date, eval_date)
+            sector_return = self._get_sector_cumulative_return(sector_code, trade_date, eval_date)
             if sector_return is not None:
                 stats["sector_return"] += 1
             else:
@@ -229,8 +232,16 @@ class V3AttributionBackfiller:
                 residual_alpha = stock_return - market_return - sector_return
                 stats["residual_alpha"] += 1
 
-        return (stock_return, market_return, sector_code, sector_return,
-                market_beta, sector_beta, residual_alpha, cand_id)
+        return (
+            stock_return,
+            market_return,
+            sector_code,
+            sector_return,
+            market_beta,
+            sector_beta,
+            residual_alpha,
+            cand_id,
+        )
 
     def _commit_batch(self, batch: list[tuple]):
         self.shadow.executemany(
@@ -253,8 +264,7 @@ class V3AttributionBackfiller:
         print(f"  sector_code filled:          {stats['sector_code']}", flush=True)
         print(f"  sector_return filled:        {stats['sector_return']}", flush=True)
         print(f"  residual_alpha (full attrib):{stats['residual_alpha']}", flush=True)
-        print(f"  sector data unavailable:     {stats['sector_unavailable']}",
-              flush=True)
+        print(f"  sector data unavailable:     {stats['sector_unavailable']}", flush=True)
 
         # Quick stats on residual_alpha
         rows = self.shadow.execute(
@@ -266,21 +276,26 @@ class V3AttributionBackfiller:
             ra = np.array([r["residual_alpha"] for r in rows])
             mb = np.array([r["market_beta"] for r in rows])
             sb = np.array([r["sector_beta"] for r in rows])
-            print(f"\n  residual_alpha: N={len(ra)} "
-                  f"mean={np.mean(ra):+.4f} median={np.median(ra):+.4f} "
-                  f">0: {np.mean(ra>0):.1%}", flush=True)
+            print(
+                f"\n  residual_alpha: N={len(ra)} "
+                f"mean={np.mean(ra):+.4f} median={np.median(ra):+.4f} "
+                f">0: {np.mean(ra > 0):.1%}",
+                flush=True,
+            )
             print(f"  market_beta:    mean={np.mean(mb):+.4f}", flush=True)
             print(f"  sector_beta:    mean={np.mean(sb):+.4f}", flush=True)
 
             # By FRM direction
-            print(f"\n  By FRM direction:", flush=True)
+            print("\n  By FRM direction:", flush=True)
             for r in self.shadow.execute(
                 "SELECT frm_direction, COUNT(*) c, AVG(residual_alpha) avg_ra "
                 "FROM shadow_candidates_v3 WHERE residual_alpha IS NOT NULL "
                 "GROUP BY frm_direction ORDER BY c DESC"
             ).fetchall():
-                print(f"    {r['frm_direction']:14s}: N={r['c']:3d} "
-                      f"avg_residual={r['avg_ra']:+.4f}", flush=True)
+                print(
+                    f"    {r['frm_direction']:14s}: N={r['c']:3d} avg_residual={r['avg_ra']:+.4f}",
+                    flush=True,
+                )
 
     def close(self):
         self.shadow.close()
@@ -288,8 +303,7 @@ class V3AttributionBackfiller:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Backfill v3 Attribution (6-S.13.6 Step 2)")
+    parser = argparse.ArgumentParser(description="Backfill v3 Attribution (6-S.13.6 Step 2)")
     parser.add_argument("--episode", type=str, default=None)
     args = parser.parse_args()
     bf = V3AttributionBackfiller()

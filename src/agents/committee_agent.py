@@ -42,6 +42,7 @@ from .portfolio_agent import PortfolioState
 # CommitteeDecision
 # ═══════════════════════════════════════════════════════════
 
+
 @dataclass
 class CommitteeDecision:
     """Output of Investment Committee review."""
@@ -58,20 +59,20 @@ class CommitteeDecision:
 
     # Chairman ruling
     weighted_score: float = 50.0
-    verdict: str = "REJECT"            # APPROVE / APPROVE_WITH_CONDITIONS / REJECT / RETURN_FOR_REVISION
+    verdict: str = "REJECT"  # APPROVE / APPROVE_WITH_CONDITIONS / REJECT / RETURN_FOR_REVISION
     verdict_reason: str = ""
     revision_count: int = 0
 
     # Portfolio Agent instructions
     position_cap_modifier: float = 1.0
-    confidence_modifier: float = 0.0   # ≤ 0.0 — can only reduce
+    confidence_modifier: float = 0.0  # ≤ 0.0 — can only reduce
     monitoring_flags: list[str] = field(default_factory=list)
     required_conditions: list[str] = field(default_factory=list)
 
     # Debate records
     member_statements: dict = field(default_factory=dict)
     devil_advocate_attack_points: list[str] = field(default_factory=list)
-    devil_advocate_attack: str = ""        # spec §4.1：致命攻击点描述
+    devil_advocate_attack: str = ""  # spec §4.1：致命攻击点描述
     debate_transcript: str = ""
 
     created_at: str = ""
@@ -81,8 +82,8 @@ class CommitteeDecision:
 # Chairman Verdict
 # ═══════════════════════════════════════════════════════════
 
-def chairman_decision(scores: dict, revision_count: int = 0,
-                       config: dict = None) -> tuple:
+
+def chairman_decision(scores: dict, revision_count: int = 0, config: dict = None) -> tuple:
     """Aggregate five role scores into final verdict.
 
     Args:
@@ -123,16 +124,27 @@ def chairman_decision(scores: dict, revision_count: int = 0,
 
     # ── Fatal reject ────────────────────────────────────
     if scores.get("risk", 50.0) < fatal_threshold:
-        return "REJECT", weighted, f"风险评分{scores['risk']:.0f}低于致命阈值{fatal_threshold}，委员会否决"
+        return (
+            "REJECT",
+            weighted,
+            f"风险评分{scores['risk']:.0f}低于致命阈值{fatal_threshold}，委员会否决",
+        )
     if scores.get("devil_advocate", 50.0) < fatal_threshold:
-        return "REJECT", weighted, f"魔鬼代言人评分{scores['devil_advocate']:.0f}低于致命阈值{fatal_threshold}，核心假设存在致命缺陷"
+        return (
+            "REJECT",
+            weighted,
+            f"魔鬼代言人评分{scores['devil_advocate']:.0f}低于致命阈值{fatal_threshold}，核心假设存在致命缺陷",
+        )
 
     # ── Return for revision (dead-loop prevention) ───────
     if revision_count < max_revisions:
         low_scores = [k for k, v in scores.items() if v < return_threshold]
         if len(low_scores) >= 2:
-            return ("RETURN_FOR_REVISION", weighted,
-                    f"多个维度评分过低: {low_scores}，请修正后重新提交（第{revision_count + 1}次）")
+            return (
+                "RETURN_FOR_REVISION",
+                weighted,
+                f"多个维度评分过低: {low_scores}，请修正后重新提交（第{revision_count + 1}次）",
+            )
 
     # ── Approve with conditions (spec §6 rule 3，先于批准) ─
     # 加权综合良好(>=conditional_threshold)但存在弱维度(<60) → 有条件通过。
@@ -140,8 +152,11 @@ def chairman_decision(scores: dict, revision_count: int = 0,
     if weighted >= conditional_threshold:
         weak_dimensions = [k for k, v in scores.items() if v < 60]
         if weak_dimensions:
-            return ("APPROVE_WITH_CONDITIONS", weighted,
-                    f"加权综合评分{weighted:.1f}，附带监控条件通过（弱项: {weak_dimensions}）")
+            return (
+                "APPROVE_WITH_CONDITIONS",
+                weighted,
+                f"加权综合评分{weighted:.1f}，附带监控条件通过（弱项: {weak_dimensions}）",
+            )
 
     # ── Approve (spec §6 rule 4) ─────────────────────────
     if weighted >= approve_threshold:
@@ -151,13 +166,17 @@ def chairman_decision(scores: dict, revision_count: int = 0,
     if weighted < 50:
         return "REJECT", weighted, f"加权综合评分{weighted:.1f}低于50，委员会否决"
 
-    return ("APPROVE_WITH_CONDITIONS", weighted,
-            f"加权综合评分{weighted:.1f}，附带严格监控条件通过")
+    return (
+        "APPROVE_WITH_CONDITIONS",
+        weighted,
+        f"加权综合评分{weighted:.1f}，附带严格监控条件通过",
+    )
 
 
 # ═══════════════════════════════════════════════════════════
 # Committee Agent
 # ═══════════════════════════════════════════════════════════
+
 
 class CommitteeAgent:
     """Investment Committee — governance decision hub.
@@ -173,18 +192,26 @@ class CommitteeAgent:
         # Load protocol config
         if config_path is None:
             import os
+
             config_path = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "config", "committee_protocol.yaml"
+                "config",
+                "committee_protocol.yaml",
             )
 
         with open(config_path, encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
-    def review(self, security_analysis, validation_result,
-               market_snapshot: dict = None, portfolio_state: dict = None,
-               revision_count: int = 0, factor_snapshot: dict = None,
-               sector: str = None) -> CommitteeDecision:
+    def review(
+        self,
+        security_analysis,
+        validation_result,
+        market_snapshot: dict = None,
+        portfolio_state: dict = None,
+        revision_count: int = 0,
+        factor_snapshot: dict = None,
+        sector: str = None,
+    ) -> CommitteeDecision:
         """Review a SecurityAnalysis through the committee.
 
         Args:
@@ -207,12 +234,8 @@ class CommitteeAgent:
         fs_dict = self._build_factor_snapshot(security_analysis, factor_snapshot, sector)
 
         # ── 1. Score each role ────────────────────────────
-        val_score = valuation_reviewer.score_valuation(
-            thesis, fs_dict, validation_result
-        )
-        ind_score = industry_reviewer.score_industry(
-            thesis, market_snapshot, fs_dict
-        )
+        val_score = valuation_reviewer.score_valuation(thesis, fs_dict, validation_result)
+        ind_score = industry_reviewer.score_industry(thesis, market_snapshot, fs_dict)
         risk_score = risk_controller.score_risk(
             portfolio_state, security_analysis, validation_result, fs_dict
         )
@@ -234,19 +257,17 @@ class CommitteeAgent:
         }
 
         # ── 2. Chairman verdict ───────────────────────────
-        verdict, weighted_score, reason = chairman_decision(
-            scores, revision_count, self.config
-        )
+        verdict, weighted_score, reason = chairman_decision(scores, revision_count, self.config)
 
         # ── 3. Position modifiers ─────────────────────────
         position_policy = (
-            self.config.get("committee", {})
-            .get("chairman", {})
-            .get("position_policy", {})
+            self.config.get("committee", {}).get("chairman", {}).get("position_policy", {})
         )
         cap_modifier = {
             "APPROVE": position_policy.get("approve_cap_modifier", 1.0),
-            "APPROVE_WITH_CONDITIONS": position_policy.get("approve_with_conditions_cap_modifier", 0.5),
+            "APPROVE_WITH_CONDITIONS": position_policy.get(
+                "approve_with_conditions_cap_modifier", 0.5
+            ),
             "REJECT": position_policy.get("reject_cap_modifier", 0.0),
             "RETURN_FOR_REVISION": position_policy.get("return_for_revision_cap_modifier", 0.0),
         }.get(verdict, 0.0)
@@ -264,8 +285,8 @@ class CommitteeAgent:
         confidence_mod = max(-0.30, round(confidence_mod, 2))
 
         # ── 4. Monitoring flags ───────────────────────────
-        monitoring = self.config.get("committee", {}).get("chairman", {}).get(
-            "monitoring_thresholds", {}
+        monitoring = (
+            self.config.get("committee", {}).get("chairman", {}).get("monitoring_thresholds", {})
         )
         flags = []
         if val_score < monitoring.get("valuation", 60):
@@ -348,8 +369,15 @@ class CommitteeAgent:
             fs.update(factor_snapshot)
         elif factor_snapshot is not None:
             # 数据层 FactorSnapshot dataclass
-            for k in ("pe_ttm", "pb", "fcf_yield", "revenue_growth_1y",
-                      "revenue_growth_yoy", "liquidity_score", "sector"):
+            for k in (
+                "pe_ttm",
+                "pb",
+                "fcf_yield",
+                "revenue_growth_1y",
+                "revenue_growth_yoy",
+                "liquidity_score",
+                "sector",
+            ):
                 v = getattr(factor_snapshot, k, None)
                 if v is not None:
                     fs[k] = v
@@ -386,17 +414,19 @@ class CommitteeAgent:
 
         return {
             "claim": thesis.claim or "",
-            "evidence": [{"metric": e.get("metric"), "value": e.get("value")}
-                          for e in (thesis.evidence or [])],
-            "invalidation": [{"condition": i.get("condition")}
-                              for i in (thesis.invalidation or [])],
+            "evidence": [
+                {"metric": e.get("metric"), "value": e.get("value")}
+                for e in (thesis.evidence or [])
+            ],
+            "invalidation": [
+                {"condition": i.get("condition")} for i in (thesis.invalidation or [])
+            ],
             "family": thesis.family or "unknown",
             "pattern": thesis.pattern or "",
             "thesis_id": thesis.thesis_id or "",
         }
 
-    def _generate_statements(self, scores: dict, attack_points: list,
-                              thesis: dict) -> dict:
+    def _generate_statements(self, scores: dict, attack_points: list, thesis: dict) -> dict:
         """Generate natural language statements from scores using LLM.
 
         LLM only expands attack_points anchors — never invents new ones.
@@ -405,12 +435,15 @@ class CommitteeAgent:
             return {}
 
         statements = {}
-        role_genomes = (
-            self.config.get("committee", {}).get("roles", {})
-        )
+        role_genomes = self.config.get("committee", {}).get("roles", {})
 
-        for role_key in ["valuation_reviewer", "industry_reviewer", "risk_controller",
-                          "quant_auditor", "devil_advocate"]:
+        for role_key in [
+            "valuation_reviewer",
+            "industry_reviewer",
+            "risk_controller",
+            "quant_auditor",
+            "devil_advocate",
+        ]:
             genome = role_genomes.get(role_key, {}).get("genome", {})
             voice = genome.get("voice", "")
             doctrine = genome.get("doctrine", "")
@@ -420,7 +453,7 @@ class CommitteeAgent:
 角色: {role_key}
 角色信条: {doctrine}
 表达风格: {voice}
-当前评分: {scores.get(role_key.replace('_reviewer', '').replace('_controller', '').replace('_auditor', '').replace('_advocate', ''), 50):.0f}/100
+当前评分: {scores.get(role_key.replace("_reviewer", "").replace("_controller", "").replace("_auditor", "").replace("_advocate", ""), 50):.0f}/100
 """
 
             if role_key == "devil_advocate" and attack_points:
@@ -471,6 +504,7 @@ class CommitteeAgent:
 # Rule-Only LLM Bridge (spec §8 默认实现)
 # ═══════════════════════════════════════════════
 
+
 class RuleOnlyLLMBridge:
     """确定性陈述生成器：当 config llm.enabled=false 时使用。
 
@@ -497,8 +531,9 @@ class RuleOnlyLLMBridge:
     def __init__(self, version: str = "1.0"):
         self.version = version
 
-    def generate_statements(self, scores: dict, role_genomes: dict,
-                            thesis: dict, verdict: str) -> dict:
+    def generate_statements(
+        self, scores: dict, role_genomes: dict, thesis: dict, verdict: str
+    ) -> dict:
         statements = {}
         for role_key, cn in self.ROLE_CN.items():
             genome = (role_genomes.get(role_key, {}) or {}).get("genome", {}) or {}
@@ -516,14 +551,17 @@ class RuleOnlyLLMBridge:
 
     def generate_devil_attack(self, attacks: list, thesis: dict) -> str:
         if not attacks:
-            return f"[LLM-v{self.version}] 魔鬼代言人：未找到可量化的致命缺陷，核心假设存活概率较高。"
+            return (
+                f"[LLM-v{self.version}] 魔鬼代言人：未找到可量化的致命缺陷，核心假设存活概率较高。"
+            )
         lines = [f"[LLM-v{self.version}] 魔鬼代言人核心攻击点："]
         for a in attacks:
             lines.append(f"  - {a}")
         return "\n".join(lines)
 
-    def generate_transcript(self, statements: dict, devil_attack: str,
-                            verdict: str, verdict_reason: str) -> str:
+    def generate_transcript(
+        self, statements: dict, devil_attack: str, verdict: str, verdict_reason: str
+    ) -> str:
         verdict_cn = {
             "APPROVE": "✅ 批准",
             "APPROVE_WITH_CONDITIONS": "⚠️ 有条件批准",
@@ -573,6 +611,7 @@ def _pe_to_percentile(pe_ttm) -> float:
 # Portfolio Integration
 # ═══════════════════════════════════════════════════════════
 
+
 def apply_committee_decision(decision: CommitteeDecision, base_weight: float) -> float:
     """Apply committee verdict to position weight.
 
@@ -585,14 +624,22 @@ def apply_committee_decision(decision: CommitteeDecision, base_weight: float) ->
 
     # confidence_modifier is always ≤ 0.0
     actual_mod = min(0.0, decision.confidence_modifier)
-    adjusted *= (1.0 + actual_mod)
+    adjusted *= 1.0 + actual_mod
 
     return max(0.0, adjusted)
 
 
-def process_investment_idea(research_agent, thesis_validator, committee,
-                             portfolio_agent, market_snap, stock_snap,
-                             factor_snap, db, portfolio_state=None):
+def process_investment_idea(
+    research_agent,
+    thesis_validator,
+    committee,
+    portfolio_agent,
+    market_snap,
+    stock_snap,
+    factor_snap,
+    db,
+    portfolio_state=None,
+):
     """Full pipeline: Research → Validate → Committee → Portfolio.
 
     Complete data flow per Phase 5A-3 §10.
@@ -617,7 +664,9 @@ def process_investment_idea(research_agent, thesis_validator, committee,
     dh = hashlib.sha256(f"{sa.agent_id}|{code}|{mdate}".encode()).hexdigest()[:16]
     ih = hashlib.sha256(f"{code}|{mdate}".encode()).hexdigest()[:16]
     rid = db.insert_research_decision(
-        agent_id=sa.agent_id, genome_hash=dh, security_id=code,
+        agent_id=sa.agent_id,
+        genome_hash=dh,
+        security_id=code,
         thesis={
             "thesis_id": f"auto_{code}_{mdate}",
             "family": sa.thesis.family if sa.thesis else "value",
@@ -628,15 +677,19 @@ def process_investment_idea(research_agent, thesis_validator, committee,
             "invalidation": sa.thesis.invalidation if sa.thesis else [],
             "horizon": "12_months",
         },
-        alpha_score=sa.alpha_score, confidence=sa.confidence,
+        alpha_score=sa.alpha_score,
+        confidence=sa.confidence,
         factor_snapshot={
-            "quality": factor_snap.quality_score, "value": factor_snap.value_score,
-            "growth": factor_snap.growth_score, "momentum": factor_snap.momentum_score,
+            "quality": factor_snap.quality_score,
+            "value": factor_snap.value_score,
+            "growth": factor_snap.growth_score,
+            "momentum": factor_snap.momentum_score,
         },
         risk_assessment=sa.risk_assessment,
         entry_price=getattr(stock_snap, "price", None) or 100,
         entry_date=mdate,
-        decision_hash=dh, input_hash=ih,
+        decision_hash=dh,
+        input_hash=ih,
     )
 
     # 2. Validation
@@ -651,7 +704,9 @@ def process_investment_idea(research_agent, thesis_validator, committee,
         "market_pe_percentile": getattr(market_snap, "market_pe_percentile", 0.55),
     }
     decision = committee.review(
-        sa, validation, market_dict,
+        sa,
+        validation,
+        market_dict,
         portfolio_state or {"sector_weights": {}, "positions": []},
     )
 
@@ -662,7 +717,9 @@ def process_investment_idea(research_agent, thesis_validator, committee,
             "stock_code": sa.stock_code,
             "alpha_score": sa.alpha_score,
             "confidence": sa.confidence,
-            "effective_confidence": max(0.0, validation.effective_confidence + decision.confidence_modifier),
+            "effective_confidence": max(
+                0.0, validation.effective_confidence + decision.confidence_modifier
+            ),
             "thesis": sa.thesis,
             "factor_profile": sa.factor_profile,
             "risk_assessment": sa.risk_assessment,
@@ -670,7 +727,9 @@ def process_investment_idea(research_agent, thesis_validator, committee,
             "position_cap_modifier": decision.position_cap_modifier,
         }
         # Portfolio agent constructs the portfolio from the real SecurityAnalysis
-        portfolio_decision = portfolio_agent.construct_portfolio([sa], PortfolioState(), market_dict)
+        portfolio_decision = portfolio_agent.construct_portfolio(
+            [sa], PortfolioState(), market_dict
+        )
         return enhanced, decision, portfolio_decision
 
     return None

@@ -16,9 +16,9 @@ Usage:
     python scripts/backfill_akshare.py --periods 20240331 20240630 20240931 20241231
 """
 
+import argparse
 import os
 import sys
-import argparse
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -48,7 +48,7 @@ def generate_periods(years: int = 2) -> list[str]:
         last_q_year = cur_year
         last_q = 3
 
-    q_month = {1: '0331', 2: '0630', 3: '0930', 4: '1231'}
+    q_month = {1: "0331", 2: "0630", 3: "0930", 4: "1231"}
     start_year = cur_year - years
     for y in range(start_year, last_q_year + 1):
         for q in range(1, 5):
@@ -62,14 +62,16 @@ def generate_periods(years: int = 2) -> list[str]:
 def main():
     parser = argparse.ArgumentParser(description="Bulk backfill financials via akshare")
     parser.add_argument("--years", type=int, default=2, help="Years of history (default 2)")
-    parser.add_argument("--periods", nargs='*', default=None,
-                        help="Specific periods (YYYYMMDD), overrides --years")
-    parser.add_argument("--no-enrich", action="store_true",
-                        help="Skip PE/PB/mcap enrichment (faster)")
+    parser.add_argument(
+        "--periods", nargs="*", default=None, help="Specific periods (YYYYMMDD), overrides --years"
+    )
+    parser.add_argument(
+        "--no-enrich", action="store_true", help="Skip PE/PB/mcap enrichment (faster)"
+    )
     args = parser.parse_args()
 
     periods = args.periods or generate_periods(args.years)
-    print(f"=== Akshare Bulk Backfill ===")
+    print("=== Akshare Bulk Backfill ===")
     print(f"Periods: {len(periods)}")
     for p in periods:
         print(f"  {p[:4]}-{p[4:6]}-{p[6:8]}")
@@ -77,16 +79,17 @@ def main():
 
     provider = AkshareProvider()
     import time
+
     t0 = time.time()
     total = provider.backfill_periods(periods, enrich_market=not args.no_enrich)
     elapsed = time.time() - t0
     print(f"\n=== Done in {elapsed:.1f}s ===")
     print(f"Total rows written: {total}")
-    print(f"Speed: {total/elapsed:.0f} rows/s")
+    print(f"Speed: {total / elapsed:.0f} rows/s")
 
     # Verify with Maotai
-    print(f"\n=== Verify: 茅台 600519 ===")
-    d = provider.get_financial_dict('600519')
+    print("\n=== Verify: 茅台 600519 ===")
+    d = provider.get_financial_dict("600519")
     print(f"  roe: {d.get('roe')}")
     print(f"  pe_ttm: {d.get('pe_ttm')}")
     print(f"  revenue_growth_1y: {d.get('revenue_growth_1y')}")

@@ -40,9 +40,7 @@ def _configure_project_logger() -> logging.Logger:
     logger.propagate = False
 
     # Attach a single console handler.
-    has_stream_handler = any(
-        isinstance(h, logging.StreamHandler) for h in logger.handlers
-    )
+    has_stream_handler = any(isinstance(h, logging.StreamHandler) for h in logger.handlers)
     if not has_stream_handler:
         handler = logging.StreamHandler(stream=sys.stderr)
         handler.setLevel(level)

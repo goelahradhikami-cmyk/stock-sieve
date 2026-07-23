@@ -44,10 +44,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
+import os
+import sqlite3
+import sys
 from datetime import date
 
 import numpy as np
@@ -128,17 +128,20 @@ def load_regression_data():
         sustain_vals.append(sp)
 
         crowd = crowd_map.get((sid, td), {})
-        enriched.append({
-            "sid": sid, "td": td,
-            "alpha": r["residual_alpha"],
-            "frm_dir": r["frm_direction"],
-            "frm_score": r["frm_score"],
-            "gap": gap,
-            "sustain": sp,
-            "crowd_score": crowd.get("crowding_score_v1"),
-            "market_cap": crowd.get("market_cap"),
-            "realized_vol": crowd.get("realized_vol_20d"),
-        })
+        enriched.append(
+            {
+                "sid": sid,
+                "td": td,
+                "alpha": r["residual_alpha"],
+                "frm_dir": r["frm_direction"],
+                "frm_score": r["frm_score"],
+                "gap": gap,
+                "sustain": sp,
+                "crowd_score": crowd.get("crowding_score_v1"),
+                "market_cap": crowd.get("market_cap"),
+                "realized_vol": crowd.get("realized_vol_20d"),
+            }
+        )
 
     shadow.close()
     cache.close()
@@ -153,7 +156,11 @@ def load_regression_data():
 
     # Bucket and compute uncertainty_zone
     for e in enriched:
-        frm_b = "L" if (e["frm_score"] or 0) < FRM_LOW_MAX else ("M" if (e["frm_score"] or 0) < FRM_HIGH_MIN else "H")
+        frm_b = (
+            "L"
+            if (e["frm_score"] or 0) < FRM_LOW_MAX
+            else ("M" if (e["frm_score"] or 0) < FRM_HIGH_MIN else "H")
+        )
         gap_b = None
         if e["gap"] is not None and gap_t1 is not None:
             gap_b = "L" if e["gap"] < gap_t1 else ("M" if e["gap"] < gap_t2 else "H")
@@ -187,7 +194,9 @@ def _ols(y, X, labels):
             se = np.zeros(k)
             t_stats = np.zeros(k)
         return {
-            "n": n, "r2": float(r2), "adj_r2": float(adj_r2),
+            "n": n,
+            "r2": float(r2),
+            "adj_r2": float(adj_r2),
             "betas": {labels[i]: float(beta[i]) for i in range(k)},
             "t_stats": {labels[i]: float(t_stats[i]) for i in range(k)},
             "se": {labels[i]: float(se[i]) for i in range(k)},
@@ -199,7 +208,9 @@ def _ols(y, X, labels):
 def _print_model(result, label, var_order):
     print(f"\n  --- {label} ---", flush=True)
     if not result or "error" in result:
-        print(f"    FAILED: {result.get('error', 'unknown') if result else 'no result'}", flush=True)
+        print(
+            f"    FAILED: {result.get('error', 'unknown') if result else 'no result'}", flush=True
+        )
         return
     print(f"    N={result['n']}, R²={result['r2']:.4f}, adj R²={result['adj_r2']:.4f}", flush=True)
     print(f"    {'var':25s} {'beta':>8} {'se':>8} {'t':>6} {'sig':>5}", flush=True)
@@ -208,7 +219,11 @@ def _print_model(result, label, var_order):
             b = result["betas"][v]
             t = result["t_stats"][v]
             se = result["se"][v]
-            sig = "***" if abs(t) > 2.58 else ("**" if abs(t) > 1.96 else ("*" if abs(t) > 1.645 else ""))
+            sig = (
+                "***"
+                if abs(t) > 2.58
+                else ("**" if abs(t) > 1.96 else ("*" if abs(t) > 1.645 else ""))
+            )
             print(f"    {v:25s} {b:8.3f} {se:8.3f} {t:6.2f} {sig:>5}", flush=True)
 
 
@@ -226,11 +241,14 @@ def run_exp9():
     print(f"  FRM buckets: L<{FRM_LOW_MAX}, M<{FRM_HIGH_MIN}, H>={FRM_HIGH_MIN}", flush=True)
 
     # Filter to rows with all regression variables
-    reg_data = [e for e in enriched
-                if e["frm_dir"] in ("improving", "stable")
-                and e["crowd_score"] is not None
-                and e["market_cap"] is not None
-                and e["realized_vol"] is not None]
+    reg_data = [
+        e
+        for e in enriched
+        if e["frm_dir"] in ("improving", "stable")
+        and e["crowd_score"] is not None
+        and e["market_cap"] is not None
+        and e["realized_vol"] is not None
+    ]
     print(f"  Rows with all regression vars: {len(reg_data)}", flush=True)
     unc_n = sum(1 for e in reg_data if e["uncertainty_zone"] == 1)
     print(f"  Uncertainty zone (2+ middle): {unc_n}", flush=True)
@@ -259,20 +277,47 @@ def run_exp9():
 
     X0 = np.column_stack([np.ones(len(y)), x_dir, x_mcap, x_vol])
     m0 = _ols(y, X0, ["intercept", "frm_direction", "market_cap", "volatility"])
-    _print_model(m0, "Model 0: Baseline (direction + controls)",
-                 ["intercept", "frm_direction", "market_cap", "volatility"])
+    _print_model(
+        m0,
+        "Model 0: Baseline (direction + controls)",
+        ["intercept", "frm_direction", "market_cap", "volatility"],
+    )
 
     # ─── Model 1: + uncertainty_zone (tests H3-A) ───
     X1 = np.column_stack([np.ones(len(y)), x_dir, x_unc, x_mcap, x_vol])
     m1 = _ols(y, X1, ["intercept", "frm_direction", "uncertainty_zone", "market_cap", "volatility"])
-    _print_model(m1, "Model 1: + uncertainty_zone (tests H3-A)",
-                 ["intercept", "frm_direction", "uncertainty_zone", "market_cap", "volatility"])
+    _print_model(
+        m1,
+        "Model 1: + uncertainty_zone (tests H3-A)",
+        ["intercept", "frm_direction", "uncertainty_zone", "market_cap", "volatility"],
+    )
 
     # ─── Model 2: + crowding_score (tests H3-B) ───
     X2 = np.column_stack([np.ones(len(y)), x_dir, x_unc, x_crowd, x_mcap, x_vol])
-    m2 = _ols(y, X2, ["intercept", "frm_direction", "uncertainty_zone", "crowding_score", "market_cap", "volatility"])
-    _print_model(m2, "Model 2: + crowding_score (tests H3-B)",
-                 ["intercept", "frm_direction", "uncertainty_zone", "crowding_score", "market_cap", "volatility"])
+    m2 = _ols(
+        y,
+        X2,
+        [
+            "intercept",
+            "frm_direction",
+            "uncertainty_zone",
+            "crowding_score",
+            "market_cap",
+            "volatility",
+        ],
+    )
+    _print_model(
+        m2,
+        "Model 2: + crowding_score (tests H3-B)",
+        [
+            "intercept",
+            "frm_direction",
+            "uncertainty_zone",
+            "crowding_score",
+            "market_cap",
+            "volatility",
+        ],
+    )
 
     # ─── Nested comparison ───
     print("\n" + "=" * 70, flush=True)
@@ -282,7 +327,9 @@ def run_exp9():
         delta_r2_m1 = m1["r2"] - m0["r2"]
         delta_r2_m2 = m2["r2"] - m1["r2"]
         print(f"  Model 0 R²: {m0['r2']:.4f}", flush=True)
-        print(f"  Model 1 R²: {m1['r2']:.4f}  (ΔR² from uncertainty: {delta_r2_m1:+.4f})", flush=True)
+        print(
+            f"  Model 1 R²: {m1['r2']:.4f}  (ΔR² from uncertainty: {delta_r2_m1:+.4f})", flush=True
+        )
         print(f"  Model 2 R²: {m2['r2']:.4f}  (ΔR² from crowding: {delta_r2_m2:+.4f})", flush=True)
 
     # ─── Verdict ───
@@ -298,9 +345,15 @@ def run_exp9():
     unc_sig = abs(t_unc) > 1.645 if t_unc is not None else False  # 10% level (small N)
     crowd_sig = abs(t_crowd) > 1.645 if t_crowd is not None else False
 
-    print(f"\n  Model 2 coefficients:", flush=True)
-    print(f"    uncertainty_zone: beta={b_unc:+.3f}, t={t_unc:.2f}, sig={'YES' if unc_sig else 'no'}", flush=True)
-    print(f"    crowding_score:   beta={b_crowd:+.3f}, t={t_crowd:.2f}, sig={'YES' if crowd_sig else 'no'}", flush=True)
+    print("\n  Model 2 coefficients:", flush=True)
+    print(
+        f"    uncertainty_zone: beta={b_unc:+.3f}, t={t_unc:.2f}, sig={'YES' if unc_sig else 'no'}",
+        flush=True,
+    )
+    print(
+        f"    crowding_score:   beta={b_crowd:+.3f}, t={t_crowd:.2f}, sig={'YES' if crowd_sig else 'no'}",
+        flush=True,
+    )
 
     if unc_sig and not crowd_sig and b_unc > 0:
         verdict = "H3-A VALIDATED: Uncertainty Asymmetry Premium"
@@ -330,8 +383,8 @@ def run_exp9():
 
     # Caveat
     print(f"\n  CAVEAT: N={len(reg_data)}, uncertainty_zone N={unc_n}.", flush=True)
-    print(f"  Significance at 10% level (|t|>1.645) due to small sample.", flush=True)
-    print(f"  Results are indicative, not conclusive. Extend N for confirmation.", flush=True)
+    print("  Significance at 10% level (|t|>1.645) due to small sample.", flush=True)
+    print("  Results are indicative, not conclusive. Extend N for confirmation.", flush=True)
 
     # Export
     os.makedirs(REPORT_DIR, exist_ok=True)
@@ -341,8 +394,7 @@ def run_exp9():
         "date": str(date.today()),
         "n": len(reg_data),
         "n_uncertainty_zone": unc_n,
-        "thresholds": {"gap_t1": gap_t1, "gap_t2": gap_t2,
-                       "sus_t1": sus_t1, "sus_t2": sus_t2},
+        "thresholds": {"gap_t1": gap_t1, "gap_t2": gap_t2, "sus_t1": sus_t1, "sus_t2": sus_t2},
         "model_0_baseline": m0,
         "model_1_plus_uncertainty": m1,
         "model_2_plus_crowding": m2,

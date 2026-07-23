@@ -27,9 +27,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
-
-import numpy as np
 
 from src.data.local_provider import LocalDataProvider
 from src.utils.logger import get_logger
@@ -44,47 +41,48 @@ PRIMARY_WINDOW = 5  # sector_adjusted_t5 is the primary EGE signal
 @dataclass
 class EventReactionResult:
     """Price reaction to an earnings announcement."""
+
     security_id: str
-    available_date: str           # announcement date (event anchor)
+    available_date: str  # announcement date (event anchor)
 
     # Earnings
-    earnings_yoy_current: Optional[float] = None
-    earnings_yoy_previous: Optional[float] = None
-    earnings_yoy_previous2: Optional[float] = None
-    earnings_acceleration: Optional[float] = None
-    earnings_acceleration_2nd: Optional[float] = None
-    frm_direction: Optional[str] = None
+    earnings_yoy_current: float | None = None
+    earnings_yoy_previous: float | None = None
+    earnings_yoy_previous2: float | None = None
+    earnings_acceleration: float | None = None
+    earnings_acceleration_2nd: float | None = None
+    frm_direction: str | None = None
 
     # Raw returns (forward from announcement)
-    return_t1: Optional[float] = None
-    return_t5: Optional[float] = None
-    return_t10: Optional[float] = None
-    return_t20: Optional[float] = None
+    return_t1: float | None = None
+    return_t5: float | None = None
+    return_t10: float | None = None
+    return_t20: float | None = None
 
     # Market-adjusted
-    market_return_t1: Optional[float] = None
-    market_return_t5: Optional[float] = None
-    market_return_t10: Optional[float] = None
-    market_return_t20: Optional[float] = None
-    market_adjusted_t1: Optional[float] = None
-    market_adjusted_t5: Optional[float] = None
-    market_adjusted_t10: Optional[float] = None
-    market_adjusted_t20: Optional[float] = None
+    market_return_t1: float | None = None
+    market_return_t5: float | None = None
+    market_return_t10: float | None = None
+    market_return_t20: float | None = None
+    market_adjusted_t1: float | None = None
+    market_adjusted_t5: float | None = None
+    market_adjusted_t10: float | None = None
+    market_adjusted_t20: float | None = None
 
     # Sector-adjusted (PRIMARY signal)
-    sector_code: Optional[str] = None
-    sector_return_t1: Optional[float] = None
-    sector_return_t5: Optional[float] = None
-    sector_return_t10: Optional[float] = None
-    sector_return_t20: Optional[float] = None
-    sector_adjusted_t1: Optional[float] = None
-    sector_adjusted_t5: Optional[float] = None     # PRIMARY
-    sector_adjusted_t10: Optional[float] = None
-    sector_adjusted_t20: Optional[float] = None
+    sector_code: str | None = None
+    sector_return_t1: float | None = None
+    sector_return_t5: float | None = None
+    sector_return_t10: float | None = None
+    sector_return_t20: float | None = None
+    sector_adjusted_t1: float | None = None
+    sector_adjusted_t5: float | None = None  # PRIMARY
+    sector_adjusted_t10: float | None = None
+    sector_adjusted_t20: float | None = None
 
     # Fully neutral
-    residual_t5: Optional[float] = None
-    residual_t20: Optional[float] = None
+    residual_t5: float | None = None
+    residual_t20: float | None = None
 
     def to_dict(self) -> dict:
         return {k: v for k, v in self.__dict__.items()}
@@ -138,8 +136,11 @@ class EventReactionCalculator:
             market_ret = self._get_market_return(event_start, event_end)
             # Sector return
             sector_code = self._get_sector_code(security_id)
-            sector_ret = self._get_sector_cumulative_return(
-                sector_code, event_start, event_end) if sector_code else None
+            sector_ret = (
+                self._get_sector_cumulative_return(sector_code, event_start, event_end)
+                if sector_code
+                else None
+            )
 
             # Store
             if window == 1:
@@ -149,52 +150,74 @@ class EventReactionCalculator:
                 result.sector_return_t1 = sector_ret
                 result.market_adjusted_t1 = (
                     stock_ret - market_ret
-                    if stock_ret is not None and market_ret is not None else None)
+                    if stock_ret is not None and market_ret is not None
+                    else None
+                )
                 result.sector_adjusted_t1 = (
                     stock_ret - sector_ret
-                    if stock_ret is not None and sector_ret is not None else None)
+                    if stock_ret is not None and sector_ret is not None
+                    else None
+                )
             elif window == 5:
                 result.return_t5 = stock_ret
                 result.market_return_t5 = market_ret
                 result.sector_return_t5 = sector_ret
                 result.market_adjusted_t5 = (
                     stock_ret - market_ret
-                    if stock_ret is not None and market_ret is not None else None)
+                    if stock_ret is not None and market_ret is not None
+                    else None
+                )
                 result.sector_adjusted_t5 = (
                     stock_ret - sector_ret
-                    if stock_ret is not None and sector_ret is not None else None)
+                    if stock_ret is not None and sector_ret is not None
+                    else None
+                )
             elif window == 10:
                 result.return_t10 = stock_ret
                 result.market_return_t10 = market_ret
                 result.sector_return_t10 = sector_ret
                 result.market_adjusted_t10 = (
                     stock_ret - market_ret
-                    if stock_ret is not None and market_ret is not None else None)
+                    if stock_ret is not None and market_ret is not None
+                    else None
+                )
                 result.sector_adjusted_t10 = (
                     stock_ret - sector_ret
-                    if stock_ret is not None and sector_ret is not None else None)
+                    if stock_ret is not None and sector_ret is not None
+                    else None
+                )
             elif window == 20:
                 result.return_t20 = stock_ret
                 result.market_return_t20 = market_ret
                 result.sector_return_t20 = sector_ret
                 result.market_adjusted_t20 = (
                     stock_ret - market_ret
-                    if stock_ret is not None and market_ret is not None else None)
+                    if stock_ret is not None and market_ret is not None
+                    else None
+                )
                 result.sector_adjusted_t20 = (
                     stock_ret - sector_ret
-                    if stock_ret is not None and sector_ret is not None else None)
+                    if stock_ret is not None and sector_ret is not None
+                    else None
+                )
 
         # 4. Fully neutral (residual = stock - market - sector)
-        if (result.return_t5 is not None
-                and result.market_return_t5 is not None
-                and result.sector_return_t5 is not None):
+        if (
+            result.return_t5 is not None
+            and result.market_return_t5 is not None
+            and result.sector_return_t5 is not None
+        ):
             result.residual_t5 = (
-                result.return_t5 - result.market_return_t5 - result.sector_return_t5)
-        if (result.return_t20 is not None
-                and result.market_return_t20 is not None
-                and result.sector_return_t20 is not None):
+                result.return_t5 - result.market_return_t5 - result.sector_return_t5
+            )
+        if (
+            result.return_t20 is not None
+            and result.market_return_t20 is not None
+            and result.sector_return_t20 is not None
+        ):
             result.residual_t20 = (
-                result.return_t20 - result.market_return_t20 - result.sector_return_t20)
+                result.return_t20 - result.market_return_t20 - result.sector_return_t20
+            )
 
         return result
 
@@ -202,8 +225,7 @@ class EventReactionCalculator:
     # Earnings loading (vintage-aware, 3 periods)
     # ------------------------------------------------------------------
 
-    def _load_earnings(self, result: EventReactionResult,
-                       code: str, as_of_date: str):
+    def _load_earnings(self, result: EventReactionResult, code: str, as_of_date: str):
         """Load vintage-aware 3 periods of earnings_yoy."""
         conn = sqlite3.connect(self.cache_db)
         try:
@@ -229,18 +251,19 @@ class EventReactionCalculator:
             result.earnings_yoy_previous2 = ey / 100.0 if ey is not None else None
 
         # Acceleration (1st derivative)
-        if (result.earnings_yoy_current is not None
-                and result.earnings_yoy_previous is not None):
+        if result.earnings_yoy_current is not None and result.earnings_yoy_previous is not None:
             result.earnings_acceleration = (
-                result.earnings_yoy_current - result.earnings_yoy_previous)
+                result.earnings_yoy_current - result.earnings_yoy_previous
+            )
 
         # 2nd derivative
-        if (result.earnings_acceleration is not None
-                and result.earnings_yoy_previous is not None
-                and result.earnings_yoy_previous2 is not None):
+        if (
+            result.earnings_acceleration is not None
+            and result.earnings_yoy_previous is not None
+            and result.earnings_yoy_previous2 is not None
+        ):
             prev_accel = result.earnings_yoy_previous - result.earnings_yoy_previous2
-            result.earnings_acceleration_2nd = (
-                result.earnings_acceleration - prev_accel)
+            result.earnings_acceleration_2nd = result.earnings_acceleration - prev_accel
 
         # FRM direction (consistent with 6-S.12.2)
         if result.earnings_acceleration is not None:
@@ -261,8 +284,7 @@ class EventReactionCalculator:
         conn = sqlite3.connect(self.cache_db)
         try:
             rows = conn.execute(
-                "SELECT trade_date FROM trading_calendar "
-                "WHERE is_trading=1 ORDER BY trade_date"
+                "SELECT trade_date FROM trading_calendar WHERE is_trading=1 ORDER BY trade_date"
             ).fetchall()
         finally:
             conn.close()
@@ -299,15 +321,14 @@ class EventReactionCalculator:
     # Return calculations
     # ------------------------------------------------------------------
 
-    def _get_stock_return(self, code: str, start: str,
-                          end: str) -> float | None:
+    def _get_stock_return(self, code: str, start: str, end: str) -> float | None:
         try:
             kline = self.local.get_daily_kline(code, start, end)
             if kline is not None and not kline.empty and len(kline) >= 2:
                 close = kline["close"].values
                 return float((close[-1] - close[0]) / close[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return None
 
     def _get_market_return(self, start: str, end: str) -> float | None:
@@ -321,8 +342,7 @@ class EventReactionCalculator:
         conn = sqlite3.connect(self.cache_db)
         try:
             row = conn.execute(
-                "SELECT adj_close FROM market_index_daily "
-                "WHERE index_code=? AND trade_date=?",
+                "SELECT adj_close FROM market_index_daily WHERE index_code=? AND trade_date=?",
                 (code, trade_date),
             ).fetchone()
             if not row or row[0] is None:
@@ -353,8 +373,7 @@ class EventReactionCalculator:
         self._sector_cache[code] = result
         return result
 
-    def _get_sector_cumulative_return(self, industry: str,
-                                       start: str, end: str) -> float | None:
+    def _get_sector_cumulative_return(self, industry: str, start: str, end: str) -> float | None:
         if not industry:
             return None
         conn = sqlite3.connect(self.cache_db)
@@ -372,5 +391,5 @@ class EventReactionCalculator:
         cumulative = 1.0
         for r in rows:
             if r[0] is not None:
-                cumulative *= (1.0 + r[0])
+                cumulative *= 1.0 + r[0]
         return cumulative - 1.0

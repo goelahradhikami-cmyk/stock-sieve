@@ -28,8 +28,7 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -41,12 +40,13 @@ logger = get_logger(__name__)
 @dataclass
 class ThesisSignals:
     """Non-factor investment signals for a single stock."""
+
     code: str
-    fundamental_acceleration: float = 0.0   # Δ(rev growth) + Δ(earnings growth) + Δ(ROE)
-    mispricing_gap: float = 0.0             # earnings_accel - price_performance
-    catalyst_proxy: float = 0.0             # asset growth + capex change
-    thesis_score: float = 0.0               # weighted composite
-    confidence: float = 0.0                 # 0-1, based on data completeness
+    fundamental_acceleration: float = 0.0  # Δ(rev growth) + Δ(earnings growth) + Δ(ROE)
+    mispricing_gap: float = 0.0  # earnings_accel - price_performance
+    catalyst_proxy: float = 0.0  # asset growth + capex change
+    thesis_score: float = 0.0  # weighted composite
+    confidence: float = 0.0  # 0-1, based on data completeness
 
     def to_dict(self) -> dict:
         return {
@@ -74,9 +74,9 @@ class ThesisSignalEngine:
     def __init__(self, cache_db: str = "data/cache.db"):
         self.cache_db = cache_db
 
-    def compute_signals(self, code: str, trade_date: str,
-                         price_performance: float | None = None
-                         ) -> ThesisSignals:
+    def compute_signals(
+        self, code: str, trade_date: str, price_performance: float | None = None
+    ) -> ThesisSignals:
         """Compute all thesis signals for a stock.
 
         Args:
@@ -121,8 +121,7 @@ class ThesisSignalEngine:
             confidence=confidence,
         )
 
-    def compute_signals_batch(self, codes: list[str],
-                               trade_date: str) -> dict[str, ThesisSignals]:
+    def compute_signals_batch(self, codes: list[str], trade_date: str) -> dict[str, ThesisSignals]:
         """Compute thesis signals for a batch of stocks.
 
         Returns: {code: ThesisSignals}
@@ -180,8 +179,9 @@ class ThesisSignalEngine:
 
     def _compute_price_performance(self, code: str, trade_date: str) -> float:
         """Compute trailing 60-day price return for mispricing gap."""
-        from src.data.local_provider import LocalDataProvider
         from datetime import date, timedelta
+
+        from src.data.local_provider import LocalDataProvider
 
         local = LocalDataProvider()
         end_date = trade_date
@@ -192,8 +192,8 @@ class ThesisSignalEngine:
             if kline is not None and not kline.empty and len(kline) >= 2:
                 close = kline["close"].values
                 return float((close[-1] - close[0]) / close[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return 0.0
 
     def _compute_catalyst(self, code: str, trade_date: str) -> tuple[float | None, float]:

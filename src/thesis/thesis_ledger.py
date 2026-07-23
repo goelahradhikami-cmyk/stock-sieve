@@ -30,13 +30,11 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from datetime import date
-from typing import Optional
+from dataclasses import dataclass
 
+from src.thesis.doctrine_underwriting import UnderwritingResult
 from src.thesis.market_anomaly import MispricingObject
 from src.thesis.market_recovery import MarketState
-from src.thesis.doctrine_underwriting import UnderwritingResult
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -45,6 +43,7 @@ logger = get_logger(__name__)
 @dataclass
 class KillCriteriaResult:
     """Result of kill criteria check."""
+
     killed: bool
     kill_reason: str
     kill_doctrine: str  # which doctrine's kill criteria triggered
@@ -65,11 +64,13 @@ class KillCriteria:
         """
         # Kill 1: Quality deterioration (business is broken)
         # ROE low AND margin declining AND debt high = structural problem
-        if (anomaly.roe < 0.05
+        if (
+            anomaly.roe < 0.05
             and anomaly.margin_change is not None
             and anomaly.margin_change < -0.05
             and anomaly.debt_ratio is not None
-            and anomaly.debt_ratio > 2.0):
+            and anomaly.debt_ratio > 2.0
+        ):
             return KillCriteriaResult(
                 killed=True,
                 kill_reason="quality_deterioration: ROE<0.05 + margin declining + debt>2.0",
@@ -78,10 +79,12 @@ class KillCriteria:
 
         # Kill 2: Value trap (cheap for a reason)
         # PE not compressed AND earnings declining = market correctly pricing decline
-        if (anomaly.pe_compression is not None
+        if (
+            anomaly.pe_compression is not None
             and anomaly.pe_compression > 0.9
             and anomaly.margin_change is not None
-            and anomaly.margin_change < -0.03):
+            and anomaly.margin_change < -0.03
+        ):
             return KillCriteriaResult(
                 killed=True,
                 kill_reason="value_trap: PE not compressed + margin declining",
@@ -90,11 +93,13 @@ class KillCriteria:
 
         # Kill 3: Contrarian trap (catching falling knife)
         # Price dropping BUT margin collapsing AND debt spiraling
-        if (anomaly.price_drawdown_12m < -0.30
+        if (
+            anomaly.price_drawdown_12m < -0.30
             and anomaly.margin_change is not None
             and anomaly.margin_change < -0.10
             and anomaly.debt_ratio is not None
-            and anomaly.debt_ratio > 2.5):
+            and anomaly.debt_ratio > 2.5
+        ):
             return KillCriteriaResult(
                 killed=True,
                 kill_reason="falling_knife: price<-30% + margin<-10% + debt>2.5",
@@ -103,9 +108,11 @@ class KillCriteria:
 
         # Kill 4: Cashflow deterioration (profit is fake)
         # ROE positive but cashflow_trend strongly negative
-        if (anomaly.roe > 0.10
+        if (
+            anomaly.roe > 0.10
             and anomaly.cashflow_trend is not None
-            and anomaly.cashflow_trend < -0.30):
+            and anomaly.cashflow_trend < -0.30
+        ):
             return KillCriteriaResult(
                 killed=True,
                 kill_reason="cashflow_divergence: ROE>10% but cashflow declining >30%",
@@ -131,12 +138,15 @@ class ThesisLedger:
     def __init__(self, eval_db: str = "data/evaluation.db"):
         self.eval_db = eval_db
 
-    def record_thesis(self, anomaly: MispricingObject,
-                       market_state: MarketState,
-                       underwriting: dict[str, UnderwritingResult],
-                       kill_result: KillCriteriaResult,
-                       action: str,
-                       eval_date: str = None) -> str:
+    def record_thesis(
+        self,
+        anomaly: MispricingObject,
+        market_state: MarketState,
+        underwriting: dict[str, UnderwritingResult],
+        kill_result: KillCriteriaResult,
+        action: str,
+        eval_date: str = None,
+    ) -> str:
         """Record a thesis decision to the ledger.
 
         Args:
@@ -149,7 +159,7 @@ class ThesisLedger:
 
         Returns: thesis_id
         """
-        thesis_id = f"T{anomaly.trade_date.replace('-','')}_{anomaly.code}"
+        thesis_id = f"T{anomaly.trade_date.replace('-', '')}_{anomaly.code}"
 
         # Extract underwriting verdicts
         q_uw = underwriting.get("quality_compounder")
@@ -160,7 +170,8 @@ class ThesisLedger:
 
         conn = sqlite3.connect(self.eval_db)
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO thesis_ledger
                 (thesis_id, trade_date, eval_date, code,
                  anomaly_type, price_drawdown_12m, roe, margin_change,
@@ -172,29 +183,45 @@ class ThesisLedger:
                  consensus, kill_criteria_triggered,
                  action, thesis_status)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending')
-            """, (
-                thesis_id, anomaly.trade_date, eval_date, anomaly.code,
-                anomaly.divergence_type, anomaly.price_drawdown_12m,
-                anomaly.roe, anomaly.margin_change,
-                anomaly.market_pessimism, anomaly.business_strength,
-                anomaly.divergence_score,
-                market_state.recovery_probability, market_state.state_label,
-                q_uw.verdict if q_uw else None, q_uw.confidence if q_uw else None,
-                c_uw.verdict if c_uw else None, c_uw.confidence if c_uw else None,
-                v_uw.verdict if v_uw else None, v_uw.confidence if v_uw else None,
-                "KILLED" if kill_result.killed else "REVIEWED",
-                kill_triggered,
-                action,
-            ))
+            """,
+                (
+                    thesis_id,
+                    anomaly.trade_date,
+                    eval_date,
+                    anomaly.code,
+                    anomaly.divergence_type,
+                    anomaly.price_drawdown_12m,
+                    anomaly.roe,
+                    anomaly.margin_change,
+                    anomaly.market_pessimism,
+                    anomaly.business_strength,
+                    anomaly.divergence_score,
+                    market_state.recovery_probability,
+                    market_state.state_label,
+                    q_uw.verdict if q_uw else None,
+                    q_uw.confidence if q_uw else None,
+                    c_uw.verdict if c_uw else None,
+                    c_uw.confidence if c_uw else None,
+                    v_uw.verdict if v_uw else None,
+                    v_uw.confidence if v_uw else None,
+                    "KILLED" if kill_result.killed else "REVIEWED",
+                    kill_triggered,
+                    action,
+                ),
+            )
             conn.commit()
         finally:
             conn.close()
 
         return thesis_id
 
-    def record_outcome(self, thesis_id: str, actual_return: float,
-                        failure_type: str = None,
-                        failure_reason: str = None) -> None:
+    def record_outcome(
+        self,
+        thesis_id: str,
+        actual_return: float,
+        failure_type: str = None,
+        failure_reason: str = None,
+    ) -> None:
         """Update a thesis with T+N outcome.
 
         Args:
@@ -213,17 +240,21 @@ class ThesisLedger:
 
         conn = sqlite3.connect(self.eval_db)
         try:
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE thesis_ledger SET
                 actual_return=?, thesis_status=?, failure_type=?, failure_reason=?
                 WHERE thesis_id=?
-            """, (actual_return, status, failure_type, failure_reason, thesis_id))
+            """,
+                (actual_return, status, failure_type, failure_reason, thesis_id),
+            )
             conn.commit()
         finally:
             conn.close()
 
-    def classify_failure(self, thesis_id: str, actual_return: float,
-                          market_regime: str, recovery_prob: float) -> str:
+    def classify_failure(
+        self, thesis_id: str, actual_return: float, market_regime: str, recovery_prob: float
+    ) -> str:
         """Classify failure type based on context + outcome.
 
         Failure taxonomy:
@@ -263,9 +294,15 @@ class ThesisLedger:
         conn = sqlite3.connect(self.eval_db)
         try:
             total = conn.execute("SELECT COUNT(*) FROM thesis_ledger").fetchone()[0]
-            validated = conn.execute("SELECT COUNT(*) FROM thesis_ledger WHERE thesis_status='validated'").fetchone()[0]
-            failed = conn.execute("SELECT COUNT(*) FROM thesis_ledger WHERE thesis_status='failed'").fetchone()[0]
-            killed = conn.execute("SELECT COUNT(*) FROM thesis_ledger WHERE kill_criteria_triggered IS NOT NULL").fetchone()[0]
+            validated = conn.execute(
+                "SELECT COUNT(*) FROM thesis_ledger WHERE thesis_status='validated'"
+            ).fetchone()[0]
+            failed = conn.execute(
+                "SELECT COUNT(*) FROM thesis_ledger WHERE thesis_status='failed'"
+            ).fetchone()[0]
+            killed = conn.execute(
+                "SELECT COUNT(*) FROM thesis_ledger WHERE kill_criteria_triggered IS NOT NULL"
+            ).fetchone()[0]
 
             # Failure type distribution
             failure_types = {}
@@ -285,7 +322,11 @@ class ThesisLedger:
 
             # Doctrine accuracy
             doctrine_stats = {}
-            for doctrine, col in [("quality", "quality_verdict"), ("contrarian", "contrarian_verdict"), ("value", "value_verdict")]:
+            for doctrine, col in [
+                ("quality", "quality_verdict"),
+                ("contrarian", "contrarian_verdict"),
+                ("value", "value_verdict"),
+            ]:
                 passes = conn.execute(
                     f"SELECT COUNT(*) FROM thesis_ledger WHERE {col}='PASS' AND actual_return IS NOT NULL"
                 ).fetchone()[0]

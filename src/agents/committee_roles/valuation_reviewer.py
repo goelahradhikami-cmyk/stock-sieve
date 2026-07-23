@@ -37,9 +37,7 @@ def score_valuation(thesis, factor_snapshot, validation_result) -> float:
 
     # 3. Validator 中的估值类反证警告
     for warn in _get_warnings(validation_result):
-        if warning_matches(
-            warn, "valuat", "估值", "pe", "pb", "margin", "安全边际", "溢价"
-        ):
+        if warning_matches(warn, "valuat", "估值", "pe", "pb", "margin", "安全边际", "溢价"):
             score -= normalize_severity(warn) * 20
 
     # 4. 成长股估值容忍度稍高

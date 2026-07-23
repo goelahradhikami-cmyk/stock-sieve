@@ -20,15 +20,20 @@ Data flow:
 import json
 from dataclasses import dataclass, field
 
+from src.utils.logger import get_logger
+
 from .complexity_checker import ComplexityChecker
 from .counter_evidence import CounterEvidenceChecker
 from .evidence_checker import EvidenceChecker
 from .historical_pattern import HistoricalPatternAnalyzer
 from .rule_registry import RuleRegistry
 
+logger = get_logger(__name__)
+
 # ═══════════════════════════════════════════════════════════
 # ValidationResult
 # ═══════════════════════════════════════════════════════════
+
 
 @dataclass
 class ValidationResult:
@@ -39,16 +44,18 @@ class ValidationResult:
 
     # Sub-scores (0-100, higher = better)
     evidence_score: float
-    counter_evidence_risk: float   # 0 = no risk, 100 = extreme risk
+    counter_evidence_risk: float  # 0 = no risk, 100 = extreme risk
     historical_score: float
-    complexity_penalty: float      # 0-10, higher = more complex
+    complexity_penalty: float  # 0-10, higher = more complex
 
     # Composite
     overall_score: float
 
     # Gate decision
-    verdict: str                   # PASS / PASS_WITH_WARNING / REJECT
-    routing_action: str = "ALLOW_COMMITTEE"  # BLOCK / RESEARCH_ONLY / ALLOW_REDUCED_WEIGHT / ALLOW_COMMITTEE
+    verdict: str  # PASS / PASS_WITH_WARNING / REJECT
+    routing_action: str = (
+        "ALLOW_COMMITTEE"  # BLOCK / RESEARCH_ONLY / ALLOW_REDUCED_WEIGHT / ALLOW_COMMITTEE
+    )
     rejection_reasons: list[str] = field(default_factory=list)
 
     # Confidence (does NOT modify original)
@@ -64,13 +71,14 @@ class ValidationResult:
 
     # Pass to downstream
     monitoring_flags: list[str] = field(default_factory=list)
-    memory_context: dict | None = None     # Commit 6-E: investment memory results
+    memory_context: dict | None = None  # Commit 6-E: investment memory results
     validation_rationale: dict = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════
 # Thesis Validator
 # ═══════════════════════════════════════════════════════════
+
 
 class ThesisValidator:
     """Independent audit layer for investment theses.
@@ -103,6 +111,7 @@ class ThesisValidator:
         # Commit 6-E: Investment Memory
         try:
             from src.memory.retrieval import MemoryRetriever
+
             self.memory_retriever = MemoryRetriever()
         except Exception:
             self.memory_retriever = None
@@ -119,8 +128,7 @@ class ThesisValidator:
         # ── Load research decision ────────────────────────
         conn = self.db.connect()
         row = conn.execute(
-            "SELECT * FROM research_decisions WHERE id = ?",
-            (research_decision_id,)
+            "SELECT * FROM research_decisions WHERE id = ?", (research_decision_id,)
         ).fetchone()
         conn.close()
 
@@ -131,14 +139,11 @@ class ThesisValidator:
 
         # Parse JSON fields
         thesis_evidence = self._parse_json(rd.get("thesis_evidence", "[]"))
-        thesis_invalidation = self._parse_json(rd.get("thesis_invalidation", "[]"))
         factor_snapshot = self._parse_json(rd.get("factor_snapshot", "{}"))
-        risk_assessment = self._parse_json(rd.get("risk_assessment", "{}"))
 
         thesis_id = rd.get("thesis_id", "")
         thesis_pattern = rd.get("thesis_pattern", "")
         thesis_claim = rd.get("thesis_claim", "")
-        alpha_score = rd.get("alpha_score", 5.0)
         confidence = rd.get("confidence", 5.0)
         agent_id = rd.get("agent_id", "")
 
@@ -181,10 +186,10 @@ class ThesisValidator:
 
         # ── 5. Composite Score ────────────────────────────
         overall_score = (
-            evidence_score * self.WEIGHTS["evidence"] +
-            (100 - counter_risk) * self.WEIGHTS["counter_evidence"] +
-            historical_score * self.WEIGHTS["historical"] +
-            (10 - complexity_penalty) * 10 * self.WEIGHTS["complexity"]
+            evidence_score * self.WEIGHTS["evidence"]
+            + (100 - counter_risk) * self.WEIGHTS["counter_evidence"]
+            + historical_score * self.WEIGHTS["historical"]
+            + (10 - complexity_penalty) * 10 * self.WEIGHTS["complexity"]
         )
 
         # ── 6. Verdict with routing (Fix 1) ────────────────
@@ -208,31 +213,42 @@ class ThesisValidator:
             verdict = "PASS_WITH_WARNING"
 
         if verdict == "REJECT":
-            rejection_reasons.append(f"Overall score {overall_score:.1f} → routing={routing_action}")
+            rejection_reasons.append(
+                f"Overall score {overall_score:.1f} → routing={routing_action}"
+            )
 
         # ── 7. Confidence Calibration ─────────────────────
         adjustment = self._calculate_adjustment(
             verdict, counter_risk, complexity_penalty, evidence_score
         )
         # Memory risk adjustment (Commit 6-E): high risk → reduce confidence
-        memory_risk = memory_context.get('memory_risk_score', 0.5) if memory_context else 0.5
+        memory_risk = memory_context.get("memory_risk_score", 0.5) if memory_context else 0.5
         confidence_before = confidence + adjustment
-        if memory_risk > 0.7 and memory_context and memory_context['pattern_stats']['total'] >= 10:
+        if memory_risk > 0.7 and memory_context and memory_context["pattern_stats"]["total"] >= 10:
             adjustment -= 1.0
         effective_confidence = max(0.0, min(10.0, confidence + adjustment))
 
         # Write memory feedback log
         if memory_context:
             try:
-                conn = self.db.connect() if hasattr(self.db, 'connect') else self.db
-                conn.execute("""
+                conn = self.db.connect() if hasattr(self.db, "connect") else self.db
+                conn.execute(
+                    """
                     INSERT INTO memory_feedback_log
                     (research_decision_id, memory_risk_score, confidence_before, confidence_after)
                     VALUES (?,?,?,?)
-                """, (research_decision_id, memory_risk, round(confidence_before, 1), round(effective_confidence, 1)))
-                if hasattr(conn, 'commit'): conn.commit()
-            except Exception:
-                pass
+                """,
+                    (
+                        research_decision_id,
+                        memory_risk,
+                        round(confidence_before, 1),
+                        round(effective_confidence, 1),
+                    ),
+                )
+                if hasattr(conn, "commit"):
+                    conn.commit()
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
 
         # ── 8. Monitoring flags ───────────────────────────
         monitoring_flags = self._generate_monitoring_flags(
@@ -245,7 +261,9 @@ class ThesisValidator:
             "counter_evidence": f"Counter-evidence risk: {counter_risk:.1f}/100 ({len(counter_warnings)} warnings)",
             "historical": f"Historical score: {historical_score:.1f}/100 (pattern: {thesis_pattern})",
             "complexity": f"Complexity penalty: {complexity_penalty:.1f}/10",
-            "memory": f"Memory risk: {memory_risk:.2f} (cases: {memory_context['pattern_stats']['total'] if memory_context else 0})" if memory_context else "Memory: not available",
+            "memory": f"Memory risk: {memory_risk:.2f} (cases: {memory_context['pattern_stats']['total'] if memory_context else 0})"
+            if memory_context
+            else "Memory: not available",
             "overall": f"Overall: {overall_score:.1f}/100 → {verdict}",
         }
 
@@ -272,8 +290,9 @@ class ThesisValidator:
             validation_rationale=rationale,
         )
 
-    def _calculate_adjustment(self, verdict: str, counter_risk: float,
-                               complexity: float, evidence_score: float) -> float:
+    def _calculate_adjustment(
+        self, verdict: str, counter_risk: float, complexity: float, evidence_score: float
+    ) -> float:
         """Calculate confidence adjustment (§4.6)."""
         adj = 0.0
         if verdict == "PASS_WITH_WARNING":
@@ -286,8 +305,9 @@ class ThesisValidator:
             adj -= 0.5
         return adj
 
-    def _generate_monitoring_flags(self, verdict: str, warnings: list[dict],
-                                    complexity: dict) -> list[str]:
+    def _generate_monitoring_flags(
+        self, verdict: str, warnings: list[dict], complexity: dict
+    ) -> list[str]:
         """Generate monitoring flags for Portfolio Agent."""
         flags = []
         if verdict == "PASS_WITH_WARNING":
@@ -319,47 +339,48 @@ class ThesisValidator:
                 pass
             try:
                 import ast
+
                 return ast.literal_eval(value)
             except (ValueError, SyntaxError):
                 return value
         return value
 
-
-# ═══════════════════════════════════════════════════════════
-# Integration helper
-# ═══════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
+    # Integration helper
+    # ═══════════════════════════════════════════════════════════
 
     def _get_agent_identity(self, agent_id: str) -> dict | None:
         """Load agent identity from genome snapshot."""
         try:
-            conn = self.db.connect() if hasattr(self.db, 'connect') else self.db
+            conn = self.db.connect() if hasattr(self.db, "connect") else self.db
             row = conn.execute(
                 "SELECT genome_yaml FROM agent_genome_snapshots WHERE agent_id=? AND status='active' ORDER BY birth_date DESC LIMIT 1",
-                (agent_id,)
+                (agent_id,),
             ).fetchone()
             if row and row[0]:
                 import yaml
+
                 genome = yaml.safe_load(row[0]) or {}
-                return genome.get('investment_identity', {})
-        except Exception:
-            pass
+                return genome.get("investment_identity", {})
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return None
 
     def _get_market_regime(self, research_decision_id: int) -> str:
         """Get market regime at decision time."""
         try:
-            conn = self.db.connect() if hasattr(self.db, 'connect') else self.db
+            conn = self.db.connect() if hasattr(self.db, "connect") else self.db
             row = conn.execute(
                 "SELECT entry_date FROM research_decisions WHERE id=?", (research_decision_id,)
             ).fetchone()
             if row and row[0]:
                 mr = conn.execute(
                     "SELECT regime_type FROM market_regime_snapshots WHERE obs_date<=? ORDER BY obs_date DESC LIMIT 1",
-                    (str(row[0])[:10],)
+                    (str(row[0])[:10],),
                 ).fetchone()
                 return mr[0] if mr else ""
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return ""
 
 

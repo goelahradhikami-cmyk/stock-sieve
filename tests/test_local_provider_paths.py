@@ -36,8 +36,7 @@ def test_no_tdx_path_found_returns_none_without_crashing():
     """With no env override and no valid default dir, tdx_root is None (no crash)."""
     saved = _clear_tdx_env()
     try:
-        with mock.patch.object(LocalDataProvider, "DEFAULT_TDX_PATHS",
-                               [_GUARANTEED_ABSENT]):
+        with mock.patch.object(LocalDataProvider, "DEFAULT_TDX_PATHS", [_GUARANTEED_ABSENT]):
             provider = LocalDataProvider()
     finally:
         _restore_tdx_env(saved)
@@ -76,8 +75,9 @@ def test_default_fallback_still_resolved_when_present():
         with tempfile.TemporaryDirectory() as tmp:
             default = os.path.join(tmp, "D_drive_mock")
             os.makedirs(os.path.join(default, "vipdoc"))
-            with mock.patch.object(LocalDataProvider, "DEFAULT_TDX_PATHS",
-                                   [os.path.join(default, "vipdoc")]):
+            with mock.patch.object(
+                LocalDataProvider, "DEFAULT_TDX_PATHS", [os.path.join(default, "vipdoc")]
+            ):
                 provider = LocalDataProvider()
             assert provider.tdx_root == os.path.join(default, "vipdoc")
     finally:

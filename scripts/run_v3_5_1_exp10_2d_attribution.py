@@ -40,10 +40,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
+import os
+import sqlite3
+import sys
 from datetime import date
 
 import numpy as np
@@ -117,16 +117,19 @@ def load_enriched():
             if vals:
                 sp = float(np.mean(vals))
 
-        enriched.append({
-            "sid": sid, "td": td,
-            "alpha": r["residual_alpha"],
-            "frm": r["frm_score"],
-            "frm_dir": r["frm_direction"],
-            "gap": gap,
-            "sustain_pass": sustain_pass,
-            "sustain_proxy": sp,
-            "stock_return": r["stock_return_t20"],
-        })
+        enriched.append(
+            {
+                "sid": sid,
+                "td": td,
+                "alpha": r["residual_alpha"],
+                "frm": r["frm_score"],
+                "frm_dir": r["frm_direction"],
+                "gap": gap,
+                "sustain_pass": sustain_pass,
+                "sustain_proxy": sp,
+                "stock_return": r["stock_return_t20"],
+            }
+        )
 
     shadow.close()
     cache.close()
@@ -189,7 +192,7 @@ def exp10a_frm_gap_matrix(enriched, gap_t1, gap_t2):
         e["gap_b"] = _bucket_gap(e["gap"], gap_t1, gap_t2)
 
     # 3x3 matrix
-    print(f"\n  Alpha matrix (% per cell):", flush=True)
+    print("\n  Alpha matrix (% per cell):", flush=True)
     print(f"  {'':12s} {'Gap Low':>18s} {'Gap Mid':>18s} {'Gap High':>18s}", flush=True)
     matrix = {}
     for frm_name, frm_b in [("FRM Low", "L"), ("FRM Mid", "M"), ("FRM High", "H")]:
@@ -207,13 +210,16 @@ def exp10a_frm_gap_matrix(enriched, gap_t1, gap_t2):
 
     # Highlight Mid×Mid
     mid_mid = matrix.get("MM", {"n": 0})
-    print(f"\n  Mid FRM × Mid Gap:", flush=True)
+    print("\n  Mid FRM × Mid Gap:", flush=True)
     if mid_mid["n"] >= MIN_N_PER_CELL:
-        print(f"    N={mid_mid['n']}, alpha={mid_mid['alpha_pct']:+.2f}%, "
-              f"positive={mid_mid['positive_rate_pct']:.1f}%", flush=True)
+        print(
+            f"    N={mid_mid['n']}, alpha={mid_mid['alpha_pct']:+.2f}%, "
+            f"positive={mid_mid['positive_rate_pct']:.1f}%",
+            flush=True,
+        )
 
     # Key comparisons
-    print(f"\n  Key comparisons:", flush=True)
+    print("\n  Key comparisons:", flush=True)
 
     # 1. Mid×Mid vs all other cells
     other_cells = [matrix[k] for k in matrix if k != "MM" and matrix[k]["n"] >= MIN_N_PER_CELL]
@@ -224,16 +230,26 @@ def exp10a_frm_gap_matrix(enriched, gap_t1, gap_t2):
     other_stats = _stats(other_rows, "All non-Mid×Mid")
     if mid_mid["n"] > 0 and other_stats["n"] > 0:
         delta = mid_mid["alpha_pct"] - other_stats["alpha_pct"]
-        print(f"    Mid×Mid vs rest: {mid_mid['alpha_pct']:+.2f}% vs {other_stats['alpha_pct']:+.2f}% "
-              f"(delta {delta:+.2f}pp)", flush=True)
+        print(
+            f"    Mid×Mid vs rest: {mid_mid['alpha_pct']:+.2f}% vs {other_stats['alpha_pct']:+.2f}% "
+            f"(delta {delta:+.2f}pp)",
+            flush=True,
+        )
 
     # 2. Diagonal (L×L, M×M, H×H) vs off-diagonal
     diag_rows = [e for e in enriched if e["frm_b"] == e["gap_b"] and e["frm_b"] is not None]
-    offdiag_rows = [e for e in enriched if e["frm_b"] != e["gap_b"] and e["frm_b"] is not None and e["gap_b"] is not None]
+    offdiag_rows = [
+        e
+        for e in enriched
+        if e["frm_b"] != e["gap_b"] and e["frm_b"] is not None and e["gap_b"] is not None
+    ]
     diag_s = _stats(diag_rows, "Diagonal (LL+MM+HH)")
     offdiag_s = _stats(offdiag_rows, "Off-diagonal")
-    print(f"    Diagonal: {diag_s['alpha_pct']:+.2f}% (N={diag_s['n']}) vs "
-          f"Off-diagonal: {offdiag_s['alpha_pct']:+.2f}% (N={offdiag_s['n']})", flush=True)
+    print(
+        f"    Diagonal: {diag_s['alpha_pct']:+.2f}% (N={diag_s['n']}) vs "
+        f"Off-diagonal: {offdiag_s['alpha_pct']:+.2f}% (N={offdiag_s['n']})",
+        flush=True,
+    )
 
     # 3. Mid row vs Mid column (which dimension drives Mid×Mid?)
     mid_frm_row = [e for e in enriched if e["frm_b"] == "M"]
@@ -259,9 +275,11 @@ def exp10b_sustainability_incremental(enriched, gap_t1, gap_t2):
     print("=" * 70, flush=True)
 
     # Focus on Mid FRM × Mid Gap cell (the strongest signal)
-    mid_mid = [e for e in enriched
-               if e["frm_b"] == "M" and e["gap_b"] == "M"
-               and e["sustain_pass"] is not None]
+    mid_mid = [
+        e
+        for e in enriched
+        if e["frm_b"] == "M" and e["gap_b"] == "M" and e["sustain_pass"] is not None
+    ]
     print(f"\n  Mid FRM × Mid Gap with sustainability data: N={len(mid_mid)}", flush=True)
 
     if len(mid_mid) < 5:
@@ -276,14 +294,16 @@ def exp10b_sustainability_incremental(enriched, gap_t1, gap_t2):
     s_all = _stats(mid_mid, "Mid×Mid (all)")
 
     print(f"\n  {'group':30s} {'n':>4} {'alpha':>8} {'positive':>9}", flush=True)
-    print(f"  {'-'*55}", flush=True)
+    print(f"  {'-' * 55}", flush=True)
     for s in [s_all, s_pass, s_fail]:
         if s["n"] > 0:
-            print(f"  {s['label']:30s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
-                  flush=True)
+            print(
+                f"  {s['label']:30s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
 
     # Verdict
-    print(f"\n  Verdict:", flush=True)
+    print("\n  Verdict:", flush=True)
     if s_pass["n"] >= 3 and s_fail["n"] >= 3:
         delta = s_pass["alpha_pct"] - s_fail["alpha_pct"]
         if delta > 2:
@@ -295,13 +315,18 @@ def exp10b_sustainability_incremental(enriched, gap_t1, gap_t2):
         print(f"    {verdict}", flush=True)
         return {
             "n_mid_mid": len(mid_mid),
-            "n_pass": s_pass["n"], "n_fail": s_fail["n"],
-            "alpha_pass": s_pass["alpha_pct"], "alpha_fail": s_fail["alpha_pct"],
+            "n_pass": s_pass["n"],
+            "n_fail": s_fail["n"],
+            "alpha_pass": s_pass["alpha_pct"],
+            "alpha_fail": s_fail["alpha_pct"],
             "delta": float(delta),
             "verdict": verdict,
         }
     else:
-        print(f"    Insufficient N in pass/fail split (pass={s_pass['n']}, fail={s_fail['n']})", flush=True)
+        print(
+            f"    Insufficient N in pass/fail split (pass={s_pass['n']}, fail={s_fail['n']})",
+            flush=True,
+        )
         return {"skipped": True, "n_pass": s_pass["n"], "n_fail": s_fail["n"]}
 
     # Also test: sustainability tercile within Mid×Mid (is it monotonic or inverted-U?)
@@ -315,6 +340,7 @@ def exp10c_stability_check(enriched):
     print("=" * 70, flush=True)
 
     from collections import defaultdict
+
     by_year = defaultdict(list)
     for e in enriched:
         if e["frm_b"] == "M" and e["gap_b"] == "M":
@@ -325,17 +351,25 @@ def exp10c_stability_check(enriched):
     for y in sorted(by_year.keys()):
         sub = by_year[y]
         s = _stats(sub, y)
-        print(f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%", flush=True)
-        results[y] = {"n": s["n"], "alpha_pct": s["alpha_pct"],
-                      "positive_rate_pct": s["positive_rate_pct"]}
+        print(
+            f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+            flush=True,
+        )
+        results[y] = {
+            "n": s["n"],
+            "alpha_pct": s["alpha_pct"],
+            "positive_rate_pct": s["positive_rate_pct"],
+        }
 
     if len(results) >= 2:
         alphas = [v["alpha_pct"] for v in results.values() if v["n"] >= 3]
         if len(alphas) >= 2:
             all_pos = all(a > 0 for a in alphas)
-            print(f"\n  Stability: {'STABLE' if all_pos else 'UNSTABLE'} "
-                  f"(alpha positive in {sum(1 for a in alphas if a > 0)}/{len(alphas)} years)",
-                  flush=True)
+            print(
+                f"\n  Stability: {'STABLE' if all_pos else 'UNSTABLE'} "
+                f"(alpha positive in {sum(1 for a in alphas if a > 0)}/{len(alphas)} years)",
+                flush=True,
+            )
             results["stable"] = bool(all_pos)
 
     return results
@@ -361,17 +395,24 @@ def run_exp10():
     hh = matrix.get("HH", {"n": 0, "alpha_pct": None})
 
     # Mid×Mid assessment
-    mid_mid_strong = (mid_mid["n"] >= 5 and mid_mid["alpha_pct"] is not None
-                      and mid_mid["alpha_pct"] > 3 and mid_mid["positive_rate_pct"] >= 60)
+    mid_mid_strong = (
+        mid_mid["n"] >= 5
+        and mid_mid["alpha_pct"] is not None
+        and mid_mid["alpha_pct"] > 3
+        and mid_mid["positive_rate_pct"] >= 60
+    )
 
-    print(f"\n  Mid FRM × Mid Gap: N={mid_mid['n']}, "
-          f"alpha={mid_mid.get('alpha_pct', 'N/A')}%, "
-          f"positive={mid_mid.get('positive_rate_pct', 'N/A')}%", flush=True)
+    print(
+        f"\n  Mid FRM × Mid Gap: N={mid_mid['n']}, "
+        f"alpha={mid_mid.get('alpha_pct', 'N/A')}%, "
+        f"positive={mid_mid.get('positive_rate_pct', 'N/A')}%",
+        flush=True,
+    )
 
     if mid_mid_strong:
-        print(f"  -> STRONG: Mid×Mid is a candidate alpha cell", flush=True)
+        print("  -> STRONG: Mid×Mid is a candidate alpha cell", flush=True)
     else:
-        print(f"  -> WEAK or insufficient: Mid×Mid needs confirmation", flush=True)
+        print("  -> WEAK or insufficient: Mid×Mid needs confirmation", flush=True)
 
     # Sustainability verdict
     if isinstance(sustain_result, dict) and "verdict" in sustain_result:
@@ -379,24 +420,31 @@ def run_exp10():
 
     # Stability
     if isinstance(stability, dict) and stability.get("stable") is not None:
-        print(f"  Temporal stability: {'STABLE' if stability['stable'] else 'UNSTABLE'}", flush=True)
+        print(
+            f"  Temporal stability: {'STABLE' if stability['stable'] else 'UNSTABLE'}", flush=True
+        )
 
     # Architecture insight
-    print(f"\n  ARCHITECTURE INSIGHT (from Exp9 + Exp10):", flush=True)
-    print(f"  FRM is a GATE (portfolio filter), not a RANKER (per-stock predictor).", flush=True)
-    print(f"  All previous failures (RS, EGE, sustainability, high FRM) made the", flush=True)
-    print(f"  same error: treating a state variable as a ranking variable.", flush=True)
-    print(f"  Correct architecture: State gate -> Candidate pool -> Disagreement ranker", flush=True)
+    print("\n  ARCHITECTURE INSIGHT (from Exp9 + Exp10):", flush=True)
+    print("  FRM is a GATE (portfolio filter), not a RANKER (per-stock predictor).", flush=True)
+    print("  All previous failures (RS, EGE, sustainability, high FRM) made the", flush=True)
+    print("  same error: treating a state variable as a ranking variable.", flush=True)
+    print("  Correct architecture: State gate -> Candidate pool -> Disagreement ranker", flush=True)
 
     if mid_mid_strong:
         verdict = "Mid FRM × Mid Gap confirmed as alpha cell (candidate architecture)"
-        recommendation = ("v3.6 architecture candidate: FRM direction gate (portfolio filter) "
-                          "+ Gap disagreement ranker (per-stock selector within pool). "
-                          "Sustainability " + ("DEMOTED" if "DEMOTE" in str(sustain_result.get("verdict", "")) else "optional") +
-                          ". Extend N to confirm before paradigm shift.")
+        recommendation = (
+            "v3.6 architecture candidate: FRM direction gate (portfolio filter) "
+            "+ Gap disagreement ranker (per-stock selector within pool). "
+            "Sustainability "
+            + ("DEMOTED" if "DEMOTE" in str(sustain_result.get("verdict", "")) else "optional")
+            + ". Extend N to confirm before paradigm shift."
+        )
     else:
         verdict = "Mid FRM × Mid Gap promising but needs larger N for confirmation"
-        recommendation = "Extend N to N>=200, re-test Mid×Mid stability before architecture decision."
+        recommendation = (
+            "Extend N to N>=200, re-test Mid×Mid stability before architecture decision."
+        )
 
     print(f"\n  >>> VERDICT: {verdict}", flush=True)
     print(f"  >>> RECOMMENDATION: {recommendation}", flush=True)

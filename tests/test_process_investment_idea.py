@@ -12,8 +12,8 @@ Covers the fixes to ``committee_agent.process_investment_idea``:
   * the portfolio is actually constructed from the real SecurityAnalysis
     object (the old code commented the call out / passed a dict).
 """
+
 import sys
-import importlib.util
 
 # Make the project root importable (mirrors tests/conftest.py behaviour)
 ROOT = sys.path[0] if sys.path and sys.path[0] else ""
@@ -35,8 +35,7 @@ class _FakeSA:
     alpha_score = 8.0
     confidence = 7.0
     thesis = _FakeThesis()
-    factor_profile = {"quality_score": 1, "value_score": 2,
-                      "growth_score": 3, "momentum_score": 4}
+    factor_profile = {"quality_score": 1, "value_score": 2, "growth_score": 3, "momentum_score": 4}
     risk_assessment = {"level": "low"}
 
 
@@ -127,6 +126,7 @@ class _FakeFactors:
 def _run(research_agent=None, routing="ALLOW_COMMITTEE", verdict="APPROVE"):
     # import via package to honour the relative imports inside the module
     import src.agents.committee_agent as cam
+
     ra = research_agent or _FakeResearch()
     val = _FakeValidation(routing_action=routing)
     committee = _FakeCommittee()
@@ -135,8 +135,14 @@ def _run(research_agent=None, routing="ALLOW_COMMITTEE", verdict="APPROVE"):
     pa = _FakePortfolio()
     db = _FakeDB()
     result = cam.process_investment_idea(
-        ra, val, committee, pa,
-        _FakeMarket(), _FakeStock(), _FakeFactors(), db,
+        ra,
+        val,
+        committee,
+        pa,
+        _FakeMarket(),
+        _FakeStock(),
+        _FakeFactors(),
+        db,
         {"sector_weights": {}, "positions": []},
     )
     return result, ra, val, committee, pa, db
@@ -178,5 +184,7 @@ def test_reject_verdict_returns_none():
 def test_committee_receives_market_dict():
     _, _, _, committee, _, _ = _run()
     assert committee.last_market == {
-        "regime_type": "bull", "risk_score": 20.0, "market_pe_percentile": 0.3,
+        "regime_type": "bull",
+        "risk_score": 20.0,
+        "market_pe_percentile": 0.3,
     }

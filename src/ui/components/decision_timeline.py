@@ -1,4 +1,5 @@
 """Decision Timeline — Terminal-styled investment decision chain."""
+
 import json
 
 import streamlit as st
@@ -19,7 +20,7 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
         st.info("暂无该股票的决策记录")
         return
 
-    for idx, rd in enumerate(decisions):
+    for _idx, rd in enumerate(decisions):
         with st.container(border=True):
             # ── Header row ───────────────────────────────
             cols = st.columns([3, 1, 1])
@@ -45,28 +46,36 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
 
             # 1. Research
             with chain_cols[0]:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="{step_style} border-top:2px solid {ACCENT_CYAN};">
                     <div style="font-weight:700; color:{ACCENT_CYAN}; margin-bottom:4px;">
                         🧠 Research
                     </div>
                     <div class="mono" style="color:{TEXT_SECONDARY};">
-                        {rd.get('agent_id', '?')}<br>
-                        {rd.get('entry_date', '?')}<br>
-                        ¥{rd.get('entry_price', '?')}
+                        {rd.get("agent_id", "?")}<br>
+                        {rd.get("entry_date", "?")}<br>
+                        ¥{rd.get("entry_price", "?")}
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # 2. Validator
             with chain_cols[1]:
                 thesis_evidence = rd.get("thesis_evidence", "[]")
                 try:
-                    ev = json.loads(thesis_evidence) if isinstance(thesis_evidence, str) else thesis_evidence
+                    ev = (
+                        json.loads(thesis_evidence)
+                        if isinstance(thesis_evidence, str)
+                        else thesis_evidence
+                    )
                     ev_count = len(ev)
                 except (json.JSONDecodeError, TypeError):
                     ev_count = "?"
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="{step_style} border-top:2px solid {SERIES_COLORS[1]};">
                     <div style="font-weight:700; color:{SERIES_COLORS[1]}; margin-bottom:4px;">
                         🔍 Validator
@@ -76,11 +85,14 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                         Verdict: —
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # 3. Committee
             with chain_cols[2]:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="{step_style} border-top:2px solid {SERIES_COLORS[3]};">
                     <div style="font-weight:700; color:{SERIES_COLORS[3]}; margin-bottom:4px;">
                         🏛️ Committee
@@ -90,11 +102,14 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                         Weighted: —
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # 4. Portfolio
             with chain_cols[3]:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="{step_style} border-top:2px solid {SERIES_COLORS[4]};">
                     <div style="font-weight:700; color:{SERIES_COLORS[4]}; margin-bottom:4px;">
                         💼 Portfolio
@@ -104,7 +119,9 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                         Cap: —
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # 5. Evaluation
             with chain_cols[4]:
@@ -112,10 +129,17 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                 alpha_mkt = rd.get("alpha_vs_market")
                 ret_text = f"{ret:+.1%}" if ret is not None else "Pending"
                 alpha_text = f"{alpha_mkt:+.1%}" if alpha_mkt is not None else "—"
-                ret_color = GAIN if (ret and ret > 0) else (LOSS if (ret and ret < 0) else TEXT_SECONDARY)
-                alpha_color = GAIN if (alpha_mkt and alpha_mkt > 0) else (LOSS if (alpha_mkt and alpha_mkt < 0) else TEXT_SECONDARY)
+                ret_color = (
+                    GAIN if (ret and ret > 0) else (LOSS if (ret and ret < 0) else TEXT_SECONDARY)
+                )
+                alpha_color = (
+                    GAIN
+                    if (alpha_mkt and alpha_mkt > 0)
+                    else (LOSS if (alpha_mkt and alpha_mkt < 0) else TEXT_SECONDARY)
+                )
 
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="{step_style} border-top:2px solid {GAIN};">
                     <div style="font-weight:700; color:{GAIN}; margin-bottom:4px;">
                         📊 Eval
@@ -125,7 +149,9 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                         <span style="color:{alpha_color};">Alpha: {alpha_text}</span>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # ── Factor profile ───────────────────────────
             factor_raw = rd.get("factor_snapshot", "{}")

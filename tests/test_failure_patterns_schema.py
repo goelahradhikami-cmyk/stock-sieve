@@ -21,6 +21,7 @@ import tempfile
 from src.data.evaluation_db import EvaluationDB
 from src.postmortem.engine import PostMortemEngine
 from src.postmortem.rule_miner import RuleMiner
+import contextlib
 
 
 def _cols(db_path, table):
@@ -32,10 +33,8 @@ def _cols(db_path, table):
 
 def _close(pm):
     if pm is not None:
-        try:
+        with contextlib.suppress(Exception):
             pm.db.close()
-        except Exception:
-            pass
 
 
 def test_no_schema_collision_both_tables_coexist():
@@ -46,8 +45,8 @@ def test_no_schema_collision_both_tables_coexist():
     pm = None
     try:
         EvaluationDB(path).init_db()
-        EvaluationDB(path).migrate_v2_1()          # creates failure_patterns (aggregate)
-        pm = PostMortemEngine(path)                # creates failure_events (event)
+        EvaluationDB(path).migrate_v2_1()  # creates failure_patterns (aggregate)
+        pm = PostMortemEngine(path)  # creates failure_events (event)
 
         fp_cols = _cols(path, "failure_patterns")
         fe_cols = _cols(path, "failure_events")

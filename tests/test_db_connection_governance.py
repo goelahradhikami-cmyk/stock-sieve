@@ -1,6 +1,7 @@
 """Connection governance: managed_connect guarantees closure on owner GC,
 and close_all() flushes the tracked registry. No heavy deps required.
 """
+
 import gc
 import importlib.util
 import os

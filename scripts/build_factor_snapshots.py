@@ -9,9 +9,9 @@ Usage:
     python scripts/build_factor_snapshots.py --date 2026-07-17 --range 2026-07-10:2026-07-17
 """
 
+import argparse
 import os
 import sys
-import argparse
 from datetime import date, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,8 +22,9 @@ from src.factors.snapshot_builder import FactorSnapshotBuilder
 def main():
     parser = argparse.ArgumentParser(description="Build stock factor snapshots")
     parser.add_argument("--date", type=str, required=True, help="Trade date (YYYY-MM-DD)")
-    parser.add_argument("--range", type=str, default=None,
-                        help="Date range start:end (builds each day in range)")
+    parser.add_argument(
+        "--range", type=str, default=None, help="Date range start:end (builds each day in range)"
+    )
     parser.add_argument("--limit", type=int, default=None, help="Max stocks per date")
     args = parser.parse_args()
 

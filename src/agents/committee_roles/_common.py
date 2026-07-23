@@ -63,9 +63,17 @@ def as_thesis_dict(thesis: Any) -> dict:
         return thesis
     out: dict = {}
     for attr in (
-        "thesis_id", "family", "pattern", "claim", "evidence",
-        "catalyst", "invalidation", "horizon", "sector",
-        "confidence_contribution", "catalyst_horizon_months",
+        "thesis_id",
+        "family",
+        "pattern",
+        "claim",
+        "evidence",
+        "catalyst",
+        "invalidation",
+        "horizon",
+        "sector",
+        "confidence_contribution",
+        "catalyst_horizon_months",
     ):
         if hasattr(thesis, attr):
             out[attr] = getattr(thesis, attr)

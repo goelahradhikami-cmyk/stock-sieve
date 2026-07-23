@@ -100,11 +100,13 @@ class EvidenceGraph:
             except (ValueError, TypeError):
                 continue
 
-            chain.append({
-                "type": "evidence",
-                "metric": metric,
-                "direction": direction,
-                "expected_value": expected,
-            })
+            chain.append(
+                {
+                    "type": "evidence",
+                    "metric": metric,
+                    "direction": direction,
+                    "expected_value": expected,
+                }
+            )
 
         return chain

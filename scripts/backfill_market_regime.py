@@ -4,9 +4,10 @@ Backfill market_regime_snapshots from 000300 history (Commit 6-L.7).
 Usage:
     python scripts/backfill_market_regime.py [--start 2024-01-01]
 """
+
+import argparse
 import os
 import sys
-import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,7 +19,7 @@ def main():
     parser.add_argument("--start", default="2024-01-01", help="Start date (default 2024-01-01)")
     args = parser.parse_args()
 
-    print(f"=== Market Regime Bootstrap ===")
+    print("=== Market Regime Bootstrap ===")
     print(f"Start date: {args.start}")
     rb = RegimeBootstrap()
     n = rb.backfill_history(args.start)
@@ -28,10 +29,11 @@ def main():
     print("=== Regime distribution ===")
     total = sum(dist.values())
     for regime, count in sorted(dist.items(), key=lambda x: -x[1]):
-        print(f"  {regime:18s}: {count:4d} ({count/total*100:.1f}%)")
+        print(f"  {regime:18s}: {count:4d} ({count / total * 100:.1f}%)")
     print()
     # Sample
     import sqlite3
+
     conn = sqlite3.connect("data/evaluation.db")
     rows = conn.execute(
         "SELECT obs_date, regime_type FROM market_regime_snapshots ORDER BY obs_date DESC LIMIT 5"

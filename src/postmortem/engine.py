@@ -20,8 +20,11 @@ import json
 import pandas as pd
 
 from src.data.db import managed_connect
+from src.utils.logger import get_logger
 
 from .classifier import FailureClassifier
+
+logger = get_logger(__name__)
 
 
 class PostMortemEngine:
@@ -137,31 +140,33 @@ class PostMortemEngine:
     def _load_unprocessed(self) -> pd.DataFrame:
         """Load evaluation_results that haven't been post-mortemed."""
         try:
-            return pd.read_sql_query("""
+            return pd.read_sql_query(
+                """
                 SELECT e.* FROM evaluation_results e
                 WHERE e.id NOT IN (SELECT fp.evaluation_id FROM failure_events fp WHERE fp.evaluation_id IS NOT NULL)
                 ORDER BY e.eval_date DESC
-            """, self.db)
+            """,
+                self.db,
+            )
         except Exception:
             return pd.read_sql_query(
-                "SELECT * FROM evaluation_results ORDER BY eval_date DESC",
-                self.db
+                "SELECT * FROM evaluation_results ORDER BY eval_date DESC", self.db
             )
 
     def _get_attribution(self, evaluation_id: int) -> dict:
         """Load attribution data for an evaluation."""
         try:
             row = self.db.execute(
-                "SELECT * FROM evaluation_attribution WHERE evaluation_id=?",
-                (evaluation_id,)
+                "SELECT * FROM evaluation_attribution WHERE evaluation_id=?", (evaluation_id,)
             ).fetchone()
             if row:
-                cols = [d[0] for d in self.db.execute(
-                    "PRAGMA table_info(evaluation_attribution)"
-                ).fetchall()]
-                return dict(zip(cols, row))
-        except Exception:
-            pass
+                cols = [
+                    d[0]
+                    for d in self.db.execute("PRAGMA table_info(evaluation_attribution)").fetchall()
+                ]
+                return dict(zip(cols, row, strict=False))
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return {}
 
     def _save_failure(self, eval_dict: dict, failure: dict, attribution: dict):
@@ -171,18 +176,21 @@ class PostMortemEngine:
             "max_drawdown": eval_dict.get("max_drawdown_during"),
             "attribution": attribution,
         }
-        self.db.execute("""
+        self.db.execute(
+            """
             INSERT INTO failure_events
             (evaluation_id, agent_id, genome_hash, failure_type, severity, evidence_json)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            eval_dict["id"],
-            eval_dict.get("agent_id", "unknown"),
-            eval_dict.get("genome_version"),
-            failure["type"],
-            failure["severity"],
-            json.dumps(evidence, default=str),
-        ))
+        """,
+            (
+                eval_dict["id"],
+                eval_dict.get("agent_id", "unknown"),
+                eval_dict.get("genome_version"),
+                failure["type"],
+                failure["severity"],
+                json.dumps(evidence, default=str),
+            ),
+        )
 
     def _generate_rule(self, eval_dict: dict, failure: dict) -> dict | None:
         """Generate a candidate rule from a failure pattern."""
@@ -222,28 +230,37 @@ class PostMortemEngine:
 
     def _save_candidate_rule(self, rule: dict):
         """Persist a candidate rule."""
-        self.db.execute("""
+        self.db.execute(
+            """
             INSERT INTO candidate_rules_v2
             (rule_type, condition_json, action_json, confidence, source, status)
             VALUES (?, ?, ?, ?, ?, 'pending')
-        """, (
-            rule["rule_type"], rule["condition_json"],
-            rule["action_json"], rule["confidence"], rule["source"],
-        ))
+        """,
+            (
+                rule["rule_type"],
+                rule["condition_json"],
+                rule["action_json"],
+                rule["confidence"],
+                rule["source"],
+            ),
+        )
 
     def _log_learning_event(self, eval_dict: dict, event_type: str, detail: str):
         """Record an agent learning event."""
-        self.db.execute("""
+        self.db.execute(
+            """
             INSERT INTO agent_learning_events
             (agent_id, genome_hash, event_type, source_failure_id, adjustment_json)
             VALUES (?, ?, ?, ?, ?)
-        """, (
-            eval_dict.get("agent_id", "unknown"),
-            eval_dict.get("genome_version"),
-            event_type,
-            eval_dict["id"],
-            json.dumps({"detail": detail}),
-        ))
+        """,
+            (
+                eval_dict.get("agent_id", "unknown"),
+                eval_dict.get("genome_version"),
+                event_type,
+                eval_dict["id"],
+                json.dumps({"detail": detail}),
+            ),
+        )
 
     # ── Deep post-mortem (PostMortemAnalyzer) ─────────────
 
@@ -272,21 +289,28 @@ class PostMortemEngine:
         ``result`` is a ``PostMortemResult`` from ``src.evaluation.post_mortem``.
         Returns the inserted row id.
         """
-        cursor = self.db.execute("""
+        cursor = self.db.execute(
+            """
             INSERT INTO post_mortem_analysis
             (evaluation_id, agent_id, genome_hash, error_category, error_subtype,
              mutation_candidates, lessons, primary_cause, applied)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-        """, (
-            evaluation_id,
-            result.agent_id,
-            None,
-            result.error_category.value if hasattr(result.error_category, "value") else str(result.error_category),
-            result.error_subtype.value if hasattr(result.error_subtype, "value") else str(result.error_subtype),
-            json.dumps(result.mutation_candidates, default=str),
-            json.dumps(result.lessons, default=str),
-            result.primary_cause,
-        ))
+        """,
+            (
+                evaluation_id,
+                result.agent_id,
+                None,
+                result.error_category.value
+                if hasattr(result.error_category, "value")
+                else str(result.error_category),
+                result.error_subtype.value
+                if hasattr(result.error_subtype, "value")
+                else str(result.error_subtype),
+                json.dumps(result.mutation_candidates, default=str),
+                json.dumps(result.lessons, default=str),
+                result.primary_cause,
+            ),
+        )
         self.db.commit()
         return cursor.lastrowid
 
@@ -332,26 +356,30 @@ class PostMortemEngine:
 
     def get_pending_rules(self, min_confidence: float = 0.5) -> list[dict]:
         """Get pending candidate rules above confidence threshold."""
-        rows = self.db.execute("""
+        rows = self.db.execute(
+            """
             SELECT * FROM candidate_rules_v2
             WHERE status = 'pending' AND confidence >= ?
-        """, (min_confidence,)).fetchall()
-        cols = ["id", "rule_type", "condition_json", "action_json",
-                "confidence", "source", "status"]
-        return [dict(zip(cols, r)) for r in rows]
+        """,
+            (min_confidence,),
+        ).fetchall()
+        cols = [
+            "id",
+            "rule_type",
+            "condition_json",
+            "action_json",
+            "confidence",
+            "source",
+            "status",
+        ]
+        return [dict(zip(cols, r, strict=False)) for r in rows]
 
     def approve_rule(self, rule_id: int):
         """Approve a candidate rule for use in Thesis Validator."""
-        self.db.execute(
-            "UPDATE candidate_rules_v2 SET status='approved' WHERE id=?",
-            (rule_id,)
-        )
+        self.db.execute("UPDATE candidate_rules_v2 SET status='approved' WHERE id=?", (rule_id,))
         self.db.commit()
 
     def retire_rule(self, rule_id: int):
         """Retire a rule that's no longer effective."""
-        self.db.execute(
-            "UPDATE candidate_rules_v2 SET status='retired' WHERE id=?",
-            (rule_id,)
-        )
+        self.db.execute("UPDATE candidate_rules_v2 SET status='retired' WHERE id=?", (rule_id,))
         self.db.commit()

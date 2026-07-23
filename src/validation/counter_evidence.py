@@ -8,7 +8,6 @@ pattern_confidence >= 0.7 and occurrence_count >= 5).
 Each matched rule increases risk score by rule.severity × 25.
 """
 
-
 from .rule_registry import RuleRegistry
 
 
@@ -18,8 +17,9 @@ class CounterEvidenceChecker:
     def __init__(self, rule_registry: RuleRegistry):
         self.registry = rule_registry
 
-    def assess(self, factor_snapshot: dict, thesis_pattern: str,
-               agent_id: str = None) -> tuple[float, list[dict]]:
+    def assess(
+        self, factor_snapshot: dict, thesis_pattern: str, agent_id: str = None
+    ) -> tuple[float, list[dict]]:
         """Assess counter-evidence risk.
 
         Returns:
@@ -38,13 +38,19 @@ class CounterEvidenceChecker:
                 severity = rule.get("severity", 0.5)
                 risk_score += severity * 25
 
-                warnings.append({
-                    "rule_name": rule.get("name", "unknown"),
-                    "rule_id": rule.get("rule_id", ""),
-                    "severity": "high" if severity > 0.6 else "medium" if severity > 0.3 else "low",
-                    "description": rule.get("description", ""),
-                    "preventive_action": rule.get("preventive_action", ""),
-                })
+                warnings.append(
+                    {
+                        "rule_name": rule.get("name", "unknown"),
+                        "rule_id": rule.get("rule_id", ""),
+                        "severity": "high"
+                        if severity > 0.6
+                        else "medium"
+                        if severity > 0.3
+                        else "low",
+                        "description": rule.get("description", ""),
+                        "preventive_action": rule.get("preventive_action", ""),
+                    }
+                )
 
         return min(100.0, risk_score), warnings
 
@@ -54,6 +60,7 @@ class CounterEvidenceChecker:
         if isinstance(factor_snapshot, str):
             try:
                 import json
+
                 factor_snapshot = json.loads(factor_snapshot)
             except (json.JSONDecodeError, TypeError):
                 factor_snapshot = {}
@@ -63,6 +70,7 @@ class CounterEvidenceChecker:
         common_thesis = rule.get("common_thesis_types", [])
         if isinstance(common_thesis, str):
             import json
+
             try:
                 common_thesis = json.loads(common_thesis)
             except json.JSONDecodeError:
@@ -75,6 +83,7 @@ class CounterEvidenceChecker:
         common_factors = rule.get("common_factors", {})
         if isinstance(common_factors, str):
             import json
+
             try:
                 common_factors = json.loads(common_factors)
             except json.JSONDecodeError:

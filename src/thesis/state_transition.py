@@ -29,16 +29,13 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from datetime import date, timedelta
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
 
 # State definitions and allowed transitions
 STATES = ["PANIC", "STABILIZING", "EARLY_RECOVERY", "CONFIRMED_RECOVERY", "EUPHORIA"]
@@ -60,6 +57,7 @@ UPGRADE_CONFIRMATION_DAYS = 3  # need 3 consecutive days of confirming signal
 @dataclass
 class StateRecord:
     """One day's state record."""
+
     date: str
     state: str
     anomaly_weight: float
@@ -104,8 +102,7 @@ class StateTransitionEngine:
       EUPHORIA: overbought -> reduce anomaly (protect from chasing)
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self._state_history: dict[str, StateRecord] = {}
@@ -136,7 +133,6 @@ class StateTransitionEngine:
         # Compute indicators for each day
         dates = [r[0] for r in rows]
         closes = [r[1] for r in rows if r[1]]
-        amounts = [r[2] for r in rows if r[2]]
 
         returns = np.diff(closes) / closes[:-1]
 
@@ -148,11 +144,11 @@ class StateTransitionEngine:
             d = dates[i]
 
             # Compute indicators
-            vol_20d = float(np.std(returns[i-20:i]) * np.sqrt(252))
-            vol_60d = float(np.std(returns[i-60:i]) * np.sqrt(252))
+            vol_20d = float(np.std(returns[i - 20 : i]) * np.sqrt(252))
+            vol_60d = float(np.std(returns[i - 60 : i]) * np.sqrt(252))
             vol_change = vol_20d - vol_60d
 
-            ma60 = float(np.mean(closes[i-60:i]))
+            ma60 = float(np.mean(closes[i - 60 : i]))
             trend = float(np.clip((closes[i] - ma60) / ma60, -1, 1)) if ma60 > 0 else 0.0
 
             # Recovery probability (simplified: vol_score + trend_score)
@@ -177,7 +173,9 @@ class StateTransitionEngine:
                 confirmation_count += 1
                 if confirmation_count >= UPGRADE_CONFIRMATION_DAYS:
                     current_state = target_state
-                    transition_reason = f"UPGRADED to {target_state}: {reason} (confirmed {confirmation_count}d)"
+                    transition_reason = (
+                        f"UPGRADED to {target_state}: {reason} (confirmed {confirmation_count}d)"
+                    )
                     confirmation_count = 0
                 else:
                     transition_reason = f"upgrade signal to {target_state} ({confirmation_count}/{UPGRADE_CONFIRMATION_DAYS}d): {reason}"
@@ -190,9 +188,14 @@ class StateTransitionEngine:
             anomaly_weight = STATE_ANOMALY_WEIGHT.get(current_state, 0.0)
 
             record = StateRecord(
-                date=d, state=current_state, anomaly_weight=anomaly_weight,
-                vol_20d=vol_20d, vol_change=vol_change, trend=trend,
-                recovery_prob=recovery_prob, breadth=breadth,
+                date=d,
+                state=current_state,
+                anomaly_weight=anomaly_weight,
+                vol_20d=vol_20d,
+                vol_change=vol_change,
+                trend=trend,
+                recovery_prob=recovery_prob,
+                breadth=breadth,
                 previous_state=current_state,
                 transition_reason=transition_reason,
                 confirmation_count=confirmation_count,
@@ -220,9 +223,15 @@ class StateTransitionEngine:
             return state.anomaly_weight >= 0.5
         return False
 
-    def _classify_day(self, vol_20d: float, vol_change: float,
-                       trend: float, recovery_prob: float, breadth: float,
-                       current_state: str) -> tuple[str, str]:
+    def _classify_day(
+        self,
+        vol_20d: float,
+        vol_change: float,
+        trend: float,
+        recovery_prob: float,
+        breadth: float,
+        current_state: str,
+    ) -> tuple[str, str]:
         """Classify target state from daily indicators.
 
         Returns: (target_state, reason)
@@ -233,11 +242,17 @@ class StateTransitionEngine:
 
         # CONFIRMED_RECOVERY: strong vol contraction + positive trend + decent breadth
         if vol_change < -0.03 and trend > 0.02 and breadth > 0.45:
-            return "CONFIRMED_RECOVERY", f"vol_chg={vol_change:+.4f} strong + trend={trend:+.3f} + breadth={breadth:.2f}"
+            return (
+                "CONFIRMED_RECOVERY",
+                f"vol_chg={vol_change:+.4f} strong + trend={trend:+.3f} + breadth={breadth:.2f}",
+            )
 
         # EARLY_RECOVERY: vol contracting + recovery improving
         if vol_change < -0.01 and recovery_prob > 0.48 and breadth > 0.40:
-            return "EARLY_RECOVERY", f"vol_chg={vol_change:+.4f} + recovery={recovery_prob:.3f} + breadth={breadth:.2f}"
+            return (
+                "EARLY_RECOVERY",
+                f"vol_chg={vol_change:+.4f} + recovery={recovery_prob:.3f} + breadth={breadth:.2f}",
+            )
 
         # STABILIZING: vol not expanding, selling pressure fading
         if vol_change < 0.0 and breadth > 0.35:
@@ -261,8 +276,8 @@ class StateTransitionEngine:
             ).fetchone()
             if row and row[0] > 0:
                 return float(row[1] / row[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         finally:
             conn.close()
         return 0.5  # neutral when no snapshot
@@ -270,6 +285,7 @@ class StateTransitionEngine:
     def get_state_distribution(self) -> dict[str, int]:
         """Count days in each state."""
         from collections import Counter
+
         counts = Counter(r.state for r in self._state_history.values())
         return dict(counts)
 

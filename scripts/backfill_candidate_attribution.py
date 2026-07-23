@@ -24,14 +24,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
-from datetime import date
-from collections import defaultdict
-
-import numpy as np
+import os
+import sqlite3
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -122,8 +118,7 @@ class AttributionBackfiller:
     # Sector return (cumulative over a date range)
     # ------------------------------------------------------------------
 
-    def _get_sector_cumulative_return(self, industry: str,
-                                       start: str, end: str) -> float | None:
+    def _get_sector_cumulative_return(self, industry: str, start: str, end: str) -> float | None:
         """Cumulative industry return over [start, end] by compounding daily returns.
 
         industry_daily_returns stores daily returns (not prices), so we
@@ -142,7 +137,7 @@ class AttributionBackfiller:
         cumulative = 1.0
         for r in rows:
             if r["return"] is not None:
-                cumulative *= (1.0 + r["return"])
+                cumulative *= 1.0 + r["return"]
         return cumulative - 1.0
 
     # ------------------------------------------------------------------
@@ -163,8 +158,7 @@ class AttributionBackfiller:
     # Main backfill
     # ------------------------------------------------------------------
 
-    def backfill_all(self, episode_filter: str | None = None,
-                     limit: int | None = None) -> dict:
+    def backfill_all(self, episode_filter: str | None = None, limit: int | None = None) -> dict:
         """Backfill attribution for all candidates (or one episode)."""
         print("=" * 60, flush=True)
         print("Backfill Candidate Attribution (6-S.12.1)", flush=True)
@@ -208,9 +202,11 @@ class AttributionBackfiller:
             if len(batch) >= 200:
                 self._commit_batch(batch)
                 batch = []
-                print(f"  ... {i+1}/{len(candidates)} processed "
-                      f"({stats['residual_alpha_filled']} with full attribution)",
-                      flush=True)
+                print(
+                    f"  ... {i + 1}/{len(candidates)} processed "
+                    f"({stats['residual_alpha_filled']} with full attribution)",
+                    flush=True,
+                )
 
         if batch:
             self._commit_batch(batch)
@@ -255,8 +251,7 @@ class AttributionBackfiller:
         # 4. Sector return (cumulative over [trade_date, eval_date])
         sector_return = None
         if sector_code:
-            sector_return = self._get_sector_cumulative_return(
-                sector_code, trade_date, eval_date)
+            sector_return = self._get_sector_cumulative_return(sector_code, trade_date, eval_date)
             if sector_return is not None:
                 stats["sector_return_filled"] += 1
             else:
@@ -274,8 +269,16 @@ class AttributionBackfiller:
                 residual_alpha = stock_return - market_return - sector_return
                 stats["residual_alpha_filled"] += 1
 
-        return (stock_return, market_return, sector_code, sector_return,
-                market_beta, sector_beta, residual_alpha, cand_id)
+        return (
+            stock_return,
+            market_return,
+            sector_code,
+            sector_return,
+            market_beta,
+            sector_beta,
+            residual_alpha,
+            cand_id,
+        )
 
     def _compute_market_return(self, start: str, end: str) -> float | None:
         """HS300 return over [start, end] from market_index_daily."""
@@ -287,8 +290,7 @@ class AttributionBackfiller:
 
     def _index_close(self, code: str, trade_date: str) -> float | None:
         row = self.cache.execute(
-            "SELECT adj_close FROM market_index_daily "
-            "WHERE index_code=? AND trade_date=?",
+            "SELECT adj_close FROM market_index_daily WHERE index_code=? AND trade_date=?",
             (code, trade_date),
         ).fetchone()
         if not row or row[0] is None:
@@ -319,30 +321,28 @@ class AttributionBackfiller:
         print("Backfill Summary", flush=True)
         print("=" * 60, flush=True)
         print(f"  Total candidates processed:   {stats['total']}", flush=True)
-        print(f"  stock_return filled:          {stats['stock_return_filled']}",
-              flush=True)
-        print(f"  market_return filled:         {stats['market_return_filled']}",
-              flush=True)
-        print(f"  sector_code filled:           {stats['sector_code_filled']}",
-              flush=True)
-        print(f"  sector_return filled:         {stats['sector_return_filled']}",
-              flush=True)
-        print(f"  residual_alpha (full attrib): {stats['residual_alpha_filled']}",
-              flush=True)
-        print(f"  sector data unavailable:      {stats['sector_data_unavailable']} "
-              f"(pre-2024-06 episodes)", flush=True)
+        print(f"  stock_return filled:          {stats['stock_return_filled']}", flush=True)
+        print(f"  market_return filled:         {stats['market_return_filled']}", flush=True)
+        print(f"  sector_code filled:           {stats['sector_code_filled']}", flush=True)
+        print(f"  sector_return filled:         {stats['sector_return_filled']}", flush=True)
+        print(f"  residual_alpha (full attrib): {stats['residual_alpha_filled']}", flush=True)
+        print(
+            f"  sector data unavailable:      {stats['sector_data_unavailable']} "
+            f"(pre-2024-06 episodes)",
+            flush=True,
+        )
 
         # Verify with a quick query
         total = self.shadow.execute(
-            "SELECT COUNT(*) FROM shadow_candidates "
-            "WHERE stock_return_t20 IS NOT NULL").fetchone()[0]
+            "SELECT COUNT(*) FROM shadow_candidates WHERE stock_return_t20 IS NOT NULL"
+        ).fetchone()[0]
         with_residual = self.shadow.execute(
-            "SELECT COUNT(*) FROM shadow_candidates "
-            "WHERE residual_alpha IS NOT NULL").fetchone()[0]
+            "SELECT COUNT(*) FROM shadow_candidates WHERE residual_alpha IS NOT NULL"
+        ).fetchone()[0]
         with_market = self.shadow.execute(
-            "SELECT COUNT(*) FROM shadow_candidates "
-            "WHERE market_beta IS NOT NULL").fetchone()[0]
-        print(f"\n  Verification (DB counts):", flush=True)
+            "SELECT COUNT(*) FROM shadow_candidates WHERE market_beta IS NOT NULL"
+        ).fetchone()[0]
+        print("\n  Verification (DB counts):", flush=True)
         print(f"    candidates with stock_return: {total}", flush=True)
         print(f"    candidates with market_beta:   {with_market}", flush=True)
         print(f"    candidates with residual_alpha:{with_residual}", flush=True)
@@ -353,12 +353,13 @@ class AttributionBackfiller:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Backfill Recovery Beta Decomposition (6-S.12.1)")
-    parser.add_argument("--episode", type=str, default=None,
-                        help="Process only one episode (e.g. E20250813)")
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Limit number of candidates (for testing)")
+    parser = argparse.ArgumentParser(description="Backfill Recovery Beta Decomposition (6-S.12.1)")
+    parser.add_argument(
+        "--episode", type=str, default=None, help="Process only one episode (e.g. E20250813)"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Limit number of candidates (for testing)"
+    )
     args = parser.parse_args()
 
     backfiller = AttributionBackfiller()

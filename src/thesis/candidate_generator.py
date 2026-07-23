@@ -37,29 +37,23 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from dataclasses import dataclass
-from typing import Optional
+import sqlite3
 
-from src.thesis.market_anomaly import (
-    MispricingObject, V3CandidateFeatures, MarketAnomalyDetector
-)
-from src.thesis.fundamental_recovery import FundamentalRecoveryScorer
-from src.thesis.sector_confirmation import SectorConfirmationScorer
 from src.thesis.expectation_gap import ExpectationGapEngine
+from src.thesis.fundamental_recovery import FundamentalRecoveryScorer
+from src.thesis.market_anomaly import MarketAnomalyDetector, MispricingObject, V3CandidateFeatures
+from src.thesis.sector_confirmation import SectorConfirmationScorer
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Stage 1 thresholds (6-S.13.1 Design Freeze)
-LIQUIDITY_MIN_VOLUME_RATIO = 0.3    # reject extreme illiquidity
+LIQUIDITY_MIN_VOLUME_RATIO = 0.3  # reject extreme illiquidity
 FRM_HARD_REJECT_DIRECTION = "deteriorating"
 
 # Stage 2 threshold (6-S.13.1 Design Freeze)
-RS_HARD_GATE_THRESHOLD = 0.0        # rs_vs_sector must be > 0
+RS_HARD_GATE_THRESHOLD = 0.0  # rs_vs_sector must be > 0
 
 
 class CandidateGenerator:
@@ -73,9 +67,12 @@ class CandidateGenerator:
     current values, not point-in-time).
     """
 
-    def __init__(self, cache_db: str = "data/cache.db",
-                 eval_db: str = "data/evaluation.db",
-                 shadow_db: str = "data/shadow_trading.db"):
+    def __init__(
+        self,
+        cache_db: str = "data/cache.db",
+        eval_db: str = "data/evaluation.db",
+        shadow_db: str = "data/shadow_trading.db",
+    ):
         self.cache_db = cache_db
         self.eval_db = eval_db
         self.shadow_db = shadow_db
@@ -83,8 +80,7 @@ class CandidateGenerator:
         # Reuse existing scorers (6-S.12 components)
         self.frm_scorer = FundamentalRecoveryScorer(cache_db)
         self.rs_scorer = SectorConfirmationScorer(cache_db)
-        self.anomaly_detector = MarketAnomalyDetector(
-            cache_db=cache_db, eval_db=eval_db)
+        self.anomaly_detector = MarketAnomalyDetector(cache_db=cache_db, eval_db=eval_db)
         # v3.3: EGE replaces RS gate (6-S.15.2)
         self.ege_engine = ExpectationGapEngine(cache_db)
 
@@ -95,10 +91,14 @@ class CandidateGenerator:
     # Public API
     # ------------------------------------------------------------------
 
-    def generate(self, trade_date: str, market_state: str = "unknown",
-                 universe: list[str] | None = None,
-                 top_n: int = 50,
-                 episode_id: str | None = None) -> list[MispricingObject]:
+    def generate(
+        self,
+        trade_date: str,
+        market_state: str = "unknown",
+        universe: list[str] | None = None,
+        top_n: int = 50,
+        episode_id: str | None = None,
+    ) -> list[MispricingObject]:
         """Run the three-stage funnel.
 
         Args:
@@ -121,15 +121,14 @@ class CandidateGenerator:
 
         # Stage 1: Recovery Eligibility
         stage1_passed = self._stage1_recovery_eligibility(
-            universe, trade_date, market_state, episode_id)
+            universe, trade_date, market_state, episode_id
+        )
 
         # Stage 2: Relative Strength
-        stage2_passed = self._stage2_relative_strength(
-            stage1_passed, trade_date, episode_id)
+        stage2_passed = self._stage2_relative_strength(stage1_passed, trade_date, episode_id)
 
         # Stage 3: Mispricing (last gate)
-        candidates = self._stage3_mispricing(
-            stage2_passed, trade_date, top_n, episode_id)
+        candidates = self._stage3_mispricing(stage2_passed, trade_date, top_n, episode_id)
 
         # Flush funnel log
         if episode_id and self._funnel_log_buffer:
@@ -152,8 +151,7 @@ class CandidateGenerator:
         conn = sqlite3.connect(self.eval_db)
         try:
             rows = conn.execute(
-                "SELECT DISTINCT security_id FROM stock_factor_snapshot "
-                "WHERE trade_date = ?",
+                "SELECT DISTINCT security_id FROM stock_factor_snapshot WHERE trade_date = ?",
                 (trade_date,),
             ).fetchall()
         finally:
@@ -165,8 +163,7 @@ class CandidateGenerator:
     # ------------------------------------------------------------------
 
     def _stage1_recovery_eligibility(
-        self, universe: list[str], trade_date: str,
-        market_state: str, episode_id: str | None
+        self, universe: list[str], trade_date: str, market_state: str, episode_id: str | None
     ) -> list[tuple[str, V3CandidateFeatures]]:
         """Filter: does the stock have the right to participate in recovery?
 
@@ -183,19 +180,20 @@ class CandidateGenerator:
             features = V3CandidateFeatures()
             vol_ratio = vol_ratios.get(code)
             features.liquidity_pass = (
-                vol_ratio is not None
-                and vol_ratio > LIQUIDITY_MIN_VOLUME_RATIO
+                vol_ratio is not None and vol_ratio > LIQUIDITY_MIN_VOLUME_RATIO
             )
 
             # Gate 1a: Liquidity
             if not features.liquidity_pass:
                 self._buffer_funnel_log(
-                    episode_id, trade_date, code,
+                    episode_id,
+                    trade_date,
+                    code,
                     stage1_pass=0,
                     stage1_liquidity_pass=0,
                     stage1_volume_ratio=vol_ratio,
-                    rejection_stage='stage1',
-                    rejection_reason='LOW_LIQUIDITY',
+                    rejection_stage="stage1",
+                    rejection_reason="LOW_LIQUIDITY",
                 )
                 continue
 
@@ -205,33 +203,36 @@ class CandidateGenerator:
             features.frm_score = frm.score
             features.earnings_acceleration = (
                 frm.earnings_yoy_current - frm.earnings_yoy_previous
-                if (frm.earnings_yoy_current is not None
-                    and frm.earnings_yoy_previous is not None)
+                if (frm.earnings_yoy_current is not None and frm.earnings_yoy_previous is not None)
                 else None
             )
 
             # HARD GATE: deteriorating earnings -> reject
             if frm.revision_direction == FRM_HARD_REJECT_DIRECTION:
                 self._buffer_funnel_log(
-                    episode_id, trade_date, code,
+                    episode_id,
+                    trade_date,
+                    code,
                     stage1_pass=0,
                     stage1_liquidity_pass=1,
                     stage1_volume_ratio=vol_ratio,
                     stage1_frm_direction=frm.revision_direction,
                     stage1_frm_score=frm.score,
                     stage1_earnings_accel=features.earnings_acceleration,
-                    rejection_stage='stage1',
-                    rejection_reason='DETERIORATING',
+                    rejection_stage="stage1",
+                    rejection_reason="DETERIORATING",
                 )
                 continue
 
             # Gate 1c: Recovery score (composite, not a hard gate)
             features.recovery_score = self._compute_recovery_score(frm)
-            features.candidate_stage = 'stage1_pass'
+            features.candidate_stage = "stage1_pass"
             passed.append((code, features))
 
             self._buffer_funnel_log(
-                episode_id, trade_date, code,
+                episode_id,
+                trade_date,
+                code,
                 stage1_pass=1,
                 stage1_liquidity_pass=1,
                 stage1_volume_ratio=vol_ratio,
@@ -259,8 +260,7 @@ class CandidateGenerator:
         # Stage 1 version: weight FRM subscores at 0.60 (0.35+0.25),
         # leave 0.40 for Stage 2 components (filled later).
         frm_component = (
-            0.35 * frm_result.earnings_acceleration
-            + 0.25 * frm_result.margin_stabilization
+            0.35 * frm_result.earnings_acceleration + 0.25 * frm_result.margin_stabilization
         )
         # Rescale to 0-100 (frm subscores are 0-100, weights sum to 0.60)
         # Then add 0.40 * 50 (neutral) as placeholder for Stage 2
@@ -272,8 +272,10 @@ class CandidateGenerator:
     # ------------------------------------------------------------------
 
     def _stage2_relative_strength(
-        self, stage1_passed: list[tuple[str, V3CandidateFeatures]],
-        trade_date: str, episode_id: str | None
+        self,
+        stage1_passed: list[tuple[str, V3CandidateFeatures]],
+        trade_date: str,
+        episode_id: str | None,
     ) -> list[tuple[str, V3CandidateFeatures]]:
         """Filter: is the stock leading, not just riding sector beta?
 
@@ -302,11 +304,13 @@ class CandidateGenerator:
 
             # NO HARD GATE in Stage 2 (v3.3 design freeze)
             # All Stage 1 survivors pass through; EGE score used for ranking only
-            features.candidate_stage = 'stage2_pass'
+            features.candidate_stage = "stage2_pass"
             passed.append((code, features))
 
             self._update_funnel_log(
-                episode_id, trade_date, code,
+                episode_id,
+                trade_date,
+                code,
                 stage2_rs_vs_sector=rs.rs_vs_sector,
                 stage2_sector_vs_market=rs.sector_vs_market,
                 stage2_rs_score=rs.score,
@@ -316,8 +320,7 @@ class CandidateGenerator:
 
         return passed
 
-    def _enrich_recovery_score(self, features: V3CandidateFeatures,
-                                rs_result) -> float:
+    def _enrich_recovery_score(self, features: V3CandidateFeatures, rs_result) -> float:
         """Fill in Stage 2 components of recovery_score.
 
         Full formula (6-S.13.1):
@@ -347,8 +350,11 @@ class CandidateGenerator:
     # ------------------------------------------------------------------
 
     def _stage3_mispricing(
-        self, stage2_passed: list[tuple[str, V3CandidateFeatures]],
-        trade_date: str, top_n: int, episode_id: str | None
+        self,
+        stage2_passed: list[tuple[str, V3CandidateFeatures]],
+        trade_date: str,
+        top_n: int,
+        episode_id: str | None,
     ) -> list[MispricingObject]:
         """Detect mispricing among stocks that passed recovery + RS gates.
 
@@ -356,25 +362,29 @@ class CandidateGenerator:
         This is the key reversal: anomaly is no longer the entrance.
         """
         candidates = []
-        for rank, (code, features) in enumerate(stage2_passed, 1):
+        for _rank, (code, features) in enumerate(stage2_passed, 1):
             # Reuse existing anomaly detection (not rewritten)
             anomaly = self.anomaly_detector._detect_anomaly(code, trade_date)
             if anomaly is None:
                 self._update_funnel_log(
-                    episode_id, trade_date, code,
+                    episode_id,
+                    trade_date,
+                    code,
                     stage3_divergence_score=None,
                     stage3_pass=0,
-                    rejection_stage='stage3',
-                    rejection_reason='NO_MISPRICING',
+                    rejection_stage="stage3",
+                    rejection_reason="NO_MISPRICING",
                 )
                 continue
 
             # Attach v3 features
             anomaly.v3_features = features
-            features.candidate_stage = 'stage3_pass'
+            features.candidate_stage = "stage3_pass"
 
             self._update_funnel_log(
-                episode_id, trade_date, code,
+                episode_id,
+                trade_date,
+                code,
                 stage3_divergence_score=anomaly.divergence_score,
                 stage3_pass=1,
                 final_pass=1,
@@ -384,7 +394,7 @@ class CandidateGenerator:
         # Rank by divergence_score descending (retained from v1/v2)
         candidates.sort(key=lambda a: -(a.divergence_score or 0))
         # Assign funnel rank
-        for rank, c in enumerate(candidates[:top_n], 1):
+        for _rank, c in enumerate(candidates[:top_n], 1):
             if c.v3_features:
                 pass  # rank tracked implicitly by position
         return candidates[:top_n]
@@ -393,8 +403,7 @@ class CandidateGenerator:
     # Volume ratio batch loading
     # ------------------------------------------------------------------
 
-    def _batch_get_volume_ratio(self, universe: list[str],
-                                 trade_date: str) -> dict[str, float]:
+    def _batch_get_volume_ratio(self, universe: list[str], trade_date: str) -> dict[str, float]:
         """Batch-load volume_ratio from stock_factor_snapshot.
 
         Returns dict {code: volume_ratio}. Avoids N single queries.
@@ -406,7 +415,7 @@ class CandidateGenerator:
         try:
             # Batch in chunks of 500 (SQLite parameter limit)
             for i in range(0, len(universe), 500):
-                chunk = universe[i:i + 500]
+                chunk = universe[i : i + 500]
                 placeholders = ",".join("?" * len(chunk))
                 rows = conn.execute(
                     f"SELECT security_id, factor_values_json "
@@ -435,12 +444,14 @@ class CandidateGenerator:
         """Buffer a funnel log entry for batch insert."""
         if not episode_id:
             return
-        self._funnel_log_buffer.append({
-            "episode_id": episode_id,
-            "trade_date": trade_date,
-            "stock_code": code,
-            **fields,
-        })
+        self._funnel_log_buffer.append(
+            {
+                "episode_id": episode_id,
+                "trade_date": trade_date,
+                "stock_code": code,
+                **fields,
+            }
+        )
 
     def _update_funnel_log(self, episode_id, trade_date, code, **fields):
         """Update an existing funnel log entry (matched by episode+code).
@@ -450,8 +461,7 @@ class CandidateGenerator:
         if not episode_id:
             return
         for entry in self._funnel_log_buffer:
-            if (entry["episode_id"] == episode_id
-                    and entry["stock_code"] == code):
+            if entry["episode_id"] == episode_id and entry["stock_code"] == code:
                 entry.update(fields)
                 return
         # If not found (shouldn't happen), create new

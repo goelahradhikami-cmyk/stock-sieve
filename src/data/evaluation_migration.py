@@ -13,6 +13,10 @@ from .evaluation_schema import DDL_V21
 # -> reconciliation, with reconciliation importing EvaluationDB lazily).
 from src.audit.reconciliation import DDL_RECONCILIATION
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class EvaluationMigrationMixin:
     """Schema-migration methods for EvaluationDB.
@@ -177,8 +181,8 @@ class EvaluationMigrationMixin:
                     pass  # idempotent - column may already exist
         try:
             conn.execute("ALTER TABLE agent_genome_snapshots ADD COLUMN doctrine_version TEXT DEFAULT 'v1'")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
 
         conn.commit()
 
@@ -197,44 +201,44 @@ class EvaluationMigrationMixin:
         # 1. evaluation_results.residual_alpha column
         try:
             conn.execute("ALTER TABLE evaluation_results ADD COLUMN residual_alpha REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
 
         # 1b. doctrine_fitness_history: add pick_returns_json (for breadth calc)
         # and alpha_windows_json (for stability calc) - Commit 6-L.8
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN pick_returns_json TEXT")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN alpha_quality REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         # Commit 6-M: Alpha Origin Attribution fields
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN factor_alpha REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN selection_alpha REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN factor_independence REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN timing_quality REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN luck_penalty REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
         try:
             conn.execute("ALTER TABLE doctrine_fitness_history ADD COLUMN origin_quality REAL")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("operation failed (was silently ignored): %s", exc)
 
         # 2. doctrine_fitness_history
         conn.executescript("""

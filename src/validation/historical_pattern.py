@@ -14,7 +14,6 @@ Where:
 """
 
 
-
 class HistoricalPatternAnalyzer:
     """Analyzes thesis pattern performance from thesis_outcomes table."""
 
@@ -32,14 +31,18 @@ class HistoricalPatternAnalyzer:
         conn = self.db.connect()
 
         if agent_id:
-            row = conn.execute("""
+            row = conn.execute(
+                """
                 SELECT * FROM thesis_outcomes
                 WHERE thesis_pattern = ? AND agent_id = ?
                 ORDER BY last_updated DESC LIMIT 1
-            """, (thesis_pattern, agent_id)).fetchone()
+            """,
+                (thesis_pattern, agent_id),
+            ).fetchone()
         else:
             # Aggregate across agents
-            row = conn.execute("""
+            row = conn.execute(
+                """
                 SELECT
                     thesis_pattern,
                     SUM(sample_size) as sample_size,
@@ -50,7 +53,9 @@ class HistoricalPatternAnalyzer:
                 FROM thesis_outcomes
                 WHERE thesis_pattern = ?
                 GROUP BY thesis_pattern
-            """, (thesis_pattern,)).fetchone()
+            """,
+                (thesis_pattern,),
+            ).fetchone()
 
         conn.close()
 
@@ -81,12 +86,7 @@ class HistoricalPatternAnalyzer:
         # Sample confidence
         sample_conf = min(1.0, sample_size / 50.0)
 
-        score = (
-            0.4 * win_rate +
-            0.3 * alpha_quality +
-            0.2 * risk_adj +
-            0.1 * sample_conf
-        ) * 100
+        score = (0.4 * win_rate + 0.3 * alpha_quality + 0.2 * risk_adj + 0.1 * sample_conf) * 100
 
         return round(score, 1), {
             "status": "ok",

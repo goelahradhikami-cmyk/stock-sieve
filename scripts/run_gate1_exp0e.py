@@ -24,12 +24,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -104,7 +104,9 @@ def gate_0_data_integrity(episodes):
 
     # BUY limitation
     checks["buy_limitation"] = len(buys) < 30
-    checks["buy_limitation_note"] = f"BUY N={len(buys)} (limitation, not blocker). BLOCK N={len(blocks)} is primary evidence."
+    checks["buy_limitation_note"] = (
+        f"BUY N={len(buys)} (limitation, not blocker). BLOCK N={len(blocks)} is primary evidence."
+    )
 
     verdict = checks["confidence_pass"] and checks["ms_pass"] and checks["outcome_pass"]
     checks["verdict"] = "PASS" if verdict else "FAIL"
@@ -150,8 +152,10 @@ def gate_0_5_decision_semantics(episodes):
         delta = high_wr - low_wr
 
         results[label] = {
-            "n": len(subset), "median_conf": float(median_conf),
-            "high_conf_win_rate": float(high_wr), "low_conf_win_rate": float(low_wr),
+            "n": len(subset),
+            "median_conf": float(median_conf),
+            "high_conf_win_rate": float(high_wr),
+            "low_conf_win_rate": float(low_wr),
             "delta": float(delta),
         }
         print(f"\n  {label} (N={len(subset)}):", flush=True)
@@ -169,7 +173,7 @@ def gate_0_5_decision_semantics(episodes):
     print(f"\n  BUY delta: {buy_delta:+.1f}pp, BLOCK delta: {block_delta:+.1f}pp", flush=True)
     print(f"  GATE 0.5 VERDICT: {results['verdict']}", flush=True)
     if not consistent:
-        print(f"  WARNING: confidence is action-dependent, not a true meta-signal!", flush=True)
+        print("  WARNING: confidence is action-dependent, not a true meta-signal!", flush=True)
 
     return results
 
@@ -188,16 +192,22 @@ def exp0e_1_stability(episodes):
 
     def high_conf(e):
         return e["confidence"] is not None and e["confidence"] >= q4_threshold
+
     def low_conf(e):
         return e["confidence"] is not None and e["confidence"] < q1_threshold
 
     # Overall
     high_all = [e for e in episodes if high_conf(e)]
     low_all = [e for e in episodes if low_conf(e)]
-    high_wr = 100.0 * sum(1 for e in high_all if e["outcome"] > 0) / len(high_all) if high_all else 0
+    high_wr = (
+        100.0 * sum(1 for e in high_all if e["outcome"] > 0) / len(high_all) if high_all else 0
+    )
     low_wr = 100.0 * sum(1 for e in low_all if e["outcome"] > 0) / len(low_all) if low_all else 0
     overall_delta = high_wr - low_wr
-    print(f"\n  Overall: high_conf={high_wr:.1f}%, low_conf={low_wr:.1f}%, delta={overall_delta:+.1f}pp", flush=True)
+    print(
+        f"\n  Overall: high_conf={high_wr:.1f}%, low_conf={low_wr:.1f}%, delta={overall_delta:+.1f}pp",
+        flush=True,
+    )
 
     # Yearly
     by_year = defaultdict(list)
@@ -216,11 +226,22 @@ def exp0e_1_stability(episodes):
             lwr = 100.0 * sum(1 for e in l if e["outcome"] > 0) / len(l)
             d = hwr - lwr
             deltas.append(d)
-            yearly_results[y] = {"n": len(sub), "high_wr": float(hwr), "low_wr": float(lwr), "delta": float(d)}
+            yearly_results[y] = {
+                "n": len(sub),
+                "high_wr": float(hwr),
+                "low_wr": float(lwr),
+                "delta": float(d),
+            }
             print(f"  {y:6s} {len(sub):4d} {hwr:7.1f}% {lwr:7.1f}% {d:+7.1f}pp", flush=True)
         else:
-            yearly_results[y] = {"n": len(sub), "skipped": True, "note": f"high={len(h)}, low={len(l)}"}
-            print(f"  {y:6s} {len(sub):4d}  (insufficient: high={len(h)}, low={len(l)})", flush=True)
+            yearly_results[y] = {
+                "n": len(sub),
+                "skipped": True,
+                "note": f"high={len(h)}, low={len(l)}",
+            }
+            print(
+                f"  {y:6s} {len(sub):4d}  (insufficient: high={len(h)}, low={len(l)})", flush=True
+            )
 
     # Criteria
     criteria = {}
@@ -235,10 +256,19 @@ def exp0e_1_stability(episodes):
     criteria["verdict"] = "PASS" if all_pass else "FAIL"
     criteria["evidence_level"] = "Stability_candidate" if all_pass else "Replication (unchanged)"
 
-    print(f"\n  Criteria:", flush=True)
-    print(f"    1. Overall delta >= 15pp: {'PASS' if criteria['c1_overall_delta_15'] else 'FAIL'} ({overall_delta:+.1f}pp)", flush=True)
-    print(f"    2. 4/6 years positive:   {'PASS' if criteria['c2_temporal_4of6'] else 'FAIL'} ({criteria['c2_positive_years']})", flush=True)
-    print(f"    4. No catastrophic (<-20pp): {'PASS' if criteria['c4_no_catastrophe'] else 'FAIL'}", flush=True)
+    print("\n  Criteria:", flush=True)
+    print(
+        f"    1. Overall delta >= 15pp: {'PASS' if criteria['c1_overall_delta_15'] else 'FAIL'} ({overall_delta:+.1f}pp)",
+        flush=True,
+    )
+    print(
+        f"    2. 4/6 years positive:   {'PASS' if criteria['c2_temporal_4of6'] else 'FAIL'} ({criteria['c2_positive_years']})",
+        flush=True,
+    )
+    print(
+        f"    4. No catastrophic (<-20pp): {'PASS' if criteria['c4_no_catastrophe'] else 'FAIL'}",
+        flush=True,
+    )
     print(f"\n  Exp0E-1 VERDICT: {criteria['verdict']} -> {criteria['evidence_level']}", flush=True)
 
     return {"overall_delta": float(overall_delta), "yearly": yearly_results, "criteria": criteria}
@@ -275,7 +305,12 @@ def exp0e_3_regime(episodes):
             total_regimes += 1
             if d > 0:
                 positive_regimes += 1
-            regime_results[regime] = {"n": len(sub), "high_wr": float(hwr), "low_wr": float(lwr), "delta": float(d)}
+            regime_results[regime] = {
+                "n": len(sub),
+                "high_wr": float(hwr),
+                "low_wr": float(lwr),
+                "delta": float(d),
+            }
             print(f"  {regime:25s} {len(sub):4d} {hwr:7.1f}% {lwr:7.1f}% {d:+7.1f}pp", flush=True)
         else:
             regime_results[regime] = {"n": len(sub), "skipped": True}
@@ -286,8 +321,12 @@ def exp0e_3_regime(episodes):
     print(f"\n  Positive regimes: {positive_regimes}/{total_regimes}", flush=True)
     print(f"  Exp0E-3 VERDICT: {verdict}", flush=True)
 
-    return {"regimes": regime_results, "positive_regimes": positive_regimes,
-            "total_regimes": total_regimes, "verdict": verdict}
+    return {
+        "regimes": regime_results,
+        "positive_regimes": positive_regimes,
+        "total_regimes": total_regimes,
+        "verdict": verdict,
+    }
 
 
 def exp0e_2_curve(episodes):
@@ -309,14 +348,26 @@ def exp0e_2_curve(episodes):
         threshold_lo = sorted_confs[start] if start < len(sorted_confs) else 0
         threshold_hi = sorted_confs[min(end - 1, len(sorted_confs) - 1)] if end > 0 else 100
 
-        sub = [e for e in episodes if e["confidence"] is not None
-               and threshold_lo <= e["confidence"] <= threshold_hi]
+        sub = [
+            e
+            for e in episodes
+            if e["confidence"] is not None and threshold_lo <= e["confidence"] <= threshold_hi
+        ]
         if not sub:
             continue
         wr = 100.0 * sum(1 for e in sub if e["outcome"] > 0) / len(sub)
-        bins.append({"bin": bi + 1, "conf_range": [float(threshold_lo), float(threshold_hi)],
-                     "n": len(sub), "win_rate": float(wr)})
-        print(f"  B{bi+1:1d}   [{threshold_lo:5.1f},{threshold_hi:5.1f}] {len(sub):4d} {wr:7.1f}%", flush=True)
+        bins.append(
+            {
+                "bin": bi + 1,
+                "conf_range": [float(threshold_lo), float(threshold_hi)],
+                "n": len(sub),
+                "win_rate": float(wr),
+            }
+        )
+        print(
+            f"  B{bi + 1:1d}   [{threshold_lo:5.1f},{threshold_hi:5.1f}] {len(sub):4d} {wr:7.1f}%",
+            flush=True,
+        )
 
     # Determine shape
     if len(bins) >= 5:
@@ -324,8 +375,8 @@ def exp0e_2_curve(episodes):
         # Check monotonic increase
         monotonic = all(wrs[i] <= wrs[i + 1] + 5 for i in range(len(wrs) - 1))
         # Check inverted-U: middle bins higher than edge bins
-        mid_avg = np.mean(wrs[len(wrs) // 3: 2 * len(wrs) // 3])
-        edge_avg = np.mean(wrs[:len(wrs) // 3] + wrs[2 * len(wrs) // 3:])
+        mid_avg = np.mean(wrs[len(wrs) // 3 : 2 * len(wrs) // 3])
+        edge_avg = np.mean(wrs[: len(wrs) // 3] + wrs[2 * len(wrs) // 3 :])
         inverted_u = mid_avg > edge_avg + 5
 
         if monotonic:
@@ -337,8 +388,14 @@ def exp0e_2_curve(episodes):
 
         print(f"\n  Shape: {shape}", flush=True)
         if shape == "INVERTED_U":
-            print(f"  -> Q4>Q5 saturation confirmed. Confidence-reliability is non-monotonic.", flush=True)
-            print(f"     Fifth inverted-U in the chain (gap, sustainability, FRM, EA, confidence).", flush=True)
+            print(
+                "  -> Q4>Q5 saturation confirmed. Confidence-reliability is non-monotonic.",
+                flush=True,
+            )
+            print(
+                "     Fifth inverted-U in the chain (gap, sustainability, FRM, EA, confidence).",
+                flush=True,
+            )
     else:
         shape = "INSUFFICIENT"
 
@@ -386,7 +443,9 @@ def exp0e_4_half_life(episodes):
         h = [e for e in test if e["confidence"] >= train_q4]
         l = [e for e in test if e["confidence"] < train_q1]
         if len(h) < 2 or len(l) < 2:
-            print(f"  {test_yr:10s} {len(train):8d} {len(test):7d}  (insufficient split)", flush=True)
+            print(
+                f"  {test_yr:10s} {len(train):8d} {len(test):7d}  (insufficient split)", flush=True
+            )
             continue
         hwr = 100.0 * sum(1 for e in h if e["outcome"] > 0) / len(h)
         lwr = 100.0 * sum(1 for e in l if e["outcome"] > 0) / len(l)
@@ -398,12 +457,15 @@ def exp0e_4_half_life(episodes):
         delta_vals = [d["delta"] for d in deltas]
         trend = "DECAYING" if delta_vals[-1] < delta_vals[0] - 5 else "STABLE"
         print(f"\n  Trend: {trend}", flush=True)
-        print(f"  First delta: {delta_vals[0]:+.1f}pp, Last delta: {delta_vals[-1]:+.1f}pp", flush=True)
+        print(
+            f"  First delta: {delta_vals[0]:+.1f}pp, Last delta: {delta_vals[-1]:+.1f}pp",
+            flush=True,
+        )
         if trend == "DECAYING":
-            print(f"  WARNING: calibration may be decaying. Monitor closely.", flush=True)
+            print("  WARNING: calibration may be decaying. Monitor closely.", flush=True)
     else:
         trend = "INSUFFICIENT"
-        print(f"\n  Insufficient data for half-life estimation.", flush=True)
+        print("\n  Insufficient data for half-life estimation.", flush=True)
 
     return {"rolling_deltas": deltas, "trend": trend}
 
@@ -429,7 +491,9 @@ def run_gate1():
     e1 = exp0e_1_stability(episodes)
     if e1["criteria"]["verdict"] != "PASS":
         print("\n  Exp0E-1 FAILED. Confidence is not stable.", flush=True)
-        print("  Stopping. No point testing curve shape or half-life of unstable signal.", flush=True)
+        print(
+            "  Stopping. No point testing curve shape or half-life of unstable signal.", flush=True
+        )
         evidence_ladder = {
             "gate_0": g0["verdict"],
             "gate_0_5": g05["verdict"],
@@ -459,7 +523,9 @@ def run_gate1():
             "exp0e_2": e2["shape"],
             "exp0e_4": e4["trend"],
             "architecture_permission": {
-                "exposure_controller": "ALLOWED (Gate 1 passed, Gate 2 next)" if all_pass else "BLOCKED",
+                "exposure_controller": "ALLOWED (Gate 1 passed, Gate 2 next)"
+                if all_pass
+                else "BLOCKED",
             },
         }
 

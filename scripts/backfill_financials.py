@@ -18,6 +18,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import sqlite3
+
 from src.data.financials import FinancialDataProvider
 from src.utils.logger import get_logger
 
@@ -28,8 +29,7 @@ def get_universe(db_path: str = "data/cache.db") -> list[str]:
     """Get all active non-ST A-share codes from security_master."""
     conn = sqlite3.connect(db_path)
     rows = conn.execute(
-        "SELECT code FROM security_master WHERE status='active' AND is_st=0 "
-        "ORDER BY code"
+        "SELECT code FROM security_master WHERE status='active' AND is_st=0 ORDER BY code"
     ).fetchall()
     conn.close()
     return [r[0] for r in rows]
@@ -50,7 +50,7 @@ def main(limit: int = None, batch_pause: float = 0.15):
     cached = get_cached_codes()
     todo = [c for c in universe if c not in cached]
 
-    print(f"=== Financial Backfill ===")
+    print("=== Financial Backfill ===")
     print(f"Universe: {len(universe)} stocks")
     print(f"Already cached: {len(cached)}")
     print(f"To fetch: {len(todo)}")
@@ -81,11 +81,11 @@ def main(limit: int = None, batch_pause: float = 0.15):
                 logger.warning("backfill: %s failed: %s", code, e)
 
         if (i + 1) % 50 == 0:
-            print(f"  [{i+1}/{len(todo)}] success={success} failed={failed}")
+            print(f"  [{i + 1}/{len(todo)}] success={success} failed={failed}")
         if batch_pause and (i + 1) % 60 == 0:
             time.sleep(batch_pause)  # rate-limit: pause every 60 stocks
 
-    print(f"\n=== Done ===")
+    print("\n=== Done ===")
     print(f"Success: {success}")
     print(f"Failed:  {failed}")
     print(f"Total cached now: {len(cached) + success}")
@@ -93,6 +93,7 @@ def main(limit: int = None, batch_pause: float = 0.15):
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None, help="Max stocks to fetch")
     parser.add_argument("--batch-pause", type=float, default=0.15, help="Pause every 60 stocks (s)")

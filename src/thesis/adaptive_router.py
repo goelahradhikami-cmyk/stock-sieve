@@ -13,12 +13,12 @@ Architecture:
 
 Example:
   Factor climate: value momentum +6%, growth momentum -2%, momentum -3%
-  
+
   value_purist (bias: value 0.35, quality 0.35):
     confidence = 0.35×0.06 + 0.35×0.02 = 0.028  -> high
   growth_hunter (bias: growth 0.45, momentum 0.15):
     confidence = 0.45×(-0.02) + 0.15×(-0.03) = -0.013 -> low
-  
+
   Softmax -> value_purist 35%, growth_hunter 15%, quant_nerd 30%, ...
 
   Final portfolio = 35% × value_top20 + 15% × growth_top20 + ...
@@ -38,15 +38,13 @@ Usage:
 
 from __future__ import annotations
 
-import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
 from src.agents.doctrine_engine import DoctrineGenome
 from src.factors.snapshot_builder import FactorSnapshotBuilder
-from src.thesis.factor_momentum import FactorMomentumEngine, FactorClimate
+from src.thesis.factor_momentum import FactorClimate, FactorMomentumEngine
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,11 +53,12 @@ logger = get_logger(__name__)
 @dataclass
 class RouterDecision:
     """One routing decision for a date."""
+
     trade_date: str
     market_regime: str
-    doctrine_allocations: dict[str, float]    # {doctrine_id: weight 0-1}
-    doctrine_confidences: dict[str, float]    # {doctrine_id: raw confidence}
-    factor_climate_summary: dict              # {factor: momentum_60d}
+    doctrine_allocations: dict[str, float]  # {doctrine_id: weight 0-1}
+    doctrine_confidences: dict[str, float]  # {doctrine_id: raw confidence}
+    factor_climate_summary: dict  # {factor: momentum_60d}
     strongest_factor: str
     weakest_factor: str
     # For memory (6-Q.5d)
@@ -83,14 +82,12 @@ class AdaptiveRouter:
     # Which momentum window to use for allocation
     MOMENTUM_WINDOW = "momentum_60d"
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.fme = FactorMomentumEngine(eval_db=eval_db, cache_db=cache_db)
 
-    def allocate(self, doctrines: list[DoctrineGenome],
-                  trade_date: str) -> RouterDecision:
+    def allocate(self, doctrines: list[DoctrineGenome], trade_date: str) -> RouterDecision:
         """Compute doctrine allocation for a date.
 
         Args:
@@ -117,8 +114,7 @@ class AdaptiveRouter:
         softmax = exp_vals / np.sum(exp_vals)
 
         allocations = {
-            doctrine_id: float(softmax[i])
-            for i, doctrine_id in enumerate(confidences.keys())
+            doctrine_id: float(softmax[i]) for i, doctrine_id in enumerate(confidences.keys())
         }
 
         # 4. Build climate summary
@@ -149,8 +145,7 @@ class AdaptiveRouter:
             decision_reason=reason,
         )
 
-    def _compute_confidence(self, doctrine: DoctrineGenome,
-                             climate: FactorClimate) -> float:
+    def _compute_confidence(self, doctrine: DoctrineGenome, climate: FactorClimate) -> float:
         """Compute a doctrine's confidence based on factor alignment.
 
         confidence = Σ(factor_bias[f] × factor_momentum[f])
@@ -168,9 +163,9 @@ class AdaptiveRouter:
 
         return total_conf
 
-    def build_portfolio(self, doctrines: list[DoctrineGenome],
-                         decision: RouterDecision,
-                         top_n: int = 20) -> dict[str, float]:
+    def build_portfolio(
+        self, doctrines: list[DoctrineGenome], decision: RouterDecision, top_n: int = 20
+    ) -> dict[str, float]:
         """Build blended portfolio from doctrine allocations.
 
         Returns: {security_id: weight} blended across doctrines.
@@ -183,9 +178,7 @@ class AdaptiveRouter:
             if alloc < 0.01:  # skip very small allocations
                 continue
 
-            picks = builder.score_universe(
-                decision.trade_date, doctrine.factor_bias, top_n=top_n
-            )
+            picks = builder.score_universe(decision.trade_date, doctrine.factor_bias, top_n=top_n)
             if not picks:
                 continue
 

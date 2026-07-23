@@ -31,12 +31,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -75,7 +75,8 @@ def _stats(values, label=""):
         return {"label": label, "n": 0}
     arr = np.array(valid)
     return {
-        "label": label, "n": len(valid),
+        "label": label,
+        "n": len(valid),
         "mean_pct": float(np.mean(arr) * 100),
         "median_pct": float(np.median(arr) * 100),
         "std_pct": float(np.std(arr) * 100),
@@ -92,9 +93,13 @@ def exp0c_failure_taxonomy(episodes):
     print("=" * 70, flush=True)
 
     # BUY episodes with non-zero returns
-    buy = [e for e in episodes if e["decision"] == "BUY"
-           and e["portfolio_return_t20"] is not None
-           and e["portfolio_return_t20"] != 0]
+    buy = [
+        e
+        for e in episodes
+        if e["decision"] == "BUY"
+        and e["portfolio_return_t20"] is not None
+        and e["portfolio_return_t20"] != 0
+    ]
     print(f"\n  BUY episodes with non-zero return: {len(buy)}", flush=True)
 
     if len(buy) < 5:
@@ -110,37 +115,44 @@ def exp0c_failure_taxonomy(episodes):
             sub = by_state[state]
             rets = [e["portfolio_return_t20"] for e in sub]
             s = _stats(rets, state)
-            print(f"  {state:25s} {s['n']:4d} {s['mean_pct']:+7.2f}% {s['win_rate_pct']:7.1f}%",
-                  flush=True)
+            print(
+                f"  {state:25s} {s['n']:4d} {s['mean_pct']:+7.2f}% {s['win_rate_pct']:7.1f}%",
+                flush=True,
+            )
         return {"n_buy_nonzero": len(buy), "fallback": "all_episodes_by_state"}
 
     # Classify failures: BUY but negative return or negative alpha
-    failures = [e for e in buy if e["portfolio_return_t20"] < 0
-                or (e["alpha_vs_hs300"] is not None and e["alpha_vs_hs300"] < -0.02)]
+    failures = [
+        e
+        for e in buy
+        if e["portfolio_return_t20"] < 0
+        or (e["alpha_vs_hs300"] is not None and e["alpha_vs_hs300"] < -0.02)
+    ]
     successes = [e for e in buy if e not in failures]
     print(f"  Successes (BUY, positive): {len(successes)}", flush=True)
     print(f"  Failures (BUY, negative):  {len(failures)}", flush=True)
 
     if failures:
-        print(f"\n  Failure feature profiles:", flush=True)
+        print("\n  Failure feature profiles:", flush=True)
         print(f"  {'feature':20s} {'failures_mean':>14} {'successes_mean':>14}", flush=True)
         for feat in ["vol_20d", "breadth", "trend_ma60", "recovery_prob", "confidence"]:
             f_vals = [e[feat] for e in failures if e[feat] is not None]
             s_vals = [e[feat] for e in successes if e[feat] is not None]
             if f_vals and s_vals:
-                print(f"  {feat:20s} {np.mean(f_vals):14.4f} {np.mean(s_vals):14.4f}",
-                      flush=True)
+                print(f"  {feat:20s} {np.mean(f_vals):14.4f} {np.mean(s_vals):14.4f}", flush=True)
 
         # Failure by market_state
-        print(f"\n  Failures by market_state:", flush=True)
+        print("\n  Failures by market_state:", flush=True)
         fail_states = defaultdict(list)
         for e in failures:
             fail_states[e["market_state"]].append(e["portfolio_return_t20"])
         for state, rets in sorted(fail_states.items()):
-            print(f"    {state:25s}: N={len(rets)}, mean={np.mean(rets)*100:+.2f}%", flush=True)
+            print(f"    {state:25s}: N={len(rets)}, mean={np.mean(rets) * 100:+.2f}%", flush=True)
 
     return {
-        "n_buy": len(buy), "n_success": len(successes), "n_failure": len(failures),
+        "n_buy": len(buy),
+        "n_success": len(successes),
+        "n_failure": len(failures),
         "failure_rate": float(len(failures) / len(buy)) if buy else 0,
     }
 
@@ -151,16 +163,23 @@ def exp0b_confidence_calibration(episodes):
     print("Exp0B (P1): Confidence Calibration", flush=True)
     print("=" * 70, flush=True)
 
-    buy = [e for e in episodes if e["decision"] == "BUY"
-           and e["portfolio_return_t20"] is not None
-           and e["portfolio_return_t20"] != 0]
+    buy = [
+        e
+        for e in episodes
+        if e["decision"] == "BUY"
+        and e["portfolio_return_t20"] is not None
+        and e["portfolio_return_t20"] != 0
+    ]
 
     if len(buy) < 5:
         print(f"  INSUFFICIENT N ({len(buy)} non-zero BUY episodes)", flush=True)
         # Use ALL episodes (BUY + BLOCK) for confidence calibration
         print("  Using ALL episodes with non-zero outcomes...", flush=True)
-        buy = [e for e in episodes if e["portfolio_return_t20"] is not None
-               and e["portfolio_return_t20"] != 0]
+        buy = [
+            e
+            for e in episodes
+            if e["portfolio_return_t20"] is not None and e["portfolio_return_t20"] != 0
+        ]
 
     if len(buy) < 5:
         print("  Still insufficient. Skipping calibration.", flush=True)
@@ -177,18 +196,25 @@ def exp0b_confidence_calibration(episodes):
         if sub:
             rets = [e["portfolio_return_t20"] for e in sub]
             alphas = [e["alpha_vs_hs300"] for e in sub if e["alpha_vs_hs300"] is not None]
-            print(f"  {band:10s} {len(sub):4d} {np.mean(rets)*100:+7.2f}% "
-                  f"{100*sum(1 for r in rets if r>0)/len(rets):7.1f}% "
-                  f"{np.mean(alphas)*100:+8.2f}%", flush=True)
+            print(
+                f"  {band:10s} {len(sub):4d} {np.mean(rets) * 100:+7.2f}% "
+                f"{100 * sum(1 for r in rets if r > 0) / len(rets):7.1f}% "
+                f"{np.mean(alphas) * 100:+8.2f}%",
+                flush=True,
+            )
 
     # Calibration curve: confidence quintile vs actual win rate
-    print(f"\n  Calibration curve (confidence quintile vs actual):", flush=True)
-    conf_vals = [(e["confidence"], e["portfolio_return_t20"]) for e in buy
-                 if e["confidence"] is not None]
+    print("\n  Calibration curve (confidence quintile vs actual):", flush=True)
+    conf_vals = [
+        (e["confidence"], e["portfolio_return_t20"]) for e in buy if e["confidence"] is not None
+    ]
     conf_vals.sort(key=lambda x: x[0])
     n = len(conf_vals)
     q = max(n // 5, 1)
-    print(f"  {'quintile':10s} {'conf_range':>16} {'n':>4} {'mean_ret':>9} {'win_rate':>9}", flush=True)
+    print(
+        f"  {'quintile':10s} {'conf_range':>16} {'n':>4} {'mean_ret':>9} {'win_rate':>9}",
+        flush=True,
+    )
     calibration = []
     for qi in range(5):
         start = qi * q
@@ -199,15 +225,20 @@ def exp0b_confidence_calibration(episodes):
         confs = [x[0] for x in sub]
         rets = [x[1] for x in sub]
         wr = 100.0 * sum(1 for r in rets if r > 0) / len(rets)
-        print(f"  Q{qi+1:1d}         [{min(confs):5.1f},{max(confs):5.1f}] "
-              f"{len(sub):4d} {np.mean(rets)*100:+7.2f}% {wr:7.1f}%", flush=True)
-        calibration.append({
-            "quintile": qi + 1,
-            "conf_range": [float(min(confs)), float(max(confs))],
-            "n": len(sub),
-            "mean_ret_pct": float(np.mean(rets) * 100),
-            "win_rate_pct": float(wr),
-        })
+        print(
+            f"  Q{qi + 1:1d}         [{min(confs):5.1f},{max(confs):5.1f}] "
+            f"{len(sub):4d} {np.mean(rets) * 100:+7.2f}% {wr:7.1f}%",
+            flush=True,
+        )
+        calibration.append(
+            {
+                "quintile": qi + 1,
+                "conf_range": [float(min(confs)), float(max(confs))],
+                "n": len(sub),
+                "mean_ret_pct": float(np.mean(rets) * 100),
+                "win_rate_pct": float(wr),
+            }
+        )
 
     # Calibration verdict
     if len(calibration) >= 2:
@@ -216,11 +247,11 @@ def exp0b_confidence_calibration(episodes):
         delta = wr_high - wr_low
         print(f"\n  Calibration delta (Q5 - Q1 win rate): {delta:+.1f}pp", flush=True)
         if delta > 10:
-            print(f"  -> CALIBRATED: confidence predicts outcome (delta > 10pp)", flush=True)
+            print("  -> CALIBRATED: confidence predicts outcome (delta > 10pp)", flush=True)
         elif delta > 0:
-            print(f"  -> WEAKLY CALIBRATED: positive but small delta", flush=True)
+            print("  -> WEAKLY CALIBRATED: positive but small delta", flush=True)
         else:
-            print(f"  -> NOT CALIBRATED: confidence does NOT predict outcome", flush=True)
+            print("  -> NOT CALIBRATED: confidence does NOT predict outcome", flush=True)
 
     return {"calibration": calibration, "n": len(buy)}
 
@@ -233,9 +264,13 @@ def exp0a_regime_map(episodes):
 
     # Features for clustering
     features = ["vol_20d", "breadth", "trend_ma60", "recovery_prob"]
-    valid = [e for e in episodes if all(e.get(f) is not None for f in features)
-             and e["portfolio_return_t20"] is not None
-             and e["portfolio_return_t20"] != 0]
+    valid = [
+        e
+        for e in episodes
+        if all(e.get(f) is not None for f in features)
+        and e["portfolio_return_t20"] is not None
+        and e["portfolio_return_t20"] != 0
+    ]
 
     print(f"  Episodes with all features + non-zero return: {len(valid)}", flush=True)
 
@@ -250,8 +285,11 @@ def exp0a_regime_map(episodes):
         for state in sorted(by_state.keys()):
             sub = by_state[state]
             rets = [e["portfolio_return_t20"] for e in sub]
-            print(f"  {state:25s} {len(sub):4d} {np.mean(rets)*100:+7.2f}% "
-                  f"{100*sum(1 for r in rets if r>0)/len(rets):7.1f}%", flush=True)
+            print(
+                f"  {state:25s} {len(sub):4d} {np.mean(rets) * 100:+7.2f}% "
+                f"{100 * sum(1 for r in rets if r > 0) / len(rets):7.1f}%",
+                flush=True,
+            )
         return {"n": len(valid), "fallback": "market_state"}
 
     # Simple k-means (k=3) on normalized features
@@ -266,15 +304,22 @@ def exp0a_regime_map(episodes):
     for _ in range(50):
         dists = np.linalg.norm(X_norm[:, None] - centroids[None, :], axis=2)
         labels = np.argmin(dists, axis=1)
-        new_centroids = np.array([X_norm[labels == i].mean(axis=0) if np.any(labels == i) else centroids[i]
-                                   for i in range(k)])
+        new_centroids = np.array(
+            [
+                X_norm[labels == i].mean(axis=0) if np.any(labels == i) else centroids[i]
+                for i in range(k)
+            ]
+        )
         if np.allclose(centroids, new_centroids):
             break
         centroids = new_centroids
 
     print(f"\n  Unsupervised regimes (k={k}):", flush=True)
-    print(f"  {'regime':8s} {'n':>4} {'vol':>7} {'breadth':>8} {'trend':>7} {'recov':>7} "
-          f"{'mean_ret':>9} {'win_rate':>9}", flush=True)
+    print(
+        f"  {'regime':8s} {'n':>4} {'vol':>7} {'breadth':>8} {'trend':>7} {'recov':>7} "
+        f"{'mean_ret':>9} {'win_rate':>9}",
+        flush=True,
+    )
     regimes = {}
     for ri in range(k):
         mask = labels == ri
@@ -287,12 +332,19 @@ def exp0a_regime_map(episodes):
         br_mean = np.mean([e["breadth"] for e in sub])
         tr_mean = np.mean([e["trend_ma60"] for e in sub])
         rc_mean = np.mean([e["recovery_prob"] for e in sub])
-        print(f"  R{ri+1}       {len(sub):4d} {vol_mean:7.3f} {br_mean:8.3f} {tr_mean:7.3f} "
-              f"{rc_mean:7.3f} {np.mean(rets)*100:+7.2f}% {wr:7.1f}%", flush=True)
-        regimes[f"R{ri+1}"] = {
+        print(
+            f"  R{ri + 1}       {len(sub):4d} {vol_mean:7.3f} {br_mean:8.3f} {tr_mean:7.3f} "
+            f"{rc_mean:7.3f} {np.mean(rets) * 100:+7.2f}% {wr:7.1f}%",
+            flush=True,
+        )
+        regimes[f"R{ri + 1}"] = {
             "n": len(sub),
-            "features": {"vol": float(vol_mean), "breadth": float(br_mean),
-                         "trend": float(tr_mean), "recovery_prob": float(rc_mean)},
+            "features": {
+                "vol": float(vol_mean),
+                "breadth": float(br_mean),
+                "trend": float(tr_mean),
+                "recovery_prob": float(rc_mean),
+            },
             "mean_ret_pct": float(np.mean(rets) * 100),
             "win_rate_pct": float(wr),
         }
@@ -306,10 +358,14 @@ def exp0d_beta_attribution(episodes):
     print("Exp0D (P3): Beta Attribution - real alpha or beta rebound?", flush=True)
     print("=" * 70, flush=True)
 
-    buy = [e for e in episodes if e["decision"] == "BUY"
-           and e["portfolio_return_t20"] is not None
-           and e["portfolio_return_t20"] != 0
-           and e["market_return_t20"] is not None]
+    buy = [
+        e
+        for e in episodes
+        if e["decision"] == "BUY"
+        and e["portfolio_return_t20"] is not None
+        and e["portfolio_return_t20"] != 0
+        and e["market_return_t20"] is not None
+    ]
 
     print(f"  BUY episodes with return + market data: {len(buy)}", flush=True)
 
@@ -321,12 +377,17 @@ def exp0d_beta_attribution(episodes):
     mkts = np.array([e["market_return_t20"] for e in buy])
     alphas = np.array([e["alpha_vs_hs300"] for e in buy if e["alpha_vs_hs300"] is not None])
 
-    print(f"\n  Attribution decomposition:", flush=True)
-    print(f"    Portfolio return (mean):  {np.mean(rets)*100:+.2f}%", flush=True)
-    print(f"    Market return (mean):     {np.mean(mkts)*100:+.2f}%", flush=True)
-    print(f"    Alpha vs HS300 (mean):    {np.mean(alphas)*100:+.2f}%", flush=True)
-    print(f"    Beta contribution:        {np.mean(mkts)*100:+.2f}% (= market return)", flush=True)
-    print(f"    True Guardian alpha:      {np.mean(alphas)*100:+.2f}% (= portfolio - market)", flush=True)
+    print("\n  Attribution decomposition:", flush=True)
+    print(f"    Portfolio return (mean):  {np.mean(rets) * 100:+.2f}%", flush=True)
+    print(f"    Market return (mean):     {np.mean(mkts) * 100:+.2f}%", flush=True)
+    print(f"    Alpha vs HS300 (mean):    {np.mean(alphas) * 100:+.2f}%", flush=True)
+    print(
+        f"    Beta contribution:        {np.mean(mkts) * 100:+.2f}% (= market return)", flush=True
+    )
+    print(
+        f"    True Guardian alpha:      {np.mean(alphas) * 100:+.2f}% (= portfolio - market)",
+        flush=True,
+    )
 
     # Ratio: how much of total return is alpha vs beta?
     total_ret = np.mean(rets)
@@ -336,9 +397,9 @@ def exp0d_beta_attribution(episodes):
     if abs(total_ret) > 1e-6:
         alpha_ratio = alpha_part / total_ret
         beta_ratio = beta_part / total_ret
-        print(f"\n  Attribution ratio:", flush=True)
-        print(f"    Alpha share: {alpha_ratio*100:.1f}%", flush=True)
-        print(f"    Beta share:  {beta_ratio*100:.1f}%", flush=True)
+        print("\n  Attribution ratio:", flush=True)
+        print(f"    Alpha share: {alpha_ratio * 100:.1f}%", flush=True)
+        print(f"    Beta share:  {beta_ratio * 100:.1f}%", flush=True)
 
         if alpha_ratio > 0.3:
             verdict = "REAL ALPHA: Guardian adds > 30% beyond market beta"
@@ -369,11 +430,14 @@ def run_autopsy():
     print(f"\nTotal episodes: {len(episodes)}", flush=True)
 
     buy_all = [e for e in episodes if e["decision"] == "BUY"]
-    buy_nonzero = [e for e in buy_all if e["portfolio_return_t20"] is not None
-                   and e["portfolio_return_t20"] != 0]
+    buy_nonzero = [
+        e
+        for e in buy_all
+        if e["portfolio_return_t20"] is not None and e["portfolio_return_t20"] != 0
+    ]
     print(f"  BUY episodes: {len(buy_all)}", flush=True)
     print(f"  BUY with non-zero return: {len(buy_nonzero)}", flush=True)
-    print(f"  (Note: many early episodes have 0.0 return = not evaluated)", flush=True)
+    print("  (Note: many early episodes have 0.0 return = not evaluated)", flush=True)
 
     # Run in priority order: C (failure) -> B (calibration) -> A (regime) -> D (attribution)
     r_c = exp0c_failure_taxonomy(episodes)
@@ -385,12 +449,21 @@ def run_autopsy():
     print("\n" + "=" * 70, flush=True)
     print("AUTOPSY SUMMARY", flush=True)
     print("=" * 70, flush=True)
-    print(f"\n  Exp0C (Failure Taxonomy): {r_c.get('n_failure', 'N/A')} failures of "
-          f"{r_c.get('n_buy', 'N/A')} BUY episodes", flush=True)
-    print(f"  Exp0B (Calibration): {'see calibration curve' if not r_b.get('skipped') else 'SKIPPED (insufficient N)'}",
-          flush=True)
-    print(f"  Exp0A (Regime Map): {len(r_a.get('regimes', {}))} regimes discovered" if r_a.get('regimes') else "  Exp0A: fallback",
-          flush=True)
+    print(
+        f"\n  Exp0C (Failure Taxonomy): {r_c.get('n_failure', 'N/A')} failures of "
+        f"{r_c.get('n_buy', 'N/A')} BUY episodes",
+        flush=True,
+    )
+    print(
+        f"  Exp0B (Calibration): {'see calibration curve' if not r_b.get('skipped') else 'SKIPPED (insufficient N)'}",
+        flush=True,
+    )
+    print(
+        f"  Exp0A (Regime Map): {len(r_a.get('regimes', {}))} regimes discovered"
+        if r_a.get("regimes")
+        else "  Exp0A: fallback",
+        flush=True,
+    )
     if r_d.get("verdict"):
         print(f"  Exp0D (Beta Attribution): {r_d['verdict']}", flush=True)
 

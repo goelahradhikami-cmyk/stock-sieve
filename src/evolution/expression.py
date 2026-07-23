@@ -12,6 +12,9 @@ Examples:
 import json
 
 from src.data.db import managed_connect
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ExpressionEngine:
@@ -22,16 +25,16 @@ class ExpressionEngine:
 
     def translate(self, factor_genome: dict, agent_identity: dict) -> dict:
         """Generate expression rules based on agent personality dimensions."""
-        dims = agent_identity.get('dimensions', {})
-        valuation = dims.get('valuation', 50)
-        growth = dims.get('growth', 50)
-        patience = dims.get('patience', 50)
-        momentum = dims.get('momentum', 50)
+        dims = agent_identity.get("dimensions", {})
+        valuation = dims.get("valuation", 50)
+        growth = dims.get("growth", 50)
+        patience = dims.get("patience", 50)
+        momentum = dims.get("momentum", 50)
 
         expressions = {}
-        for factor in factor_genome.get('factors', []):
-            name = str(factor.get('name', factor.get('factor', ''))).lower()
-            weight = factor.get('weight', 0.1)
+        for factor in factor_genome.get("factors", []):
+            name = str(factor.get("name", factor.get("factor", ""))).lower()
+            weight = factor.get("weight", 0.1)
 
             expr, holding, rebalance = self._build_expression(
                 name, weight, patience, valuation, growth, momentum
@@ -40,81 +43,68 @@ class ExpressionEngine:
             expressions[name] = expr
 
             try:
-                self.db.execute("""
+                self.db.execute(
+                    """
                     INSERT OR REPLACE INTO factor_expression_genome
                     (factor_genome_id, factor_name, expression_json, holding_period,
                      rebalance_frequency, entry_rule, exit_rule)
                     VALUES (?,?,?,?,?,?,?)
-                """, (
-                    factor_genome.get('genome_id', 'unknown'), name,
-                    json.dumps(expr), holding, rebalance,
-                    f"rank_{expr['metric']}_top_30pct",
-                    f"rank_{expr['metric']}_bottom_20pct OR invalidation_triggered",
-                ))
-            except Exception:
-                pass
+                """,
+                    (
+                        factor_genome.get("genome_id", "unknown"),
+                        name,
+                        json.dumps(expr),
+                        holding,
+                        rebalance,
+                        f"rank_{expr['metric']}_top_30pct",
+                        f"rank_{expr['metric']}_bottom_20pct OR invalidation_triggered",
+                    ),
+                )
+            except Exception as exc:
+                logger.warning("operation failed (was silently ignored): %s", exc)
 
         self.db.commit()
         return expressions
 
-    def _build_expression(self, name: str, weight: float,
-                           patience: int, valuation: int,
-                           growth: int, momentum: int) -> tuple:
+    def _build_expression(
+        self, name: str, weight: float, patience: int, valuation: int, growth: int, momentum: int
+    ) -> tuple:
         """Build expression rule from personality dimensions."""
         # Quality factors (ROE, ROIC, gross_margin)
-        if any(k in name for k in ('roe', 'roic', 'quality', 'margin', 'gross')):
+        if any(k in name for k in ("roe", "roic", "quality", "margin", "gross")):
             if patience > 70:
-                return (
-                    {'metric': f'{name}_5y_avg', 'window': 60, 'threshold': 0.15},
-                    180, 60
-                )
+                return ({"metric": f"{name}_5y_avg", "window": 60, "threshold": 0.15}, 180, 60)
             else:
                 return (
-                    {'metric': f'{name}_quarterly_change', 'window': 4, 'threshold': 0.02},
-                    60, 30
+                    {"metric": f"{name}_quarterly_change", "window": 4, "threshold": 0.02},
+                    60,
+                    30,
                 )
 
         # Momentum factors
-        if any(k in name for k in ('momentum', 'trend', 'rsi')):
+        if any(k in name for k in ("momentum", "trend", "rsi")):
             if growth > 60:
-                return (
-                    {'metric': f'{name}_6m', 'window': 120, 'threshold': 0.10},
-                    90, 30
-                )
+                return ({"metric": f"{name}_6m", "window": 120, "threshold": 0.10}, 90, 30)
             else:
-                return (
-                    {'metric': f'{name}_3m', 'window': 60, 'threshold': 0.05},
-                    30, 15
-                )
+                return ({"metric": f"{name}_3m", "window": 60, "threshold": 0.05}, 30, 15)
 
         # Value factors (PE, PB, EV/EBITDA, dividend)
-        if any(k in name for k in ('pe', 'pb', 'ev_ebitda', 'dividend', 'fcf', 'value')):
+        if any(k in name for k in ("pe", "pb", "ev_ebitda", "dividend", "fcf", "value")):
             if valuation > 70:
                 return (
-                    {'metric': f'{name}_vs_5y_median', 'window': 5, 'threshold': -0.20},
-                    250, 90
+                    {"metric": f"{name}_vs_5y_median", "window": 5, "threshold": -0.20},
+                    250,
+                    90,
                 )
             else:
-                return (
-                    {'metric': f'{name}_vs_sector', 'window': 1, 'threshold': -0.10},
-                    90, 30
-                )
+                return ({"metric": f"{name}_vs_sector", "window": 1, "threshold": -0.10}, 90, 30)
 
         # Growth factors
-        if any(k in name for k in ('growth', 'revenue_growth', 'earnings_growth')):
+        if any(k in name for k in ("growth", "revenue_growth", "earnings_growth")):
             if growth > 70:
-                return (
-                    {'metric': f'{name}_3y_cagr', 'window': 12, 'threshold': 0.20},
-                    120, 60
-                )
+                return ({"metric": f"{name}_3y_cagr", "window": 12, "threshold": 0.20}, 120, 60)
             else:
-                return (
-                    {'metric': f'{name}_1y', 'window': 4, 'threshold': 0.10},
-                    60, 30
-                )
+                return ({"metric": f"{name}_1y", "window": 4, "threshold": 0.10}, 60, 30)
 
         # Default
-        return (
-            {'metric': name, 'window': 20, 'threshold': 0},
-            60, 30
-        )
+        return ({"metric": name, "window": 20, "threshold": 0}, 60, 30)

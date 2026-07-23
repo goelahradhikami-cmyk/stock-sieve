@@ -49,12 +49,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -68,9 +68,9 @@ SHADOW_DB = "data/shadow_trading.db"
 REPORT_DIR = "data/reports"
 
 # Verdict thresholds (frozen)
-H1_Q5_MINUS_Q1_PP = 1.0   # Q5 > Q1 by >= 1.0pp within direction
+H1_Q5_MINUS_Q1_PP = 1.0  # Q5 > Q1 by >= 1.0pp within direction
 H2_BETA2_TOLERANCE = 0.5  # |b2| normalized < 0.5pp = approximately zero
-MIN_N_PER_QUINTILE = 5    # need >= 5 per quintile for reliable stats
+MIN_N_PER_QUINTILE = 5  # need >= 5 per quintile for reliable stats
 
 
 def load_group_a():
@@ -96,8 +96,14 @@ def load_group_a():
 def _stats(rows, label=""):
     """Compute residual_alpha stats for a row list."""
     if not rows:
-        return {"label": label, "n": 0, "alpha": None, "positive_rate": None,
-                "median": None, "std": None}
+        return {
+            "label": label,
+            "n": 0,
+            "alpha": None,
+            "positive_rate": None,
+            "median": None,
+            "std": None,
+        }
     ra = np.array([r["residual_alpha"] for r in rows])
     ret = np.array([r["stock_return_t20"] for r in rows if r["stock_return_t20"] is not None])
     return {
@@ -116,9 +122,12 @@ def _print_stats(s, indent=4):
     if s["n"] == 0:
         print(f"{pad}{s['label']}: EMPTY", flush=True)
         return
-    print(f"{pad}{s['label']}: N={s['n']}  alpha={s['alpha_pct']:+.2f}%  "
-          f"positive={s['positive_rate_pct']:.1f}%  "
-          f"median={s['median_pct']:+.2f}%", flush=True)
+    print(
+        f"{pad}{s['label']}: N={s['n']}  alpha={s['alpha_pct']:+.2f}%  "
+        f"positive={s['positive_rate_pct']:.1f}%  "
+        f"median={s['median_pct']:+.2f}%",
+        flush=True,
+    )
 
 
 def test1_direction_baseline(rows):
@@ -135,8 +144,7 @@ def test1_direction_baseline(rows):
     groups = {
         "improving_only": [r for r in rows if r["frm_direction"] == "improving"],
         "stable_only": [r for r in rows if r["frm_direction"] == "stable"],
-        "combined_imp_stable": [r for r in rows
-                                 if r["frm_direction"] in ("improving", "stable")],
+        "combined_imp_stable": [r for r in rows if r["frm_direction"] in ("improving", "stable")],
         "all_group_a": rows,
     }
     results = {}
@@ -149,10 +157,13 @@ def test1_direction_baseline(rows):
     combined_alpha = results["combined_imp_stable"]["alpha_pct"]
     full_alpha = results["all_group_a"]["alpha_pct"]
     delta = combined_alpha - full_alpha
-    print(f"\n  Direction-only (improving+stable) vs full FRM:", flush=True)
-    print(f"    combined: {combined_alpha:+.2f}%   full FRM: {full_alpha:+.2f}%   "
-          f"delta: {delta:+.2f}pp", flush=True)
-    print(f"    (delta < 0.5pp supports H2: direction alone is sufficient)", flush=True)
+    print("\n  Direction-only (improving+stable) vs full FRM:", flush=True)
+    print(
+        f"    combined: {combined_alpha:+.2f}%   full FRM: {full_alpha:+.2f}%   "
+        f"delta: {delta:+.2f}pp",
+        flush=True,
+    )
+    print("    (delta < 0.5pp supports H2: direction alone is sufficient)", flush=True)
 
     return results, delta
 
@@ -175,11 +186,10 @@ def test2_conditional_score(rows):
 
     results = {}
     for direction in ["improving", "stable"]:
-        sub = [r for r in rows if r["frm_direction"] == direction
-               and r["frm_score"] is not None]
+        sub = [r for r in rows if r["frm_direction"] == direction and r["frm_score"] is not None]
         print(f"\n  --- {direction} (N={len(sub)}) ---", flush=True)
         if len(sub) < MIN_N_PER_QUINTILE * 5:
-            print(f"    SKIP: N={len(sub)} < {MIN_N_PER_QUINTILE*5} for 5 quintiles", flush=True)
+            print(f"    SKIP: N={len(sub)} < {MIN_N_PER_QUINTILE * 5} for 5 quintiles", flush=True)
             results[direction] = {"n": len(sub), "skipped": True}
             continue
 
@@ -188,25 +198,30 @@ def test2_conditional_score(rows):
         n = len(sub_sorted)
         q_size = n // 5
         quintiles = {}
-        print(f"    {'quintile':10s} {'n':>4} {'frm_range':>16} "
-              f"{'alpha':>8} {'positive':>9}", flush=True)
+        print(
+            f"    {'quintile':10s} {'n':>4} {'frm_range':>16} {'alpha':>8} {'positive':>9}",
+            flush=True,
+        )
         for qi in range(5):
             start = qi * q_size
             end = (qi + 1) * q_size if qi < 4 else n
             q_rows = sub_sorted[start:end]
             if not q_rows:
                 continue
-            s = _stats(q_rows, f"Q{qi+1}")
+            s = _stats(q_rows, f"Q{qi + 1}")
             scores = [r["frm_score"] for r in q_rows]
-            quintiles[f"Q{qi+1}"] = {
+            quintiles[f"Q{qi + 1}"] = {
                 "n": s["n"],
                 "frm_score_range": [float(min(scores)), float(max(scores))],
                 "alpha_pct": s["alpha_pct"],
                 "positive_rate_pct": s["positive_rate_pct"],
             }
-            print(f"    Q{qi+1:1d}         {s['n']:4d}  "
-                  f"[{min(scores):5.1f},{max(scores):5.1f}]   "
-                  f"{s['alpha_pct']:+6.2f}%  {s['positive_rate_pct']:7.1f}%", flush=True)
+            print(
+                f"    Q{qi + 1:1d}         {s['n']:4d}  "
+                f"[{min(scores):5.1f},{max(scores):5.1f}]   "
+                f"{s['alpha_pct']:+6.2f}%  {s['positive_rate_pct']:7.1f}%",
+                flush=True,
+            )
 
         # Monotonicity test: Q5 vs Q1
         if "Q1" in quintiles and "Q5" in quintiles:
@@ -224,11 +239,17 @@ def test2_conditional_score(rows):
 
         # Inverted-U check (H3): is Q3 > Q1 AND Q3 > Q5?
         if all(k in quintiles for k in ("Q1", "Q3", "Q5")):
-            q1, q3, q5 = (quintiles["Q1"]["alpha_pct"], quintiles["Q3"]["alpha_pct"],
-                          quintiles["Q5"]["alpha_pct"])
+            q1, q3, q5 = (
+                quintiles["Q1"]["alpha_pct"],
+                quintiles["Q3"]["alpha_pct"],
+                quintiles["Q5"]["alpha_pct"],
+            )
             if q3 > q1 + 1 and q3 > q5 + 1:
-                print(f"    H3 SIGNAL: Q3 ({q3:+.2f}%) > Q1 ({q1:+.2f}%) AND > Q5 ({q5:+.2f}%) "
-                      f"- inverted-U, score is uncertainty proxy", flush=True)
+                print(
+                    f"    H3 SIGNAL: Q3 ({q3:+.2f}%) > Q1 ({q1:+.2f}%) AND > Q5 ({q5:+.2f}%) "
+                    f"- inverted-U, score is uncertainty proxy",
+                    flush=True,
+                )
                 quintiles["h3_signal"] = True
 
         results[direction] = quintiles
@@ -252,8 +273,13 @@ def test3_incremental_regression(rows):
     # Prepare regression data
     # direction_dummy: improving=1, stable=0.5, deteriorating=0 (but deteriorating hard-rejected)
     # Use binary: improving=1, stable=0
-    reg_rows = [r for r in rows if r["frm_direction"] in ("improving", "stable")
-                and r["frm_score"] is not None and r["residual_alpha"] is not None]
+    reg_rows = [
+        r
+        for r in rows
+        if r["frm_direction"] in ("improving", "stable")
+        and r["frm_score"] is not None
+        and r["residual_alpha"] is not None
+    ]
 
     if len(reg_rows) < 20:
         print(f"  SKIP: N={len(reg_rows)} < 20 for regression", flush=True)
@@ -289,8 +315,14 @@ def test3_incremental_regression(rows):
         print(f"  N = {n}, R² = {r2:.3f}", flush=True)
         print(f"  {'var':20s} {'beta':>8} {'se':>8} {'t':>6}", flush=True)
         print(f"  {'intercept':20s} {beta[0]:8.3f} {se_beta[0]:8.3f} {t_stats[0]:6.2f}", flush=True)
-        print(f"  {'direction(imp=1)':20s} {beta[1]:8.3f} {se_beta[1]:8.3f} {t_stats[1]:6.2f}", flush=True)
-        print(f"  {'frm_score(norm)':20s} {beta[2]:8.3f} {se_beta[2]:8.3f} {t_stats[2]:6.2f}", flush=True)
+        print(
+            f"  {'direction(imp=1)':20s} {beta[1]:8.3f} {se_beta[1]:8.3f} {t_stats[1]:6.2f}",
+            flush=True,
+        )
+        print(
+            f"  {'frm_score(norm)':20s} {beta[2]:8.3f} {se_beta[2]:8.3f} {t_stats[2]:6.2f}",
+            flush=True,
+        )
 
         b2 = beta[2]
         t2 = t_stats[2]
@@ -307,9 +339,12 @@ def test3_incremental_regression(rows):
         print(f"  Verdict: {verdict}", flush=True)
 
         return {
-            "n": n, "r2": float(r2),
-            "b0_intercept": float(beta[0]), "b1_direction": float(beta[1]),
-            "b2_frm_score": float(b2), "b2_t_stat": float(t2),
+            "n": n,
+            "r2": float(r2),
+            "b0_intercept": float(beta[0]),
+            "b1_direction": float(beta[1]),
+            "b2_frm_score": float(b2),
+            "b2_t_stat": float(t2),
             "b2_se": float(se_beta[2]),
             "verdict": verdict,
         }
@@ -335,7 +370,10 @@ def test4_temporal_stability(rows):
         by_year[y].append(r)
 
     results = {}
-    print(f"  {'year':6s} {'n':>4} {'alpha':>8} {'positive':>9} {'imp%':>6} {'stable%':>8}", flush=True)
+    print(
+        f"  {'year':6s} {'n':>4} {'alpha':>8} {'positive':>9} {'imp%':>6} {'stable%':>8}",
+        flush=True,
+    )
     for y in sorted(by_year.keys()):
         sub = by_year[y]
         s = _stats(sub, y)
@@ -343,16 +381,21 @@ def test4_temporal_stability(rows):
         n_stab = sum(1 for r in sub if r["frm_direction"] == "stable")
         imp_pct = 100.0 * n_imp / len(sub) if sub else 0
         stab_pct = 100.0 * n_stab / len(sub) if sub else 0
-        print(f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% "
-              f"{s['positive_rate_pct']:7.1f}% {imp_pct:5.1f}% {stab_pct:7.1f}%", flush=True)
+        print(
+            f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% "
+            f"{s['positive_rate_pct']:7.1f}% {imp_pct:5.1f}% {stab_pct:7.1f}%",
+            flush=True,
+        )
         results[y] = {
-            "n": s["n"], "alpha_pct": s["alpha_pct"],
+            "n": s["n"],
+            "alpha_pct": s["alpha_pct"],
             "positive_rate_pct": s["positive_rate_pct"],
-            "improving_pct": float(imp_pct), "stable_pct": float(stab_pct),
+            "improving_pct": float(imp_pct),
+            "stable_pct": float(stab_pct),
         }
 
     # Also split improving direction by year (is the signal stable within direction?)
-    print(f"\n  Improving-only by year:", flush=True)
+    print("\n  Improving-only by year:", flush=True)
     print(f"  {'year':6s} {'n':>4} {'alpha':>8} {'positive':>9}", flush=True)
     imp_by_year = defaultdict(list)
     for r in rows:
@@ -360,20 +403,32 @@ def test4_temporal_stability(rows):
             imp_by_year[r["trade_date"][:4]].append(r)
     for y in sorted(imp_by_year.keys()):
         s = _stats(imp_by_year[y], y)
-        print(f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%", flush=True)
-        results[f"improving_{y}"] = {"n": s["n"], "alpha_pct": s["alpha_pct"],
-                                      "positive_rate_pct": s["positive_rate_pct"]}
+        print(
+            f"  {y:6s} {s['n']:4d} {s['alpha_pct']:+7.2f}% {s['positive_rate_pct']:7.1f}%",
+            flush=True,
+        )
+        results[f"improving_{y}"] = {
+            "n": s["n"],
+            "alpha_pct": s["alpha_pct"],
+            "positive_rate_pct": s["positive_rate_pct"],
+        }
 
     # Stability verdict
     alphas = [results[y]["alpha_pct"] for y in sorted(by_year.keys()) if results[y]["n"] >= 5]
     if len(alphas) >= 2:
         all_positive = all(a > 0 for a in alphas)
         spread = max(alphas) - min(alphas)
-        print(f"\n  Yearly alpha spread: {spread:.2f}pp (min {min(alphas):+.2f}%, max {max(alphas):+.2f}%)", flush=True)
+        print(
+            f"\n  Yearly alpha spread: {spread:.2f}pp (min {min(alphas):+.2f}%, max {max(alphas):+.2f}%)",
+            flush=True,
+        )
         if all_positive:
-            print(f"  STABLE: alpha positive in all years with N>=5", flush=True)
+            print("  STABLE: alpha positive in all years with N>=5", flush=True)
         else:
-            print(f"  UNSTABLE: alpha negative in at least one year - signal may be regime-specific", flush=True)
+            print(
+                "  UNSTABLE: alpha negative in at least one year - signal may be regime-specific",
+                flush=True,
+            )
         results["stability_spread_pp"] = float(spread)
         results["all_years_positive"] = bool(all_positive)
 
@@ -386,7 +441,7 @@ def run_exp1():
     print("v3.5 Phase 1 Exp1: FRM Direction vs Score Attribution (6-S.17.1)", flush=True)
     print("=" * 70, flush=True)
     print(f"\nGroup A (FRM-only, v3.2.1 Group B): N={len(rows)}", flush=True)
-    print(f"Baseline: full FRM +2.52%, 58.3% positive", flush=True)
+    print("Baseline: full FRM +2.52%, 58.3% positive", flush=True)
 
     test1_results, dir_delta = test1_direction_baseline(rows)
     test2_results = test2_conditional_score(rows)
@@ -406,7 +461,9 @@ def run_exp1():
         b2 = test3_results["b2_frm_score"]
         t2 = test3_results.get("b2_t_stat", 0)
         if abs(b2) < H2_BETA2_TOLERANCE and abs(t2) < 2:
-            h2_signals.append(f"regression b2={b2:+.3f} (|t|={abs(t2):.2f}<2) - score not significant")
+            h2_signals.append(
+                f"regression b2={b2:+.3f} (|t|={abs(t2):.2f}<2) - score not significant"
+            )
 
     # H1 signals
     h1_signals = []
@@ -419,7 +476,9 @@ def run_exp1():
         b2 = test3_results["b2_frm_score"]
         t2 = test3_results.get("b2_t_stat", 0)
         if b2 > 0 and t2 > 2:
-            h1_signals.append(f"regression b2={b2:+.3f} (t={t2:.2f}>2) - score significant positive")
+            h1_signals.append(
+                f"regression b2={b2:+.3f} (t={t2:.2f}>2) - score significant positive"
+            )
 
     # H3 signals
     h3_signals = []
@@ -450,7 +509,9 @@ def run_exp1():
         recommendation = "Route to H3 investigation. Score is not a quality signal but an uncertainty proxy. Combine with gap/sustainability inverted-U findings."
     else:
         verdict = "INCONCLUSIVE - signals mixed or insufficient. Keep FRM as frozen black-box."
-        recommendation = "Do not simplify or decompose further. Accept FRM as validated-but-unexplained."
+        recommendation = (
+            "Do not simplify or decompose further. Accept FRM as validated-but-unexplained."
+        )
 
     print(f"\n  >>> VERDICT: {verdict}", flush=True)
     print(f"  >>> RECOMMENDATION: {recommendation}", flush=True)

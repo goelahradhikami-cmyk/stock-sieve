@@ -32,12 +32,12 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
-from datetime import date
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -51,17 +51,17 @@ N_ITER_DEFAULT = 10000
 RNG_SEED = 42
 
 # Freeze gate thresholds
-GATE_BOOTSTRAP_P_NEG = 0.05        # G1: P(mean defensive_alpha <= 0) < 5%
-GATE_TAIL_AVOIDANCE = 0.95         # G2: tail event avoidance > 95%
-GATE_FALSE_REC_LEAK = 0            # G3: false recovery leak (Def A) = 0
-GATE_YEARLY_MIN_ACC = 0.85         # G4: every year Block Accuracy >= 85%
-TAIL_THRESHOLD = -0.10             # cf < -10% counts as a large loss event
-FWD_WINDOW_DAYS = 20               # Def B forward window
-FWD_WINDOW_LOSS = -0.03            # Def B: CSI300 20d return < -3% = false recovery
+GATE_BOOTSTRAP_P_NEG = 0.05  # G1: P(mean defensive_alpha <= 0) < 5%
+GATE_TAIL_AVOIDANCE = 0.95  # G2: tail event avoidance > 95%
+GATE_FALSE_REC_LEAK = 0  # G3: false recovery leak (Def A) = 0
+GATE_YEARLY_MIN_ACC = 0.85  # G4: every year Block Accuracy >= 85%
+TAIL_THRESHOLD = -0.10  # cf < -10% counts as a large loss event
+FWD_WINDOW_DAYS = 20  # Def B forward window
+FWD_WINDOW_LOSS = -0.03  # Def B: CSI300 20d return < -3% = false recovery
 CATASTROPHIC_TIMING_THRESHOLD = -0.03  # G4-A1: market <= -3% = catastrophic timing failure
 
 RECOVERY_STATES = ("CONFIRMED_RECOVERY", "EARLY_RECOVERY")
-TRAIN_TEST_SPLIT = "2025-01-01"    # Train < 2025-01-01, Test >= 2025-01-01
+TRAIN_TEST_SPLIT = "2025-01-01"  # Train < 2025-01-01, Test >= 2025-01-01
 
 
 class BootstrapValidator:
@@ -97,8 +97,7 @@ class BootstrapValidator:
     def _block_episodes_with_cf(self, rows: list[sqlite3.Row]) -> list[sqlite3.Row]:
         """Subset: BLOCK episodes with a non-null counterfactual return."""
         return [
-            r for r in rows
-            if r["decision"] == "BLOCK" and r["counterfactual_return"] is not None
+            r for r in rows if r["decision"] == "BLOCK" and r["counterfactual_return"] is not None
         ]
 
     # ------------------------------------------------------------------
@@ -113,13 +112,18 @@ class BootstrapValidator:
         """
         print("\n--- Section 0: Regime Transfer (6-S.11.2) ---", flush=True)
 
-        states = ["PANIC", "STABILIZING", "EARLY_RECOVERY",
-                  "CONFIRMED_RECOVERY", "EUPHORIA", "unknown"]
+        states = [
+            "PANIC",
+            "STABILIZING",
+            "EARLY_RECOVERY",
+            "CONFIRMED_RECOVERY",
+            "EUPHORIA",
+            "unknown",
+        ]
 
         def _stats(subset):
             blocks = [
-                r for r in subset
-                if r["decision"] == "BLOCK" and r["block_quality"] is not None
+                r for r in subset if r["decision"] == "BLOCK" and r["block_quality"] is not None
             ]
             correct = sum(1 for r in blocks if r["block_quality"] == "CORRECT_BLOCK")
             acc = correct / len(blocks) if blocks else 0.0
@@ -127,12 +131,16 @@ class BootstrapValidator:
             buys = [r for r in subset if r["decision"] == "BUY"]
             # Real miss rate = INCORRECT_BLOCK share among BLOCKs that had a
             # non-zero counterfactual (the ones that actually moved).
-            incorrect = [r for r in blocks if r["block_quality"] == "INCORRECT_BLOCK"
-                         and r["missed_gain"] is not None and r["missed_gain"] > 0]
+            incorrect = [
+                r
+                for r in blocks
+                if r["block_quality"] == "INCORRECT_BLOCK"
+                and r["missed_gain"] is not None
+                and r["missed_gain"] > 0
+            ]
             real_miss = len(incorrect) / len(blocks) if blocks else 0.0
 
-            buy_alphas = [r["alpha_vs_hs300"] for r in buys
-                          if r["alpha_vs_hs300"] is not None]
+            buy_alphas = [r["alpha_vs_hs300"] for r in buys if r["alpha_vs_hs300"] is not None]
             buy_alpha_median = float(np.median(buy_alphas)) if buy_alphas else 0.0
 
             by_state = {}
@@ -140,8 +148,7 @@ class BootstrapValidator:
                 sb = [r for r in blocks if r["market_state"] == st]
                 if sb:
                     sc = sum(1 for r in sb if r["block_quality"] == "CORRECT_BLOCK")
-                    by_state[st] = {"correct": sc, "total": len(sb),
-                                    "acc": sc / len(sb)}
+                    by_state[st] = {"correct": sc, "total": len(sb), "acc": sc / len(sb)}
             return {
                 "episodes": len(subset),
                 "buy_count": len(buys),
@@ -163,10 +170,16 @@ class BootstrapValidator:
         # PASS: test block accuracy within 5pp of train (no severe degradation)
         passed = abs(delta_acc) < 0.05 or test_s["block_acc"] >= 0.85
 
-        print(f"  Train ({TRAIN_TEST_SPLIT} before): {train_s['episodes']} eps, "
-              f"block_acc={train_s['block_acc']:.3f}, real_miss={train_s['real_miss_rate']:.3f}", flush=True)
-        print(f"  Test  ({TRAIN_TEST_SPLIT} after):  {test_s['episodes']} eps, "
-              f"block_acc={test_s['block_acc']:.3f}, real_miss={test_s['real_miss_rate']:.3f}", flush=True)
+        print(
+            f"  Train ({TRAIN_TEST_SPLIT} before): {train_s['episodes']} eps, "
+            f"block_acc={train_s['block_acc']:.3f}, real_miss={train_s['real_miss_rate']:.3f}",
+            flush=True,
+        )
+        print(
+            f"  Test  ({TRAIN_TEST_SPLIT} after):  {test_s['episodes']} eps, "
+            f"block_acc={test_s['block_acc']:.3f}, real_miss={test_s['real_miss_rate']:.3f}",
+            flush=True,
+        )
         print(f"  Delta: acc={delta_acc:+.3f}  miss={delta_miss:+.3f}", flush=True)
         for st in states:
             t = train_s["by_state"].get(st)
@@ -177,8 +190,10 @@ class BootstrapValidator:
                 print(f"    {st:22s}: train={ta:>5}  test={va:>5}", flush=True)
 
         return {
-            "train": train_s, "test": test_s,
-            "delta_acc": delta_acc, "delta_miss": delta_miss,
+            "train": train_s,
+            "test": test_s,
+            "delta_acc": delta_acc,
+            "delta_miss": delta_miss,
             "passed": passed,
         }
 
@@ -186,8 +201,9 @@ class BootstrapValidator:
     # Section 1: Defensive Alpha Bootstrap
     # ------------------------------------------------------------------
 
-    def run_defensive_alpha_bootstrap(self, rows: list[sqlite3.Row],
-                                      n_iter: int = N_ITER_DEFAULT) -> dict:
+    def run_defensive_alpha_bootstrap(
+        self, rows: list[sqlite3.Row], n_iter: int = N_ITER_DEFAULT
+    ) -> dict:
         """Bootstrap on per-episode defensive alpha.
 
         defensive_alpha_i = max(0, -counterfactual_return_i)
@@ -227,8 +243,9 @@ class BootstrapValidator:
         print(f"    median = {median_boot:+.4%}", flush=True)
         print(f"    5th pct = {p5:+.4%}", flush=True)
         print(f"    95th pct = {p95:+.4%}", flush=True)
-        print(f"    P(mean <= 0) = {p_negative:.2%}  [gate: < {GATE_BOOTSTRAP_P_NEG:.0%}]",
-              flush=True)
+        print(
+            f"    P(mean <= 0) = {p_negative:.2%}  [gate: < {GATE_BOOTSTRAP_P_NEG:.0%}]", flush=True
+        )
         print(f"  Verdict: {'PASS' if passed else 'CONDITIONAL'}", flush=True)
 
         return {
@@ -283,16 +300,21 @@ class BootstrapValidator:
         print(f"  Tail threshold: counterfactual < {TAIL_THRESHOLD:.0%}", flush=True)
         print(f"  Total large-loss events: {len(tails)}", flush=True)
         print(f"  Avoided (Brain BLOCKed): {avoided_count}", flush=True)
-        print(f"  Avoidance rate: {avoidance_rate:.2%}  [gate: > {GATE_TAIL_AVOIDANCE:.0%}]",
-              flush=True)
+        print(
+            f"  Avoidance rate: {avoidance_rate:.2%}  [gate: > {GATE_TAIL_AVOIDANCE:.0%}]",
+            flush=True,
+        )
         print(f"  Cumulative avoided loss: {total_avoided:+.4%}", flush=True)
-        print(f"  Tail events by market_state:", flush=True)
+        print("  Tail events by market_state:", flush=True)
         for st, v in sorted(by_state.items(), key=lambda x: -x[1]["count"]):
             print(f"    {st:22s}: {v['count']} events, avoided={v['avoided']:+.4%}", flush=True)
-        print(f"  Key dates:", flush=True)
+        print("  Key dates:", flush=True)
         for r in sorted(tails, key=lambda x: x["counterfactual_return"]):
-            print(f"    {r['trade_date']}  {r['market_state']:22s}  "
-                  f"cf={r['counterfactual_return']:+.4%}", flush=True)
+            print(
+                f"    {r['trade_date']}  {r['market_state']:22s}  "
+                f"cf={r['counterfactual_return']:+.4%}",
+                flush=True,
+            )
         print(f"  Verdict: {'PASS' if passed else 'CONDITIONAL'}", flush=True)
 
         return {
@@ -303,8 +325,11 @@ class BootstrapValidator:
             "cumulative_avoided_loss": float(total_avoided),
             "by_state": dict(by_state),
             "tail_dates": [
-                {"date": r["trade_date"], "state": r["market_state"],
-                 "cf": r["counterfactual_return"]}
+                {
+                    "date": r["trade_date"],
+                    "state": r["market_state"],
+                    "cf": r["counterfactual_return"],
+                }
                 for r in sorted(tails, key=lambda x: x["counterfactual_return"])
             ],
             "passed": passed,
@@ -363,108 +388,118 @@ class BootstrapValidator:
         #   confirmation" model that misses real recoveries. Recorded but
         #   does not block the freeze.
         a_block_fr_all = [
-            r for r in recovery_eps
+            r
+            for r in recovery_eps
             if r["decision"] == "BLOCK"
             and r["market_return_t20"] is not None
             and r["market_return_t20"] < 0
         ]
         a_buy_leak_all = [
-            r for r in recovery_eps
+            r
+            for r in recovery_eps
             if r["decision"] == "BUY"
             and r["market_return_t20"] is not None
             and r["market_return_t20"] < 0
         ]
 
         # G4-A1: catastrophic (market <= -3%)
-        a1_block = [r for r in a_block_fr_all
-                    if r["market_return_t20"] <= CATASTROPHIC_TIMING_THRESHOLD]
-        a1_buy_leak = [r for r in a_buy_leak_all
-                       if r["market_return_t20"] <= CATASTROPHIC_TIMING_THRESHOLD]
+        a1_block = [
+            r for r in a_block_fr_all if r["market_return_t20"] <= CATASTROPHIC_TIMING_THRESHOLD
+        ]
+        a1_buy_leak = [
+            r for r in a_buy_leak_all if r["market_return_t20"] <= CATASTROPHIC_TIMING_THRESHOLD
+        ]
         a1_total = len(a1_block) + len(a1_buy_leak)
         a1_immunity = (len(a1_block) / a1_total) if a1_total else 1.0
         a1_leak = len(a1_buy_leak)
 
         # G4-A2: minor noise (-3% < market < 0)
-        a2_block = [r for r in a_block_fr_all
-                    if r["market_return_t20"] > CATASTROPHIC_TIMING_THRESHOLD]
-        a2_buy_leak = [r for r in a_buy_leak_all
-                       if r["market_return_t20"] > CATASTROPHIC_TIMING_THRESHOLD]
+        a2_block = [
+            r for r in a_block_fr_all if r["market_return_t20"] > CATASTROPHIC_TIMING_THRESHOLD
+        ]
+        a2_buy_leak = [
+            r for r in a_buy_leak_all if r["market_return_t20"] > CATASTROPHIC_TIMING_THRESHOLD
+        ]
         a2_total = len(a2_block) + len(a2_buy_leak)
         a2_immunity = (len(a2_block) / a2_total) if a2_total else 1.0
         a2_leak = len(a2_buy_leak)
 
         a_total_fr_timing = a1_total + a2_total
-        a_immunity_timing = (len(a_block_fr_all) / a_total_fr_timing
-                             if a_total_fr_timing else 1.0)
+        a_immunity_timing = len(a_block_fr_all) / a_total_fr_timing if a_total_fr_timing else 1.0
 
-        print(f"  G4-A Timing Integrity (market_return < 0):", flush=True)
+        print("  G4-A Timing Integrity (market_return < 0):", flush=True)
         print(f"    Recovery-state episodes: {len(recovery_eps)}", flush=True)
-        print(f"    Total timing false recovery (market fell): {a_total_fr_timing}",
-              flush=True)
-        print(f"    Overall timing immunity rate: {a_immunity_timing:.2%}",
-              flush=True)
-        print(f"  G4-A1 Catastrophic Timing (market <= {CATASTROPHIC_TIMING_THRESHOLD:.0%}):",
-              flush=True)
+        print(f"    Total timing false recovery (market fell): {a_total_fr_timing}", flush=True)
+        print(f"    Overall timing immunity rate: {a_immunity_timing:.2%}", flush=True)
+        print(
+            f"  G4-A1 Catastrophic Timing (market <= {CATASTROPHIC_TIMING_THRESHOLD:.0%}):",
+            flush=True,
+        )
         print(f"    Catastrophic false recovery: {a1_total}", flush=True)
         print(f"      - BLOCKed correctly: {len(a1_block)}", flush=True)
-        print(f"      - BUY leak (catastrophic): {a1_leak}  "
-              f"[gate: = {GATE_FALSE_REC_LEAK}]", flush=True)
+        print(
+            f"      - BUY leak (catastrophic): {a1_leak}  [gate: = {GATE_FALSE_REC_LEAK}]",
+            flush=True,
+        )
         print(f"    Catastrophic immunity rate: {a1_immunity:.2%}", flush=True)
         if a1_buy_leak:
-            print(f"    Catastrophic leak dates:", flush=True)
+            print("    Catastrophic leak dates:", flush=True)
             for r in a1_buy_leak:
-                print(f"      {r['trade_date']}  {r['market_state']:22s}  "
-                      f"mkt={r['market_return_t20']:+.4%}", flush=True)
-        print(f"  G4-A2 Minor Timing Noise ({CATASTROPHIC_TIMING_THRESHOLD:.0%} < market < 0):",
-              flush=True)
+                print(
+                    f"      {r['trade_date']}  {r['market_state']:22s}  "
+                    f"mkt={r['market_return_t20']:+.4%}",
+                    flush=True,
+                )
+        print(
+            f"  G4-A2 Minor Timing Noise ({CATASTROPHIC_TIMING_THRESHOLD:.0%} < market < 0):",
+            flush=True,
+        )
         print(f"    Minor false recovery: {a2_total}", flush=True)
         print(f"      - BLOCKed: {len(a2_block)}", flush=True)
-        print(f"      - BUY leak (minor): {a2_leak}  (diagnostic, not gated)",
-              flush=True)
+        print(f"      - BUY leak (minor): {a2_leak}  (diagnostic, not gated)", flush=True)
         print(f"    Minor immunity rate: {a2_immunity:.2%}", flush=True)
         if a2_buy_leak:
-            print(f"    Minor leak dates (normal recovery volatility):",
-                  flush=True)
+            print("    Minor leak dates (normal recovery volatility):", flush=True)
             for r in a2_buy_leak:
-                print(f"      {r['trade_date']}  {r['market_state']:22s}  "
-                      f"mkt={r['market_return_t20']:+.4%}", flush=True)
+                print(
+                    f"      {r['trade_date']}  {r['market_state']:22s}  "
+                    f"mkt={r['market_return_t20']:+.4%}",
+                    flush=True,
+                )
 
         # ---- G4-B: Selection Integrity (alpha-level, diagnostic only) ----
         # Among BUY episodes during recovery, did the basket beat the market?
         # leak = alpha_vs_hs300 < 0. These are selection failures, not
         # timing failures, so they do NOT block Market Guardian v1.1.
         b_buy_recovery = [
-            r for r in recovery_eps
-            if r["decision"] == "BUY"
-            and r["alpha_vs_hs300"] is not None
+            r for r in recovery_eps if r["decision"] == "BUY" and r["alpha_vs_hs300"] is not None
         ]
-        b_selection_leak = [r for r in b_buy_recovery
-                            if r["alpha_vs_hs300"] < 0]
-        b_selection_ok = [r for r in b_buy_recovery
-                          if r["alpha_vs_hs300"] >= 0]
-        b_leak_rate = (len(b_selection_leak) / len(b_buy_recovery)
-                       if b_buy_recovery else 0.0)
+        b_selection_leak = [r for r in b_buy_recovery if r["alpha_vs_hs300"] < 0]
+        b_selection_ok = [r for r in b_buy_recovery if r["alpha_vs_hs300"] >= 0]
+        b_leak_rate = len(b_selection_leak) / len(b_buy_recovery) if b_buy_recovery else 0.0
 
-        print(f"  G4-B Selection Integrity (alpha < 0, diagnostic only):",
-              flush=True)
-        print(f"    BUY recovery episodes with alpha: {len(b_buy_recovery)}",
-              flush=True)
-        print(f"    Selection leaks (alpha<0): {len(b_selection_leak)}  "
-              f"({b_leak_rate:.1%})", flush=True)
-        print(f"    Selection wins (alpha>=0): {len(b_selection_ok)}",
-              flush=True)
-        print(f"    NOTE: G4-B does not block Market Guardian freeze. "
-              f"Selection failures belong to Security Analyst Reconstruction.",
-              flush=True)
+        print("  G4-B Selection Integrity (alpha < 0, diagnostic only):", flush=True)
+        print(f"    BUY recovery episodes with alpha: {len(b_buy_recovery)}", flush=True)
+        print(
+            f"    Selection leaks (alpha<0): {len(b_selection_leak)}  ({b_leak_rate:.1%})",
+            flush=True,
+        )
+        print(f"    Selection wins (alpha>=0): {len(b_selection_ok)}", flush=True)
+        print(
+            "    NOTE: G4-B does not block Market Guardian freeze. "
+            "Selection failures belong to Security Analyst Reconstruction.",
+            flush=True,
+        )
         if b_selection_leak:
-            print(f"    Selection leak dates (for Security Analyst backlog):",
-                  flush=True)
-            for r in sorted(b_selection_leak,
-                            key=lambda x: x["alpha_vs_hs300"])[:10]:
-                print(f"      {r['trade_date']}  {r['market_state']:22s}  "
-                      f"port={r['portfolio_return_t20']:+.4%}  "
-                      f"mkt={r['market_return_t20']:+.4%}  "
-                      f"alpha={r['alpha_vs_hs300']:+.4%}", flush=True)
+            print("    Selection leak dates (for Security Analyst backlog):", flush=True)
+            for r in sorted(b_selection_leak, key=lambda x: x["alpha_vs_hs300"])[:10]:
+                print(
+                    f"      {r['trade_date']}  {r['market_state']:22s}  "
+                    f"port={r['portfolio_return_t20']:+.4%}  "
+                    f"mkt={r['market_return_t20']:+.4%}  "
+                    f"alpha={r['alpha_vs_hs300']:+.4%}",
+                    flush=True,
+                )
 
         # ---- G4-B-Residual: True Selection Alpha (6-S.12.1) ----
         # The alpha_vs_hs300 above mixes market beta + sector beta + stock
@@ -474,23 +509,26 @@ class BootstrapValidator:
         # or merely rides market/sector beta (residual <= 0).
         # This is the core diagnostic for Security Analyst Reconstruction v2.
         residual_stats = self._compute_residual_alpha_diagnostic(recovery_eps)
-        print(f"  G4-B-Residual True Selection Alpha (6-S.12.1, diagnostic):",
-              flush=True)
-        print(f"    BUY recovery episodes with residual_alpha: "
-              f"{residual_stats['n_episodes']}", flush=True)
-        print(f"    (limited to 2024-06+ due to industry_daily_returns coverage)",
-              flush=True)
+        print("  G4-B-Residual True Selection Alpha (6-S.12.1, diagnostic):", flush=True)
+        print(
+            f"    BUY recovery episodes with residual_alpha: {residual_stats['n_episodes']}",
+            flush=True,
+        )
+        print("    (limited to 2024-06+ due to industry_daily_returns coverage)", flush=True)
         if residual_stats["n_episodes"] > 0:
-            print(f"    residual_alpha mean:   {residual_stats['mean']:+.4%}",
-                  flush=True)
-            print(f"    residual_alpha median: {residual_stats['median']:+.4%}",
-                  flush=True)
-            print(f"    true selection wins (residual>0): "
-                  f"{residual_stats['n_positive']}/{residual_stats['n_episodes']} "
-                  f"({residual_stats['positive_rate']:.1%})", flush=True)
-            implication = ("Security Analyst has TRUE stock-picking alpha"
-                           if residual_stats["positive_rate"] > 0.5
-                           else "Security Analyst alpha is mostly market/sector beta, not stock-picking")
+            print(f"    residual_alpha mean:   {residual_stats['mean']:+.4%}", flush=True)
+            print(f"    residual_alpha median: {residual_stats['median']:+.4%}", flush=True)
+            print(
+                f"    true selection wins (residual>0): "
+                f"{residual_stats['n_positive']}/{residual_stats['n_episodes']} "
+                f"({residual_stats['positive_rate']:.1%})",
+                flush=True,
+            )
+            implication = (
+                "Security Analyst has TRUE stock-picking alpha"
+                if residual_stats["positive_rate"] > 0.5
+                else "Security Analyst alpha is mostly market/sector beta, not stock-picking"
+            )
             print(f"    IMPLICATION: {implication}", flush=True)
 
         # ---- Def B: forward market window (stricter timing check) ----
@@ -500,27 +538,28 @@ class BootstrapValidator:
         b_leak = b_results["leak"]
         b_immunity = b_results["immunity"]
 
-        print(f"  Def B (forward window, CSI300 20d < {FWD_WINDOW_LOSS:.0%}):",
-              flush=True)
-        print(f"    Recovery episodes with forward window: {b_results['evaluable']}",
-              flush=True)
-        print(f"    False recovery (market fell >3% in 20d): {b_total_fr}",
-              flush=True)
+        print(f"  Def B (forward window, CSI300 20d < {FWD_WINDOW_LOSS:.0%}):", flush=True)
+        print(f"    Recovery episodes with forward window: {b_results['evaluable']}", flush=True)
+        print(f"    False recovery (market fell >3% in 20d): {b_total_fr}", flush=True)
         print(f"      - BLOCKed: {b_blocked}", flush=True)
         print(f"      - BUY leak: {b_leak}", flush=True)
         print(f"    Immunity rate: {b_immunity:.2%}", flush=True)
         if b_results["leak_dates"]:
-            print(f"    Leak dates:", flush=True)
+            print("    Leak dates:", flush=True)
             for d in b_results["leak_dates"]:
-                print(f"      {d['date']}  {d['state']:22s}  "
-                      f"mkt_20d={d['mkt_20d']:+.4%}", flush=True)
+                print(
+                    f"      {d['date']}  {d['state']:22s}  mkt_20d={d['mkt_20d']:+.4%}", flush=True
+                )
 
         # Freeze gate is G4-A1 only (catastrophic timing). G4-A2 (minor
         # noise) and G4-B (selection) are diagnostic.
-        passed = (a1_leak == GATE_FALSE_REC_LEAK)
+        passed = a1_leak == GATE_FALSE_REC_LEAK
 
-        print(f"  Verdict (gate on G4-A1 catastrophic timing leak): "
-              f"{'PASS' if passed else 'CONDITIONAL'}", flush=True)
+        print(
+            f"  Verdict (gate on G4-A1 catastrophic timing leak): "
+            f"{'PASS' if passed else 'CONDITIONAL'}",
+            flush=True,
+        )
 
         return {
             "g4a1_catastrophic": {
@@ -531,8 +570,11 @@ class BootstrapValidator:
                 "buy_leak": a1_leak,
                 "immunity_rate": a1_immunity,
                 "leak_dates": [
-                    {"date": r["trade_date"], "state": r["market_state"],
-                     "market_return": r["market_return_t20"]}
+                    {
+                        "date": r["trade_date"],
+                        "state": r["market_state"],
+                        "market_return": r["market_return_t20"],
+                    }
                     for r in a1_buy_leak
                 ],
             },
@@ -543,8 +585,11 @@ class BootstrapValidator:
                 "buy_leak": a2_leak,
                 "immunity_rate": a2_immunity,
                 "leak_dates": [
-                    {"date": r["trade_date"], "state": r["market_state"],
-                     "market_return": r["market_return_t20"]}
+                    {
+                        "date": r["trade_date"],
+                        "state": r["market_state"],
+                        "market_return": r["market_return_t20"],
+                    }
                     for r in a2_buy_leak
                 ],
             },
@@ -558,12 +603,14 @@ class BootstrapValidator:
                 "selection_wins": len(b_selection_ok),
                 "leak_rate": b_leak_rate,
                 "leak_dates": [
-                    {"date": r["trade_date"], "state": r["market_state"],
-                     "portfolio_return": r["portfolio_return_t20"],
-                     "market_return": r["market_return_t20"],
-                     "alpha": r["alpha_vs_hs300"]}
-                    for r in sorted(b_selection_leak,
-                                    key=lambda x: x["alpha_vs_hs300"])
+                    {
+                        "date": r["trade_date"],
+                        "state": r["market_state"],
+                        "portfolio_return": r["portfolio_return_t20"],
+                        "market_return": r["market_return_t20"],
+                        "alpha": r["alpha_vs_hs300"],
+                    }
+                    for r in sorted(b_selection_leak, key=lambda x: x["alpha_vs_hs300"])
                 ],
             },
             "g4b_residual": residual_stats,
@@ -571,8 +618,7 @@ class BootstrapValidator:
             "passed": passed,
         }
 
-    def _compute_residual_alpha_diagnostic(self,
-                                            recovery_eps: list[sqlite3.Row]) -> dict:
+    def _compute_residual_alpha_diagnostic(self, recovery_eps: list[sqlite3.Row]) -> dict:
         """G4-B-Residual: true selection alpha after stripping market + sector beta.
 
         For each BUY episode during recovery, computes the mean residual_alpha
@@ -605,11 +651,13 @@ class BootstrapValidator:
                 continue
             ep_mean = float(np.mean([r["residual_alpha"] for r in rows]))
             episode_residuals.append(ep_mean)
-            stats["episode_details"].append({
-                "date": ep["trade_date"],
-                "state": ep["market_state"],
-                "residual_alpha": ep_mean,
-            })
+            stats["episode_details"].append(
+                {
+                    "date": ep["trade_date"],
+                    "state": ep["market_state"],
+                    "residual_alpha": ep_mean,
+                }
+            )
         if not episode_residuals:
             return stats
         arr = np.array(episode_residuals)
@@ -660,10 +708,13 @@ class BootstrapValidator:
                     blocked += 1
                 else:  # BUY
                     leak += 1
-                    leak_dates.append({
-                        "date": td, "state": r["market_state"],
-                        "mkt_20d": ret,
-                    })
+                    leak_dates.append(
+                        {
+                            "date": td,
+                            "state": r["market_state"],
+                            "mkt_20d": ret,
+                        }
+                    )
 
         cache.close()
         immunity = (blocked / total_fr) if total_fr else 1.0
@@ -676,8 +727,7 @@ class BootstrapValidator:
             "leak_dates": leak_dates,
         }
 
-    def _index_return(self, cache: sqlite3.Connection, code: str,
-                      start: str, end: str):
+    def _index_return(self, cache: sqlite3.Connection, code: str, start: str, end: str):
         """CSI300 return between two dates (None if data missing)."""
         p0 = self._index_close(cache, code, start)
         p1 = self._index_close(cache, code, end)
@@ -685,12 +735,10 @@ class BootstrapValidator:
             return None
         return (p1 - p0) / p0
 
-    def _index_close(self, cache: sqlite3.Connection, code: str,
-                     trade_date: str):
+    def _index_close(self, cache: sqlite3.Connection, code: str, trade_date: str):
         """adj_close on trade_date, or most recent prior bar."""
         row = cache.execute(
-            "SELECT adj_close FROM market_index_daily "
-            "WHERE index_code=? AND trade_date=?",
+            "SELECT adj_close FROM market_index_daily WHERE index_code=? AND trade_date=?",
             (code, trade_date),
         ).fetchone()
         if not row or row[0] is None:
@@ -712,10 +760,7 @@ class BootstrapValidator:
         """Year-by-year and per-market_state Block Accuracy stability."""
         print("\n--- Section 4: Stability ---", flush=True)
 
-        blocks = [
-            r for r in rows
-            if r["decision"] == "BLOCK" and r["block_quality"] is not None
-        ]
+        blocks = [r for r in rows if r["decision"] == "BLOCK" and r["block_quality"] is not None]
 
         # By year
         by_year = defaultdict(lambda: {"correct": 0, "total": 0})
@@ -729,10 +774,8 @@ class BootstrapValidator:
         for y in sorted(by_year):
             v = by_year[y]
             acc = v["correct"] / v["total"] if v["total"] else 0.0
-            yearly_acc[y] = {"correct": v["correct"], "total": v["total"],
-                             "acc": acc}
-            print(f"  {y}: {acc:.2%}  ({v['correct']}/{v['total']} episodes)",
-                  flush=True)
+            yearly_acc[y] = {"correct": v["correct"], "total": v["total"], "acc": acc}
+            print(f"  {y}: {acc:.2%}  ({v['correct']}/{v['total']} episodes)", flush=True)
 
         # By market_state
         by_state = defaultdict(lambda: {"correct": 0, "total": 0})
@@ -746,16 +789,16 @@ class BootstrapValidator:
         for st in sorted(by_state):
             v = by_state[st]
             acc = v["correct"] / v["total"] if v["total"] else 0.0
-            state_acc[st] = {"correct": v["correct"], "total": v["total"],
-                             "acc": acc}
-            print(f"  {st:22s}: {acc:.2%}  ({v['correct']}/{v['total']})",
-                  flush=True)
+            state_acc[st] = {"correct": v["correct"], "total": v["total"], "acc": acc}
+            print(f"  {st:22s}: {acc:.2%}  ({v['correct']}/{v['total']})", flush=True)
 
         min_year_acc = min(v["acc"] for v in yearly_acc.values()) if yearly_acc else 0
         passed = min_year_acc >= GATE_YEARLY_MIN_ACC
 
-        print(f"  Min yearly accuracy: {min_year_acc:.2%}  "
-              f"[gate: >= {GATE_YEARLY_MIN_ACC:.0%}]", flush=True)
+        print(
+            f"  Min yearly accuracy: {min_year_acc:.2%}  [gate: >= {GATE_YEARLY_MIN_ACC:.0%}]",
+            flush=True,
+        )
         print(f"  Verdict: {'PASS' if passed else 'CONDITIONAL'}", flush=True)
 
         return {
@@ -769,39 +812,37 @@ class BootstrapValidator:
     # Final verdict
     # ------------------------------------------------------------------
 
-    def compute_verdict(self, sec0: dict, sec1: dict, sec2: dict,
-                        sec3: dict, sec4: dict) -> dict:
+    def compute_verdict(self, sec0: dict, sec1: dict, sec2: dict, sec3: dict, sec4: dict) -> dict:
         """Aggregate the four freeze gates."""
         gates = {
             "G1_regime_transfer": {
                 "desc": "Regime Transfer (6-S.11.2) - cross-period stability",
                 "passed": sec0["passed"],
                 "detail": f"train={sec0['train']['block_acc']:.2%} "
-                          f"test={sec0['test']['block_acc']:.2%} "
-                          f"delta={sec0['delta_acc']:+.2%}",
+                f"test={sec0['test']['block_acc']:.2%} "
+                f"delta={sec0['delta_acc']:+.2%}",
             },
             "G2_bootstrap_significance": {
                 "desc": "Bootstrap P(mean defensive_alpha <= 0) < 5%",
                 "passed": sec1["passed"],
-                "detail": f"P(neg)={sec1['p_negative']:.2%}, "
-                          f"median={sec1['boot_median']:+.4%}",
+                "detail": f"P(neg)={sec1['p_negative']:.2%}, median={sec1['boot_median']:+.4%}",
             },
             "G3_tail_risk": {
                 "desc": "Tail risk avoidance > 95%",
                 "passed": sec2["passed"],
                 "detail": f"avoidance={sec2['avoidance_rate']:.2%} "
-                          f"({sec2['total_events']} tail events)",
+                f"({sec2['total_events']} tail events)",
             },
             "G4_false_recovery_leak": {
                 "desc": "Catastrophic Timing leak (G4-A1, market<=-3%) = 0",
                 "passed": sec3["passed"],
                 "detail": f"catastrophic_leak={sec3['g4a1_catastrophic']['buy_leak']} "
-                          f"(of {sec3['g4a1_catastrophic']['false_recovery_total']} "
-                          f"catastrophic false rec); "
-                          f"minor_leak={sec3['g4a2_minor']['buy_leak']} "
-                          f"(G4-A2, noise, not gated); "
-                          f"selection_leaks={sec3['g4b_selection']['selection_leaks']} "
-                          f"(G4-B, diagnostic, not gated)",
+                f"(of {sec3['g4a1_catastrophic']['false_recovery_total']} "
+                f"catastrophic false rec); "
+                f"minor_leak={sec3['g4a2_minor']['buy_leak']} "
+                f"(G4-A2, noise, not gated); "
+                f"selection_leaks={sec3['g4b_selection']['selection_leaks']} "
+                f"(G4-B, diagnostic, not gated)",
             },
             "G5_yearly_stability": {
                 "desc": "All years Block Accuracy >= 85%",
@@ -820,8 +861,7 @@ class BootstrapValidator:
     # Markdown report export
     # ------------------------------------------------------------------
 
-    def export_markdown_report(self, sec0, sec1, sec2, sec3, sec4, verdict,
-                               report_path: str):
+    def export_markdown_report(self, sec0, sec1, sec2, sec3, sec4, verdict, report_path: str):
         """Persist the full validation report as Markdown."""
         today = date.today().isoformat()
         total_eps = sec0["train"]["episodes"] + sec0["test"]["episodes"]
@@ -837,39 +877,58 @@ class BootstrapValidator:
         lines.append("")
 
         # Section 0
-        lines.append("## Section 0: Regime Transfer (6-S.11.2) - "
-                     + ("PASS ✅" if sec0["passed"] else "CONDITIONAL ⚠️"))
+        lines.append(
+            "## Section 0: Regime Transfer (6-S.11.2) - "
+            + ("PASS ✅" if sec0["passed"] else "CONDITIONAL ⚠️")
+        )
         lines.append("")
-        lines.append("Train/Test split at 2025-01-01. Test period is entirely "
-                     "unseen by the frozen Brain.")
+        lines.append(
+            "Train/Test split at 2025-01-01. Test period is entirely unseen by the frozen Brain."
+        )
         lines.append("")
         lines.append("| Metric | Train (2021-2024) | Test (2025-2026) | Delta |")
         lines.append("|--------|-------------------|-------------------|-------|")
-        lines.append(f"| Episodes | {sec0['train']['episodes']} | "
-                     f"{sec0['test']['episodes']} | "
-                     f"{sec0['test']['episodes']-sec0['train']['episodes']:+d} |")
-        lines.append(f"| Block Accuracy | "
-                     f"{sec0['train']['block_acc']:.1%} | "
-                     f"{sec0['test']['block_acc']:.1%} | "
-                     f"{sec0['delta_acc']:+.1%} |")
-        lines.append(f"| Real Miss Rate | "
-                     f"{sec0['train']['real_miss_rate']:.1%} | "
-                     f"{sec0['test']['real_miss_rate']:.1%} | "
-                     f"{sec0['delta_miss']:+.1%} |")
-        lines.append(f"| BUY Alpha (median) | "
-                     f"{sec0['train']['buy_alpha_median']:+.2%} | "
-                     f"{sec0['test']['buy_alpha_median']:+.2%} | "
-                     f"{sec0['test']['buy_alpha_median']-sec0['train']['buy_alpha_median']:+.2%} |")
-        lines.append(f"| BUY Count | {sec0['train']['buy_count']} | "
-                     f"{sec0['test']['buy_count']} | "
-                     f"{sec0['test']['buy_count']-sec0['train']['buy_count']:+d} |")
+        lines.append(
+            f"| Episodes | {sec0['train']['episodes']} | "
+            f"{sec0['test']['episodes']} | "
+            f"{sec0['test']['episodes'] - sec0['train']['episodes']:+d} |"
+        )
+        lines.append(
+            f"| Block Accuracy | "
+            f"{sec0['train']['block_acc']:.1%} | "
+            f"{sec0['test']['block_acc']:.1%} | "
+            f"{sec0['delta_acc']:+.1%} |"
+        )
+        lines.append(
+            f"| Real Miss Rate | "
+            f"{sec0['train']['real_miss_rate']:.1%} | "
+            f"{sec0['test']['real_miss_rate']:.1%} | "
+            f"{sec0['delta_miss']:+.1%} |"
+        )
+        lines.append(
+            f"| BUY Alpha (median) | "
+            f"{sec0['train']['buy_alpha_median']:+.2%} | "
+            f"{sec0['test']['buy_alpha_median']:+.2%} | "
+            f"{sec0['test']['buy_alpha_median'] - sec0['train']['buy_alpha_median']:+.2%} |"
+        )
+        lines.append(
+            f"| BUY Count | {sec0['train']['buy_count']} | "
+            f"{sec0['test']['buy_count']} | "
+            f"{sec0['test']['buy_count'] - sec0['train']['buy_count']:+d} |"
+        )
         lines.append("")
         lines.append("Block Accuracy by market_state:")
         lines.append("")
         lines.append("| State | Train | Test |")
         lines.append("|-------|-------|------|")
-        for st in ["PANIC", "STABILIZING", "EARLY_RECOVERY",
-                   "CONFIRMED_RECOVERY", "EUPHORIA", "unknown"]:
+        for st in [
+            "PANIC",
+            "STABILIZING",
+            "EARLY_RECOVERY",
+            "CONFIRMED_RECOVERY",
+            "EUPHORIA",
+            "unknown",
+        ]:
             t = sec0["train"]["by_state"].get(st)
             v = sec0["test"]["by_state"].get(st)
             if t or v:
@@ -877,41 +936,49 @@ class BootstrapValidator:
                 va = f"{v['acc']:.0%} ({v['total']})" if v else "n/a"
                 lines.append(f"| {st} | {ta} | {va} |")
         lines.append("")
-        lines.append("**Key finding:** STABILIZING and EARLY_RECOVERY hold "
-                     "97-98% across both periods. PANIC is lowest (71-78%) "
-                     "but consistently positive. The system captures a real "
-                     "market regularity, not a memorised 2022-2025 structure.")
+        lines.append(
+            "**Key finding:** STABILIZING and EARLY_RECOVERY hold "
+            "97-98% across both periods. PANIC is lowest (71-78%) "
+            "but consistently positive. The system captures a real "
+            "market regularity, not a memorised 2022-2025 structure."
+        )
         lines.append("")
 
         # Section 1
-        lines.append("## Section 1: Defensive Alpha Bootstrap - "
-                     + ("PASS ✅" if sec1["passed"] else "CONDITIONAL ⚠️"))
+        lines.append(
+            "## Section 1: Defensive Alpha Bootstrap - "
+            + ("PASS ✅" if sec1["passed"] else "CONDITIONAL ⚠️")
+        )
         lines.append("")
         lines.append("```")
         lines.append(f"Bootstrap: {sec1['n_iter']} iterations")
         lines.append(f"N (BLOCK episodes with counterfactual): {sec1['n']}")
         lines.append(f"Observed mean defensive_alpha: {sec1['observed_mean']:+.4%}")
         lines.append(f"Observed median defensive_alpha: {sec1['observed_median']:+.4%}")
-        lines.append(f"")
-        lines.append(f"Bootstrap distribution of mean(defensive_alpha):")
+        lines.append("")
+        lines.append("Bootstrap distribution of mean(defensive_alpha):")
         lines.append(f"  Median:  {sec1['boot_median']:+.4%}")
         lines.append(f"  5th pct: {sec1['boot_p5']:+.4%}")
         lines.append(f"  95th pct: {sec1['boot_p95']:+.4%}")
-        lines.append(f"")
+        lines.append("")
         lines.append(f"P(mean defensive_alpha <= 0): {sec1['p_negative']:.2%}")
         lines.append(f"Gate: < {GATE_BOOTSTRAP_P_NEG:.0%}")
         lines.append("```")
         lines.append("")
-        lines.append(f"**Interpretation:** The raw median is ~0 because many "
-                     f"BLOCKs land on near-zero counterfactuals. The bootstrap "
-                     f"tests the *mean* - whether the average defensive "
-                     f"contribution is reliably positive across resamples. "
-                     f"P(<=0) = {sec1['p_negative']:.2%}.")
+        lines.append(
+            f"**Interpretation:** The raw median is ~0 because many "
+            f"BLOCKs land on near-zero counterfactuals. The bootstrap "
+            f"tests the *mean* - whether the average defensive "
+            f"contribution is reliably positive across resamples. "
+            f"P(<=0) = {sec1['p_negative']:.2%}."
+        )
         lines.append("")
 
         # Section 2
-        lines.append("## Section 2: Tail Risk Protection - "
-                     + ("PASS ✅" if sec2["passed"] else "CONDITIONAL ⚠️"))
+        lines.append(
+            "## Section 2: Tail Risk Protection - "
+            + ("PASS ✅" if sec2["passed"] else "CONDITIONAL ⚠️")
+        )
         lines.append("")
         lines.append("```")
         lines.append(f"Large Loss Events (counterfactual < {sec2['threshold']:.0%}):")
@@ -921,11 +988,13 @@ class BootstrapValidator:
         lines.append(f"  Cumulative Avoided Loss: {sec2['cumulative_avoided_loss']:+.4%}")
         lines.append("```")
         lines.append("")
-        lines.append("**Methodological note:** counterfactual_return is an "
-                     "equal-weight basket of up to 20 candidate stocks, so "
-                     "single-stock disasters are diluted. The tail events "
-                     "below are basket-level. Avoidance rate is 100% by "
-                     "construction (counterfactual only exists for BLOCKs).")
+        lines.append(
+            "**Methodological note:** counterfactual_return is an "
+            "equal-weight basket of up to 20 candidate stocks, so "
+            "single-stock disasters are diluted. The tail events "
+            "below are basket-level. Avoidance rate is 100% by "
+            "construction (counterfactual only exists for BLOCKs)."
+        )
         lines.append("")
         if sec2["tail_dates"]:
             lines.append("Tail event dates:")
@@ -933,35 +1002,44 @@ class BootstrapValidator:
             lines.append("| Date | State | Counterfactual |")
             lines.append("|------|-------|----------------|")
             for d in sec2["tail_dates"]:
-                lines.append(f"| {d['date']} | {d['state']} | "
-                             f"{d['cf']:+.4%} |")
+                lines.append(f"| {d['date']} | {d['state']} | {d['cf']:+.4%} |")
             lines.append("")
 
         # Section 3
-        lines.append("## Section 3: False Recovery Immunity - "
-                     + ("PASS ✅" if sec3["passed"] else "CONDITIONAL ⚠️"))
+        lines.append(
+            "## Section 3: False Recovery Immunity - "
+            + ("PASS ✅" if sec3["passed"] else "CONDITIONAL ⚠️")
+        )
         lines.append("")
-        lines.append("The Investment Brain is layered: Market Guardian "
-                     "(timing) sits above Security Analyst (selection). "
-                     "G4 is split into three sub-gates to isolate risk "
-                     "tiers: G4-A1 (catastrophic timing, freeze gate), "
-                     "G4-A2 (minor timing noise, diagnostic), and G4-B "
-                     "(selection, diagnostic). Only G4-A1 blocks the "
-                     "Market Guardian v1.1 freeze.")
+        lines.append(
+            "The Investment Brain is layered: Market Guardian "
+            "(timing) sits above Security Analyst (selection). "
+            "G4 is split into three sub-gates to isolate risk "
+            "tiers: G4-A1 (catastrophic timing, freeze gate), "
+            "G4-A2 (minor timing noise, diagnostic), and G4-B "
+            "(selection, diagnostic). Only G4-A1 blocks the "
+            "Market Guardian v1.1 freeze."
+        )
         lines.append("")
         lines.append("### G4-A1 Catastrophic Timing Integrity (freeze gate)")
-        lines.append(f"Catastrophic timing false recovery = recovery state "
-                     f"AND market_return_t20 <= {CATASTROPHIC_TIMING_THRESHOLD:.0%} "
-                     f"(material market drawdown). This is the risk that "
-                     f"matters: Guardian permitting BUY when the market "
-                     f"suffered a serious decline.")
+        lines.append(
+            f"Catastrophic timing false recovery = recovery state "
+            f"AND market_return_t20 <= {CATASTROPHIC_TIMING_THRESHOLD:.0%} "
+            f"(material market drawdown). This is the risk that "
+            f"matters: Guardian permitting BUY when the market "
+            f"suffered a serious decline."
+        )
         lines.append("```")
         lines.append(f"Recovery-state episodes: {sec3['g4a1_catastrophic']['recovery_episodes']}")
-        lines.append(f"Catastrophic timing false recovery (market <= {CATASTROPHIC_TIMING_THRESHOLD:.0%}): "
-                     f"{sec3['g4a1_catastrophic']['false_recovery_total']}")
+        lines.append(
+            f"Catastrophic timing false recovery (market <= {CATASTROPHIC_TIMING_THRESHOLD:.0%}): "
+            f"{sec3['g4a1_catastrophic']['false_recovery_total']}"
+        )
         lines.append(f"  Brain BLOCKed correctly: {sec3['g4a1_catastrophic']['blocked_correctly']}")
         lines.append(f"  BUY catastrophic leak:   {sec3['g4a1_catastrophic']['buy_leak']}")
-        lines.append(f"Catastrophic immunity rate: {sec3['g4a1_catastrophic']['immunity_rate']:.2%}")
+        lines.append(
+            f"Catastrophic immunity rate: {sec3['g4a1_catastrophic']['immunity_rate']:.2%}"
+        )
         lines.append(f"Gate: catastrophic leak = {GATE_FALSE_REC_LEAK}")
         lines.append("```")
         if sec3["g4a1_catastrophic"]["leak_dates"]:
@@ -971,22 +1049,25 @@ class BootstrapValidator:
             lines.append("| Date | State | Market Return |")
             lines.append("|------|-------|----------------|")
             for d in sec3["g4a1_catastrophic"]["leak_dates"]:
-                lines.append(f"| {d['date']} | {d['state']} | "
-                             f"{d['market_return']:+.4%} |")
+                lines.append(f"| {d['date']} | {d['state']} | {d['market_return']:+.4%} |")
         else:
             lines.append("")
-            lines.append("**Zero catastrophic timing leaks.** Market Guardian "
-                        "never permitted BUY ahead of a material market "
-                        f"decline (>{abs(CATASTROPHIC_TIMING_THRESHOLD):.0%}).")
+            lines.append(
+                "**Zero catastrophic timing leaks.** Market Guardian "
+                "never permitted BUY ahead of a material market "
+                f"decline (>{abs(CATASTROPHIC_TIMING_THRESHOLD):.0%})."
+            )
         lines.append("")
         lines.append("### G4-A2 Minor Timing Noise (diagnostic, not gated)")
-        lines.append(f"Minor timing false recovery = recovery state AND "
-                     f"{CATASTROPHIC_TIMING_THRESHOLD:.0%} < market_return < 0. "
-                     f"This is normal recovery-path volatility: the recovery "
-                     f"direction was correct but the path had a small "
-                     f"drawdown. Forcing the system to block these would "
-                     f"create an over-conservative model that misses real "
-                     f"recoveries. Recorded but does not block the freeze.")
+        lines.append(
+            f"Minor timing false recovery = recovery state AND "
+            f"{CATASTROPHIC_TIMING_THRESHOLD:.0%} < market_return < 0. "
+            f"This is normal recovery-path volatility: the recovery "
+            f"direction was correct but the path had a small "
+            f"drawdown. Forcing the system to block these would "
+            f"create an over-conservative model that misses real "
+            f"recoveries. Recorded but does not block the freeze."
+        )
         lines.append("```")
         lines.append(f"Minor timing false recovery: {sec3['g4a2_minor']['false_recovery_total']}")
         lines.append(f"  Brain BLOCKed: {sec3['g4a2_minor']['blocked_correctly']}")
@@ -1000,75 +1081,89 @@ class BootstrapValidator:
             lines.append("| Date | State | Market Return |")
             lines.append("|------|-------|----------------|")
             for d in sec3["g4a2_minor"]["leak_dates"]:
-                lines.append(f"| {d['date']} | {d['state']} | "
-                             f"{d['market_return']:+.4%} |")
+                lines.append(f"| {d['date']} | {d['state']} | {d['market_return']:+.4%} |")
         lines.append("")
         lines.append("### G4-B Selection Integrity (diagnostic, not gated)")
-        lines.append("Among BUY episodes during recovery, did the selected "
-                     "basket beat the market? Selection leak = alpha < 0. "
-                     "These failures belong to Security Analyst "
-                     "Reconstruction, not Market Guardian.")
+        lines.append(
+            "Among BUY episodes during recovery, did the selected "
+            "basket beat the market? Selection leak = alpha < 0. "
+            "These failures belong to Security Analyst "
+            "Reconstruction, not Market Guardian."
+        )
         lines.append("```")
-        lines.append(f"BUY recovery episodes with alpha: "
-                     f"{sec3['g4b_selection']['buy_recovery_with_alpha']}")
-        lines.append(f"Selection leaks (alpha<0): "
-                     f"{sec3['g4b_selection']['selection_leaks']} "
-                     f"({sec3['g4b_selection']['leak_rate']:.1%})")
-        lines.append(f"Selection wins (alpha>=0): "
-                     f"{sec3['g4b_selection']['selection_wins']}")
+        lines.append(
+            f"BUY recovery episodes with alpha: {sec3['g4b_selection']['buy_recovery_with_alpha']}"
+        )
+        lines.append(
+            f"Selection leaks (alpha<0): "
+            f"{sec3['g4b_selection']['selection_leaks']} "
+            f"({sec3['g4b_selection']['leak_rate']:.1%})"
+        )
+        lines.append(f"Selection wins (alpha>=0): {sec3['g4b_selection']['selection_wins']}")
         lines.append("```")
         if sec3["g4b_selection"]["leak_dates"]:
             lines.append("")
-            lines.append("Selection leak backlog (for Security Analyst "
-                        "Reconstruction):")
+            lines.append("Selection leak backlog (for Security Analyst Reconstruction):")
             lines.append("")
             lines.append("| Date | State | Portfolio | Market | Alpha |")
             lines.append("|------|-------|-----------|--------|-------|")
             for d in sec3["g4b_selection"]["leak_dates"][:15]:
-                lines.append(f"| {d['date']} | {d['state']} | "
-                             f"{d['portfolio_return']:+.4%} | "
-                             f"{d['market_return']:+.4%} | "
-                             f"{d['alpha']:+.4%} |")
+                lines.append(
+                    f"| {d['date']} | {d['state']} | "
+                    f"{d['portfolio_return']:+.4%} | "
+                    f"{d['market_return']:+.4%} | "
+                    f"{d['alpha']:+.4%} |"
+                )
             if len(sec3["g4b_selection"]["leak_dates"]) > 15:
-                lines.append(f"| ... | ({len(sec3['g4b_selection']['leak_dates'])-15} more) | | | |")
+                lines.append(
+                    f"| ... | ({len(sec3['g4b_selection']['leak_dates']) - 15} more) | | | |"
+                )
         lines.append("")
         lines.append("### G4-B-Residual: True Selection Alpha (6-S.12.1, diagnostic)")
-        lines.append("The alpha_vs_hs300 above mixes market beta + sector beta "
-                     "+ stock alpha. 6-S.12.1 backfilled residual_alpha = "
-                     "stock_return - market_return - sector_return for "
-                     "candidates since 2024-06 (industry_daily_returns coverage "
-                     "limitation). This reports whether the selection layer "
-                     "produces TRUE stock-picking alpha (residual > 0) or "
-                     "merely rides market/sector beta.")
+        lines.append(
+            "The alpha_vs_hs300 above mixes market beta + sector beta "
+            "+ stock alpha. 6-S.12.1 backfilled residual_alpha = "
+            "stock_return - market_return - sector_return for "
+            "candidates since 2024-06 (industry_daily_returns coverage "
+            "limitation). This reports whether the selection layer "
+            "produces TRUE stock-picking alpha (residual > 0) or "
+            "merely rides market/sector beta."
+        )
         res = sec3["g4b_residual"]
         lines.append("```")
         lines.append(f"BUY recovery episodes with residual_alpha: {res['n_episodes']}")
         if res["n_episodes"] > 0:
-            lines.append(f"  (limited to 2024-06+ due to industry data coverage)")
+            lines.append("  (limited to 2024-06+ due to industry data coverage)")
             lines.append(f"residual_alpha mean:   {res['mean']:+.4%}")
             lines.append(f"residual_alpha median: {res['median']:+.4%}")
-            lines.append(f"true selection wins (residual>0): "
-                         f"{res['n_positive']}/{res['n_episodes']} "
-                         f"({res['positive_rate']:.1%})")
-            implication = ("Security Analyst has TRUE stock-picking alpha"
-                           if res["positive_rate"] > 0.5
-                           else "Security Analyst alpha is mostly market/sector "
-                                "beta, not stock-picking -> Reconstruction v2 needed")
+            lines.append(
+                f"true selection wins (residual>0): "
+                f"{res['n_positive']}/{res['n_episodes']} "
+                f"({res['positive_rate']:.1%})"
+            )
+            implication = (
+                "Security Analyst has TRUE stock-picking alpha"
+                if res["positive_rate"] > 0.5
+                else "Security Analyst alpha is mostly market/sector "
+                "beta, not stock-picking -> Reconstruction v2 needed"
+            )
             lines.append(f"IMPLICATION: {implication}")
         else:
             lines.append("  (no episodes with residual_alpha data)")
         lines.append("```")
         lines.append("")
-        lines.append("### Def B (Forward Window, CSI300 20d < "
-                     f"{FWD_WINDOW_LOSS:.0%})")
-        lines.append("Stricter forward-looking check: false recovery = "
-                     "CSI300 fell >3% over next 20 trading days. This "
-                     "overlaps with G4-A1 but uses a forward window rather "
-                     "than the realised 20-day return.")
+        lines.append(f"### Def B (Forward Window, CSI300 20d < {FWD_WINDOW_LOSS:.0%})")
+        lines.append(
+            "Stricter forward-looking check: false recovery = "
+            "CSI300 fell >3% over next 20 trading days. This "
+            "overlaps with G4-A1 but uses a forward window rather "
+            "than the realised 20-day return."
+        )
         lines.append("```")
         lines.append(f"Recovery episodes with forward window: {sec3['def_b']['evaluable']}")
-        lines.append(f"False Recovery Episodes (market fell >3% in 20d): "
-                     f"{sec3['def_b']['total_fr']}")
+        lines.append(
+            f"False Recovery Episodes (market fell >3% in 20d): {sec3['def_b']['total_fr']}"
+        )
         lines.append(f"  Brain BLOCKed: {sec3['def_b']['blocked']}")
         lines.append(f"  BUY leak:      {sec3['def_b']['leak']}")
         lines.append(f"Immunity Rate: {sec3['def_b']['immunity']:.2%}")
@@ -1080,13 +1175,13 @@ class BootstrapValidator:
             lines.append("| Date | State | CSI300 20d |")
             lines.append("|------|-------|-------------|")
             for d in sec3["def_b"]["leak_dates"]:
-                lines.append(f"| {d['date']} | {d['state']} | "
-                             f"{d['mkt_20d']:+.4%} |")
+                lines.append(f"| {d['date']} | {d['state']} | {d['mkt_20d']:+.4%} |")
         lines.append("")
 
         # Section 4
-        lines.append("## Section 4: Stability - "
-                     + ("PASS ✅" if sec4["passed"] else "CONDITIONAL ⚠️"))
+        lines.append(
+            "## Section 4: Stability - " + ("PASS ✅" if sec4["passed"] else "CONDITIONAL ⚠️")
+        )
         lines.append("")
         lines.append("```")
         lines.append("By Year:")
@@ -1097,8 +1192,9 @@ class BootstrapValidator:
         for st, v in sec4["by_state"].items():
             lines.append(f"  {st:22s}: {v['acc']:.1%}  ({v['correct']}/{v['total']})")
         lines.append("")
-        lines.append(f"Min yearly accuracy: {sec4['min_year_acc']:.1%}  "
-                     f"[gate: >= {GATE_YEARLY_MIN_ACC:.0%}]")
+        lines.append(
+            f"Min yearly accuracy: {sec4['min_year_acc']:.1%}  [gate: >= {GATE_YEARLY_MIN_ACC:.0%}]"
+        )
         lines.append("```")
         lines.append("")
 
@@ -1124,18 +1220,20 @@ class BootstrapValidator:
             lines.append("5. Year-by-year stability (no single-year collapse)")
             lines.append("")
             lines.append("Next phase: Security Analyst Reconstruction v2.")
-            lines.append("Evolution v4 remains disabled until the selection "
-                        "layer is rebuilt.")
+            lines.append("Evolution v4 remains disabled until the selection layer is rebuilt.")
         else:
-            lines.append("**Market Guardian v1.1 is CONDITIONAL.** The "
-                        "following gates did not pass:")
+            lines.append(
+                "**Market Guardian v1.1 is CONDITIONAL.** The following gates did not pass:"
+            )
             lines.append("")
             for k, g in verdict["gates"].items():
                 if not g["passed"]:
                     lines.append(f"- **{k}**: {g['desc']} - {g['detail']}")
             lines.append("")
-            lines.append("Do not freeze. Investigate failures before "
-                        "proceeding to Security Analyst Reconstruction.")
+            lines.append(
+                "Do not freeze. Investigate failures before "
+                "proceeding to Security Analyst Reconstruction."
+            )
         lines.append("")
 
         os.makedirs(os.path.dirname(report_path), exist_ok=True)
@@ -1157,33 +1255,39 @@ class BootstrapValidator:
         today = date.today().isoformat()
         total = len(rows)
         buys = [r for r in rows if r["decision"] == "BUY"]
-        blocks = [r for r in rows if r["decision"] == "BLOCK"
-                  and r["block_quality"] is not None]
-        correct_blocks = sum(1 for r in blocks
-                             if r["block_quality"] == "CORRECT_BLOCK")
+        blocks = [r for r in rows if r["decision"] == "BLOCK" and r["block_quality"] is not None]
+        correct_blocks = sum(1 for r in blocks if r["block_quality"] == "CORRECT_BLOCK")
         block_acc = correct_blocks / len(blocks) if blocks else 0.0
 
-        avoided = [r["avoided_loss"] for r in blocks
-                   if r["avoided_loss"] is not None]
-        missed = [r["missed_gain"] for r in blocks
-                  if r["missed_gain"] is not None]
+        avoided = [r["avoided_loss"] for r in blocks if r["avoided_loss"] is not None]
+        missed = [r["missed_gain"] for r in blocks if r["missed_gain"] is not None]
         avg_avoided = float(np.mean(avoided)) if avoided else 0.0
         avg_missed = float(np.mean(missed)) if missed else 0.0
 
         # Fill rolling alpha stats from bootstrap
-        self.conn.execute("""
+        self.conn.execute(
+            """
             INSERT OR REPLACE INTO shadow_metrics
             (metric_date, total_episodes, buy_episodes, block_episodes,
              avg_avoided_loss, avg_missed_gain, block_accuracy,
              rolling_alpha_median, rolling_alpha_p5, rolling_alpha_p95,
              rolling_p_negative)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            today, total, len(buys), len(blocks),
-            avg_avoided, avg_missed, block_acc,
-            sec1["boot_median"], sec1["boot_p5"], sec1["boot_p95"],
-            sec1["p_negative"],
-        ))
+        """,
+            (
+                today,
+                total,
+                len(buys),
+                len(blocks),
+                avg_avoided,
+                avg_missed,
+                block_acc,
+                sec1["boot_median"],
+                sec1["boot_p5"],
+                sec1["boot_p95"],
+                sec1["p_negative"],
+            ),
+        )
         self.conn.commit()
         print(f"\n=== shadow_metrics refreshed ({today}) ===", flush=True)
         print(f"  total_episodes: {total}", flush=True)
@@ -1194,8 +1298,7 @@ class BootstrapValidator:
     # Orchestrator
     # ------------------------------------------------------------------
 
-    def run(self, sections: set[int] | None = None,
-            n_iter: int = N_ITER_DEFAULT) -> dict:
+    def run(self, sections: set[int] | None = None, n_iter: int = N_ITER_DEFAULT) -> dict:
         """Run selected sections and return full results dict."""
         all_sections = {0, 1, 2, 3, 4}
         run_set = sections if sections else all_sections
@@ -1223,8 +1326,11 @@ class BootstrapValidator:
 
         if all(s in results for s in ["sec0", "sec1", "sec2", "sec3", "sec4"]):
             results["verdict"] = self.compute_verdict(
-                results["sec0"], results["sec1"], results["sec2"],
-                results["sec3"], results["sec4"],
+                results["sec0"],
+                results["sec1"],
+                results["sec2"],
+                results["sec3"],
+                results["sec4"],
             )
             print("\n" + "=" * 60, flush=True)
             print(f"FINAL VERDICT: {results['verdict']['verdict']}", flush=True)
@@ -1240,16 +1346,24 @@ class BootstrapValidator:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Market Guardian v1.1 Bootstrap Validation (6-S.11.3)")
-    parser.add_argument("--sections", type=str, default=None,
-                        help="Comma-separated section numbers to run "
-                             "(default: all). e.g. --sections 1,3")
-    parser.add_argument("--bootstrap-iter", type=int, default=N_ITER_DEFAULT,
-                        help=f"Bootstrap iterations (default: {N_ITER_DEFAULT})")
-    parser.add_argument("--no-report", action="store_true",
-                        help="Skip Markdown report export")
-    parser.add_argument("--no-metrics-refresh", action="store_true",
-                        help="Skip shadow_metrics table refresh")
+        description="Market Guardian v1.1 Bootstrap Validation (6-S.11.3)"
+    )
+    parser.add_argument(
+        "--sections",
+        type=str,
+        default=None,
+        help="Comma-separated section numbers to run (default: all). e.g. --sections 1,3",
+    )
+    parser.add_argument(
+        "--bootstrap-iter",
+        type=int,
+        default=N_ITER_DEFAULT,
+        help=f"Bootstrap iterations (default: {N_ITER_DEFAULT})",
+    )
+    parser.add_argument("--no-report", action="store_true", help="Skip Markdown report export")
+    parser.add_argument(
+        "--no-metrics-refresh", action="store_true", help="Skip shadow_metrics table refresh"
+    )
     args = parser.parse_args()
 
     sections = None
@@ -1260,19 +1374,19 @@ def main():
     results = validator.run(sections=sections, n_iter=args.bootstrap_iter)
 
     # Persist report + refresh metrics only when all sections ran
-    if (results.get("verdict") is not None
-            and not args.no_report
-            and not args.no_metrics_refresh):
+    if results.get("verdict") is not None and not args.no_report and not args.no_metrics_refresh:
         today = date.today().isoformat()
-        report_path = os.path.join(
-            REPORT_DIR, f"market_guardian_validation_{today}.md")
+        report_path = os.path.join(REPORT_DIR, f"market_guardian_validation_{today}.md")
         validator.export_markdown_report(
-            results["sec0"], results["sec1"], results["sec2"],
-            results["sec3"], results["sec4"], results["verdict"],
+            results["sec0"],
+            results["sec1"],
+            results["sec2"],
+            results["sec3"],
+            results["sec4"],
+            results["verdict"],
             report_path,
         )
-        validator.refresh_shadow_metrics(
-            validator._load_episodes(), results["sec1"])
+        validator.refresh_shadow_metrics(validator._load_episodes(), results["sec1"])
 
     validator.conn.close()
 

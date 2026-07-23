@@ -18,7 +18,6 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
 # Column mapping: mootdx pinyin → English
 FINANCE_MAP = {
     "jinglirun": "net_profit",

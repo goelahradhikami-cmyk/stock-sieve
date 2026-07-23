@@ -74,53 +74,64 @@ class RuleRegistry:
 
         # Fetch dynamic rules from failure_patterns
         conn = self.db.connect()
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT * FROM failure_patterns
             WHERE occurrence_count >= ?
               AND pattern_confidence >= ?
             ORDER BY occurrence_count DESC
-        """, (self.MIN_OCCURRENCE, self.MIN_CONFIDENCE)).fetchall()
+        """,
+            (self.MIN_OCCURRENCE, self.MIN_CONFIDENCE),
+        ).fetchall()
         conn.close()
 
         for row in rows:
             row_dict = dict(row)
-            rules.append({
-                "rule_id": f"dynamic_{row_dict['pattern_id']}",
-                "name": row_dict.get("pattern_name", ""),
-                "description": row_dict.get("preventive_action", ""),
-                "severity": min(0.9, row_dict.get("pattern_confidence", 0.7)),
-                "common_thesis_types": self._parse_field(row_dict.get("common_thesis_types")),
-                "common_factors": self._parse_field(row_dict.get("common_factors")),
-                "preventive_action": row_dict.get("preventive_action", ""),
-                "occurrence_count": row_dict.get("occurrence_count", 0),
-                "source": "dynamic",
-            })
+            rules.append(
+                {
+                    "rule_id": f"dynamic_{row_dict['pattern_id']}",
+                    "name": row_dict.get("pattern_name", ""),
+                    "description": row_dict.get("preventive_action", ""),
+                    "severity": min(0.9, row_dict.get("pattern_confidence", 0.7)),
+                    "common_thesis_types": self._parse_field(row_dict.get("common_thesis_types")),
+                    "common_factors": self._parse_field(row_dict.get("common_factors")),
+                    "preventive_action": row_dict.get("preventive_action", ""),
+                    "occurrence_count": row_dict.get("occurrence_count", 0),
+                    "source": "dynamic",
+                }
+            )
 
         return rules
 
     def promote_candidate(self, pattern_id: str):
         """Manually promote a failure pattern to validated status."""
         conn = self.db.connect()
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE failure_patterns
             SET pattern_confidence = MAX(pattern_confidence, 0.7),
                 validated_by = 'manual_promotion',
                 updated_at = CURRENT_TIMESTAMP
             WHERE pattern_id = ?
-        """, (pattern_id,))
+        """,
+            (pattern_id,),
+        )
         conn.commit()
         conn.close()
 
     def retire_rule(self, pattern_id: str):
         """Retire a rule (reduce confidence below threshold)."""
         conn = self.db.connect()
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE failure_patterns
             SET pattern_confidence = 0.3,
                 validated_by = 'retired',
                 updated_at = CURRENT_TIMESTAMP
             WHERE pattern_id = ?
-        """, (pattern_id,))
+        """,
+            (pattern_id,),
+        )
         conn.commit()
         conn.close()
 
@@ -130,14 +141,17 @@ class RuleRegistry:
         Called periodically (e.g., after Post-Mortem batch runs).
         """
         conn = self.db.connect()
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE failure_patterns
             SET pattern_confidence = MAX(pattern_confidence, 0.7),
                 validated_by = 'auto_promotion',
                 updated_at = CURRENT_TIMESTAMP
             WHERE occurrence_count >= ?
               AND pattern_confidence < 0.7
-        """, (self.MIN_OCCURRENCE,))
+        """,
+            (self.MIN_OCCURRENCE,),
+        )
         count = conn.total_changes
         conn.commit()
         conn.close()

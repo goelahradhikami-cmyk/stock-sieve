@@ -23,8 +23,8 @@ class _FakeMarketDataProvider:
 def _make_provider():
     # Patch the name IndexDataProvider looks up at construction time.
     from src.data import index_provider
-    with mock.patch.object(index_provider, "MarketDataProvider",
-                           _FakeMarketDataProvider):
+
+    with mock.patch.object(index_provider, "MarketDataProvider", _FakeMarketDataProvider):
         return index_provider.IndexDataProvider(":memory:")
 
 

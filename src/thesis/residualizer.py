@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -48,10 +47,11 @@ logger = get_logger(__name__)
 @dataclass
 class ResidualizedSignal:
     """Thesis signal after removing factor-correlated component."""
-    raw_thesis: float           # original thesis_score
-    factor_component: float     # βF (what factors can explain)
-    residual: float             # T - βF (genuinely new information)
-    orthogonality: float        # 1 - |factor_component / raw_thesis| (0=fully factor, 1=fully new)
+
+    raw_thesis: float  # original thesis_score
+    factor_component: float  # βF (what factors can explain)
+    residual: float  # T - βF (genuinely new information)
+    orthogonality: float  # 1 - |factor_component / raw_thesis| (0=fully factor, 1=fully new)
 
 
 class ThesisResidualizer:
@@ -67,9 +67,9 @@ class ThesisResidualizer:
     def __init__(self, eval_db: str = "data/evaluation.db"):
         self.eval_db = eval_db
 
-    def orthogonalize_universe(self, trade_date: str,
-                                thesis_signals: dict[str, dict]
-                                ) -> dict[str, float]:
+    def orthogonalize_universe(
+        self, trade_date: str, thesis_signals: dict[str, dict]
+    ) -> dict[str, float]:
         """Orthogonalize thesis signals for all stocks on a date.
 
         Args:
@@ -93,10 +93,9 @@ class ThesisResidualizer:
             if code in factor_scores and "thesis_score" in ts:
                 codes.append(code)
                 thesis_values.append(ts["thesis_score"])
-                factor_matrix.append([
-                    factor_scores[code].get(f, 50.0) / 100.0
-                    for f in self.FACTOR_FAMILIES
-                ])
+                factor_matrix.append(
+                    [factor_scores[code].get(f, 50.0) / 100.0 for f in self.FACTOR_FAMILIES]
+                )
 
         if len(codes) < 10:
             # Too few for regression - return raw thesis (can't orthogonalize)
@@ -117,10 +116,12 @@ class ThesisResidualizer:
         # Return residualized signals
         return {codes[i]: float(T_residual[i]) for i in range(len(codes))}
 
-    def orthogonalize_single(self, thesis_score: float,
-                              factor_scores: dict[str, float],
-                              universe_betas: np.ndarray | None = None
-                              ) -> ResidualizedSignal:
+    def orthogonalize_single(
+        self,
+        thesis_score: float,
+        factor_scores: dict[str, float],
+        universe_betas: np.ndarray | None = None,
+    ) -> ResidualizedSignal:
         """Orthogonalize a single stock's thesis signal.
 
         Uses pre-computed universe betas (from orthogonalize_universe) to

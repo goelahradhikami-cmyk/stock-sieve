@@ -31,12 +31,10 @@ Usage:
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
-from src.thesis.market_recovery import MarketState
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -45,17 +43,18 @@ logger = get_logger(__name__)
 @dataclass
 class MarketStateMachineResult:
     """Market state classification result."""
+
     date: str
-    state_type: str           # PANIC / FALSE_RECOVERY / EARLY_RECOVERY / CONFIRMED_RECOVERY
-    anomaly_weight: float     # 0.0 = no bets, 0.3 = small, 0.6 = normal, 1.0 = full
+    state_type: str  # PANIC / FALSE_RECOVERY / EARLY_RECOVERY / CONFIRMED_RECOVERY
+    anomaly_weight: float  # 0.0 = no bets, 0.3 = small, 0.6 = normal, 1.0 = full
     # Sub-scores
-    vol_score: float          # 0-1 (1 = vol contracting strongly)
-    breadth_score: float      # 0-1 (1 = broad participation)
-    trend_score: float        # 0-1 (1 = strong uptrend)
-    recovery_prob: float      # from RecoveryEngine
+    vol_score: float  # 0-1 (1 = vol contracting strongly)
+    breadth_score: float  # 0-1 (1 = broad participation)
+    trend_score: float  # 0-1 (1 = strong uptrend)
+    recovery_prob: float  # from RecoveryEngine
     # Diagnosis
-    state_reason: str         # why this state
-    allows_anomaly: bool      # should we act on anomalies?
+    state_reason: str  # why this state
+    allows_anomaly: bool  # should we act on anomalies?
 
     def to_dict(self) -> dict:
         return {
@@ -89,8 +88,7 @@ class MarketStateMachine:
       -> EARLY_RECOVERY (vol confirmed, breadth still catching up)
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
 
@@ -109,10 +107,13 @@ class MarketStateMachine:
         # PANIC: high volatility, no contraction
         if vol_score < 0.3:
             return MarketStateMachineResult(
-                date=trade_date, state_type="PANIC",
+                date=trade_date,
+                state_type="PANIC",
                 anomaly_weight=0.0,
-                vol_score=vol_score, breadth_score=breadth_score,
-                trend_score=trend_score, recovery_prob=recovery_prob,
+                vol_score=vol_score,
+                breadth_score=breadth_score,
+                trend_score=trend_score,
+                recovery_prob=recovery_prob,
                 allows_anomaly=False,
                 state_reason=f"vol_score={vol_score:.2f} < 0.3, panic not subsided",
             )
@@ -124,10 +125,13 @@ class MarketStateMachine:
         # This catches bear market rallies like 2022-08
         if not vol_contracting:
             return MarketStateMachineResult(
-                date=trade_date, state_type="FALSE_RECOVERY",
+                date=trade_date,
+                state_type="FALSE_RECOVERY",
                 anomaly_weight=0.0,
-                vol_score=vol_score, breadth_score=breadth_score,
-                trend_score=trend_score, recovery_prob=recovery_prob,
+                vol_score=vol_score,
+                breadth_score=breadth_score,
+                trend_score=trend_score,
+                recovery_prob=recovery_prob,
                 allows_anomaly=False,
                 state_reason=f"vol_chg={vol_chg:+.4f} >= -0.01, volatility not contracting (bear rally)",
             )
@@ -139,19 +143,25 @@ class MarketStateMachine:
             # Check if confirmed (strong vol contraction + decent breadth)
             if vol_chg < -0.03 and breadth_score > 0.45:
                 return MarketStateMachineResult(
-                    date=trade_date, state_type="CONFIRMED_RECOVERY",
+                    date=trade_date,
+                    state_type="CONFIRMED_RECOVERY",
                     anomaly_weight=1.0,
-                    vol_score=vol_score, breadth_score=breadth_score,
-                    trend_score=trend_score, recovery_prob=recovery_prob,
+                    vol_score=vol_score,
+                    breadth_score=breadth_score,
+                    trend_score=trend_score,
+                    recovery_prob=recovery_prob,
                     allows_anomaly=True,
                     state_reason=f"vol_chg={vol_chg:+.4f} strong contraction + breadth={breadth_score:.2f} confirmed",
                 )
             else:
                 return MarketStateMachineResult(
-                    date=trade_date, state_type="EARLY_RECOVERY",
+                    date=trade_date,
+                    state_type="EARLY_RECOVERY",
                     anomaly_weight=0.6,
-                    vol_score=vol_score, breadth_score=breadth_score,
-                    trend_score=trend_score, recovery_prob=recovery_prob,
+                    vol_score=vol_score,
+                    breadth_score=breadth_score,
+                    trend_score=trend_score,
+                    recovery_prob=recovery_prob,
                     allows_anomaly=True,
                     state_reason=f"vol_chg={vol_chg:+.4f} contracting + recovery={recovery_prob:.3f} + breadth={breadth_score:.2f}",
                 )
@@ -160,20 +170,26 @@ class MarketStateMachine:
         # This is the 2022-08 case: vol barely contracting, recovery_prob ~0.46
         if recovery_prob < 0.48:
             return MarketStateMachineResult(
-                date=trade_date, state_type="FALSE_RECOVERY",
+                date=trade_date,
+                state_type="FALSE_RECOVERY",
                 anomaly_weight=0.0,
-                vol_score=vol_score, breadth_score=breadth_score,
-                trend_score=trend_score, recovery_prob=recovery_prob,
+                vol_score=vol_score,
+                breadth_score=breadth_score,
+                trend_score=trend_score,
+                recovery_prob=recovery_prob,
                 allows_anomaly=False,
                 state_reason=f"vol contracting but recovery_prob={recovery_prob:.3f} < 0.48, not enough recovery",
             )
 
         # Default: uncertain, don't bet
         return MarketStateMachineResult(
-            date=trade_date, state_type="FALSE_RECOVERY",
+            date=trade_date,
+            state_type="FALSE_RECOVERY",
             anomaly_weight=0.0,
-            vol_score=vol_score, breadth_score=breadth_score,
-            trend_score=trend_score, recovery_prob=recovery_prob,
+            vol_score=vol_score,
+            breadth_score=breadth_score,
+            trend_score=trend_score,
+            recovery_prob=recovery_prob,
             allows_anomaly=False,
             state_reason=f"uncertain: vol={vol_score:.2f} breadth={breadth_score:.2f} recovery={recovery_prob:.3f}",
         )
@@ -184,6 +200,7 @@ class MarketStateMachine:
         Returns: (vol_score 0-1, vol_change)
         """
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=90)).isoformat()
 
         conn = sqlite3.connect(self.cache_db)
@@ -238,6 +255,7 @@ class MarketStateMachine:
         Returns: (trend_score 0-1, raw_trend_value)
         """
         from datetime import date, timedelta
+
         start = (date.fromisoformat(trade_date) - timedelta(days=90)).isoformat()
 
         conn = sqlite3.connect(self.cache_db)
@@ -258,10 +276,7 @@ class MarketStateMachine:
         current = closes[-1]
         ma60 = np.mean(closes[-60:]) if len(closes) >= 60 else np.mean(closes)
 
-        if ma60 > 0:
-            trend_val = float(np.clip((current - ma60) / ma60, -1, 1))
-        else:
-            trend_val = 0.0
+        trend_val = float(np.clip((current - ma60) / ma60, -1, 1)) if ma60 > 0 else 0.0
 
         trend_score = max(0, min(1, 0.5 + trend_val * 0.5))
         return trend_score, trend_val
@@ -269,6 +284,7 @@ class MarketStateMachine:
     def _compute_recovery_prob(self, trade_date: str) -> float:
         """Reuse MarketRecoveryEngine's composite probability."""
         from src.thesis.market_recovery import MarketRecoveryEngine
+
         engine = MarketRecoveryEngine(eval_db=self.eval_db, cache_db=self.cache_db)
         state = engine.compute_recovery_probability(trade_date)
         return state.recovery_probability

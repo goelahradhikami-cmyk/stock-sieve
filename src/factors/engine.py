@@ -21,17 +21,19 @@ import pandas as pd
 @dataclass
 class FactorResult:
     """Single factor computation result."""
+
     name: str
     family: str
     raw_value: float | None = None
-    percentile: float | None = None     # 0-1 cross-sectional rank
-    z_score: float | None = None        # standardized
-    weight: float = 0.0                    # weight in composite score
+    percentile: float | None = None  # 0-1 cross-sectional rank
+    z_score: float | None = None  # standardized
+    weight: float = 0.0  # weight in composite score
 
 
 @dataclass
 class CompositeResult:
     """Composite factor scores for a single stock."""
+
     code: str
     date: str
     quality_score: float = 50.0
@@ -50,47 +52,95 @@ class FactorEngine:
 
     FACTOR_FAMILIES = {
         "value": [
-            {"name": "pe_ttm",           "description": "PE (TTM)",            "direction": "lower_better"},
-            {"name": "pb",               "description": "PB",                  "direction": "lower_better"},
-            {"name": "ps",               "description": "PS ratio",            "direction": "lower_better"},
-            {"name": "ev_ebitda",        "description": "EV/EBITDA",           "direction": "lower_better"},
-            {"name": "fcf_yield",        "description": "FCF Yield",           "direction": "higher_better"},
-            {"name": "dividend_yield",   "description": "Dividend Yield",      "direction": "higher_better"},
-            {"name": "earnings_yield",   "description": "Earnings Yield",      "direction": "higher_better"},
-            {"name": "peg_ratio",        "description": "PEG Ratio",           "direction": "lower_better"},
+            {"name": "pe_ttm", "description": "PE (TTM)", "direction": "lower_better"},
+            {"name": "pb", "description": "PB", "direction": "lower_better"},
+            {"name": "ps", "description": "PS ratio", "direction": "lower_better"},
+            {"name": "ev_ebitda", "description": "EV/EBITDA", "direction": "lower_better"},
+            {"name": "fcf_yield", "description": "FCF Yield", "direction": "higher_better"},
+            {
+                "name": "dividend_yield",
+                "description": "Dividend Yield",
+                "direction": "higher_better",
+            },
+            {
+                "name": "earnings_yield",
+                "description": "Earnings Yield",
+                "direction": "higher_better",
+            },
+            {"name": "peg_ratio", "description": "PEG Ratio", "direction": "lower_better"},
         ],
         "quality": [
-            {"name": "roe",              "description": "ROE",                 "direction": "higher_better"},
-            {"name": "roe_5y_avg",       "description": "ROE 5Y Average",      "direction": "higher_better"},
-            {"name": "roic",             "description": "ROIC",                "direction": "higher_better"},
-            {"name": "gross_margin",     "description": "Gross Margin",        "direction": "higher_better"},
-            {"name": "net_margin",       "description": "Net Margin",          "direction": "higher_better"},
-            {"name": "accruals_ratio",   "description": "Accruals Ratio",      "direction": "lower_better"},
+            {"name": "roe", "description": "ROE", "direction": "higher_better"},
+            {"name": "roe_5y_avg", "description": "ROE 5Y Average", "direction": "higher_better"},
+            {"name": "roic", "description": "ROIC", "direction": "higher_better"},
+            {"name": "gross_margin", "description": "Gross Margin", "direction": "higher_better"},
+            {"name": "net_margin", "description": "Net Margin", "direction": "higher_better"},
+            {
+                "name": "accruals_ratio",
+                "description": "Accruals Ratio",
+                "direction": "lower_better",
+            },
         ],
         "growth": [
-            {"name": "revenue_growth_1y",  "description": "Revenue Growth 1Y",   "direction": "higher_better"},
-            {"name": "revenue_growth_3y",  "description": "Revenue Growth 3Y CAGR", "direction": "higher_better"},
-            {"name": "earnings_growth_1y", "description": "Earnings Growth 1Y",  "direction": "higher_better"},
-            {"name": "earnings_growth_3y", "description": "Earnings Growth 3Y CAGR", "direction": "higher_better"},
-            {"name": "margin_trend",     "description": "Margin Trend 3Y",     "direction": "higher_better"},
+            {
+                "name": "revenue_growth_1y",
+                "description": "Revenue Growth 1Y",
+                "direction": "higher_better",
+            },
+            {
+                "name": "revenue_growth_3y",
+                "description": "Revenue Growth 3Y CAGR",
+                "direction": "higher_better",
+            },
+            {
+                "name": "earnings_growth_1y",
+                "description": "Earnings Growth 1Y",
+                "direction": "higher_better",
+            },
+            {
+                "name": "earnings_growth_3y",
+                "description": "Earnings Growth 3Y CAGR",
+                "direction": "higher_better",
+            },
+            {
+                "name": "margin_trend",
+                "description": "Margin Trend 3Y",
+                "direction": "higher_better",
+            },
         ],
         "momentum": [
-            {"name": "momentum_1m",      "description": "1M Momentum",         "direction": "higher_better"},
-            {"name": "momentum_3m",      "description": "3M Momentum",         "direction": "higher_better"},
-            {"name": "momentum_6m",      "description": "6M Momentum",         "direction": "higher_better"},
-            {"name": "momentum_12m",     "description": "12M Momentum",        "direction": "higher_better"},
+            {"name": "momentum_1m", "description": "1M Momentum", "direction": "higher_better"},
+            {"name": "momentum_3m", "description": "3M Momentum", "direction": "higher_better"},
+            {"name": "momentum_6m", "description": "6M Momentum", "direction": "higher_better"},
+            {"name": "momentum_12m", "description": "12M Momentum", "direction": "higher_better"},
         ],
         "risk": [
-            {"name": "volatility_1m",    "description": "1M Volatility",       "direction": "lower_better"},
-            {"name": "max_drawdown_1y",  "description": "1Y Max Drawdown",     "direction": "lower_better"},
-            {"name": "debt_to_equity",   "description": "Debt-to-Equity",      "direction": "lower_better"},
-            {"name": "interest_coverage","description": "Interest Coverage",    "direction": "higher_better"},
-            {"name": "beta",             "description": "Beta",                "direction": "lower_better"},
+            {"name": "volatility_1m", "description": "1M Volatility", "direction": "lower_better"},
+            {
+                "name": "max_drawdown_1y",
+                "description": "1Y Max Drawdown",
+                "direction": "lower_better",
+            },
+            {
+                "name": "debt_to_equity",
+                "description": "Debt-to-Equity",
+                "direction": "lower_better",
+            },
+            {
+                "name": "interest_coverage",
+                "description": "Interest Coverage",
+                "direction": "higher_better",
+            },
+            {"name": "beta", "description": "Beta", "direction": "lower_better"},
         ],
         "sentiment": [
-            {"name": "holder_change_pct","description": "Holder Count Change",  "direction": "lower_better"},
-            {"name": "rsi_14",           "description": "RSI 14-day",          "direction": "neutral"},
-            {"name": "volume_ratio",     "description": "Volume Ratio",        "direction": "neutral"},
+            {
+                "name": "holder_change_pct",
+                "description": "Holder Count Change",
+                "direction": "lower_better",
+            },
+            {"name": "rsi_14", "description": "RSI 14-day", "direction": "neutral"},
+            {"name": "volume_ratio", "description": "Volume Ratio", "direction": "neutral"},
         ],
     }
 
@@ -101,9 +151,9 @@ class FactorEngine:
                 f["family"] = family
                 self._all_factors.append(f)
 
-    def compute_single_stock(self, code: str, financial_data: dict,
-                             price_data: pd.DataFrame,
-                             market_data: dict = None) -> CompositeResult:
+    def compute_single_stock(
+        self, code: str, financial_data: dict, price_data: pd.DataFrame, market_data: dict = None
+    ) -> CompositeResult:
         """Compute all factors for a single stock.
 
         Args:
@@ -128,11 +178,13 @@ class FactorEngine:
             family = factor_def["family"]
 
             raw_value = self._compute_factor(name, financial_data, price_data, market_data)
-            factors.append(FactorResult(
-                name=name,
-                family=family,
-                raw_value=raw_value,
-            ))
+            factors.append(
+                FactorResult(
+                    name=name,
+                    family=family,
+                    raw_value=raw_value,
+                )
+            )
 
         result.factors = factors
 
@@ -156,7 +208,9 @@ class FactorEngine:
                 if fd["direction"] == "higher_better":
                     scores.append(raw * 100 if abs(raw) <= 1 else min(100, max(0, raw)))
                 elif fd["direction"] == "lower_better":
-                    scores.append(max(0, 100 - raw * 100) if abs(raw) <= 1 else min(100, max(0, 100 - raw)))
+                    scores.append(
+                        max(0, 100 - raw * 100) if abs(raw) <= 1 else min(100, max(0, 100 - raw))
+                    )
                 else:  # neutral
                     scores.append(50.0)
 
@@ -171,8 +225,9 @@ class FactorEngine:
 
         return result
 
-    def _compute_factor(self, name: str, financial: dict,
-                        prices: pd.DataFrame, market: dict = None) -> float | None:
+    def _compute_factor(
+        self, name: str, financial: dict, prices: pd.DataFrame, market: dict = None
+    ) -> float | None:
         """Compute a single factor value."""
 
         # ── Value factors ─────────────────────────────────
@@ -231,7 +286,7 @@ class FactorEngine:
         def _mom(days: int) -> float | None:
             if len(prices) <= days:
                 return None
-            return float(prices["close"].iloc[-1] / prices["close"].iloc[-days-1] - 1)
+            return float(prices["close"].iloc[-1] / prices["close"].iloc[-days - 1] - 1)
 
         if name == "momentum_1m":
             return _mom(21)
@@ -290,7 +345,9 @@ class FactorEngine:
 
         return None
 
-    def compute_cross_sectional(self, stock_results: list[CompositeResult]) -> list[CompositeResult]:
+    def compute_cross_sectional(
+        self, stock_results: list[CompositeResult]
+    ) -> list[CompositeResult]:
         """Normalize factors *and* composite family scores across the universe.
 
         For each factor this populates ``percentile`` (0-1 cross-sectional rank)

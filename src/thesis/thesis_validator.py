@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -39,18 +38,19 @@ logger = get_logger(__name__)
 @dataclass
 class ThesisValidation:
     """Result of validating a thesis after T+N."""
+
     code: str
     thesis_date: str
     eval_date: str
     # What the thesis predicted
-    predicted_acceleration: bool    # was fundamental_acceleration > 0?
-    predicted_mispricing: bool      # was mispricing_gap > 0?
+    predicted_acceleration: bool  # was fundamental_acceleration > 0?
+    predicted_mispricing: bool  # was mispricing_gap > 0?
     # What actually happened
-    actual_earnings_change: float   # Δ(earnings_yoy) between thesis_date and eval_date
-    actual_price_change: float      # stock return over the period
+    actual_earnings_change: float  # Δ(earnings_yoy) between thesis_date and eval_date
+    actual_price_change: float  # stock return over the period
     # Validation
-    thesis_correct: bool            # was the thesis prediction right?
-    accuracy_score: float           # 0-1 (1 = thesis fully validated)
+    thesis_correct: bool  # was the thesis prediction right?
+    accuracy_score: float  # 0-1 (1 = thesis fully validated)
 
 
 class ThesisValidator:
@@ -67,11 +67,15 @@ class ThesisValidator:
     def __init__(self, cache_db: str = "data/cache.db"):
         self.cache_db = cache_db
 
-    def validate(self, code: str, thesis_date: str,
-                  eval_date: str,
-                  predicted_acceleration: bool = None,
-                  predicted_mispricing: bool = None,
-                  actual_price_change: float = None) -> ThesisValidation:
+    def validate(
+        self,
+        code: str,
+        thesis_date: str,
+        eval_date: str,
+        predicted_acceleration: bool = None,
+        predicted_mispricing: bool = None,
+        actual_price_change: float = None,
+    ) -> ThesisValidation:
         """Validate a thesis prediction against actual outcomes.
 
         Args:
@@ -115,14 +119,11 @@ class ThesisValidator:
             predicted_acceleration = True  # assume thesis was positive
 
         # Thesis correctness: did the prediction match reality?
-        thesis_correct = (predicted_acceleration == actual_acceleration)
+        thesis_correct = predicted_acceleration == actual_acceleration
 
         # Accuracy score: how well did the thesis predict?
         # 1.0 = fully correct, 0.5 = partially, 0.0 = fully wrong
-        if thesis_correct:
-            accuracy_score = 1.0
-        else:
-            accuracy_score = 0.0
+        accuracy_score = 1.0 if thesis_correct else 0.0
 
         # Boost if mispricing closed (price caught up to fundamentals)
         if predicted_mispricing and actual_earnings_change > 0 and actual_price > 0:
@@ -140,10 +141,13 @@ class ThesisValidator:
             accuracy_score=accuracy_score,
         )
 
-    def validate_batch(self, picks: list[dict],
-                        thesis_date: str, eval_date: str,
-                        pick_returns: list[float] | None = None
-                        ) -> dict[str, ThesisValidation]:
+    def validate_batch(
+        self,
+        picks: list[dict],
+        thesis_date: str,
+        eval_date: str,
+        pick_returns: list[float] | None = None,
+    ) -> dict[str, ThesisValidation]:
         """Validate thesis for a batch of picks.
 
         Args:
@@ -200,12 +204,13 @@ class ThesisValidator:
     def _get_price_return(self, code: str, start: str, end: str) -> float:
         """Get stock return between two dates from local K-line."""
         from src.data.local_provider import LocalDataProvider
+
         local = LocalDataProvider()
         try:
             kline = local.get_daily_kline(code, start, end)
             if kline is not None and not kline.empty and len(kline) >= 2:
                 close = kline["close"].values
                 return float((close[-1] - close[0]) / close[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("operation failed (was silently ignored): %s", exc)
         return 0.0

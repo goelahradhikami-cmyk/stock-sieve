@@ -1,4 +1,5 @@
 """Committee Card — Terminal-styled role scoring dashboard."""
+
 import json
 
 import plotly.graph_objects as go
@@ -42,20 +43,23 @@ def committee_card(decision: dict):
     fig = go.Figure()
     colors_bar = [GAIN if s >= 70 else WARN if s >= 50 else LOSS for s in scores]
 
-    fig.add_trace(go.Bar(
-        x=scores,
-        y=role_labels,
-        orientation="h",
-        marker_color=colors_bar,
-        text=[f"{s:.0f}" for s in scores],
-        textposition="outside",
-        textfont=dict(color=TEXT_PRIMARY, size=12),
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=scores,
+            y=role_labels,
+            orientation="h",
+            marker_color=colors_bar,
+            text=[f"{s:.0f}" for s in scores],
+            textposition="outside",
+            textfont=dict(color=TEXT_PRIMARY, size=12),
+        )
+    )
 
-    for i, (s, w) in enumerate(zip(scores, role_weights)):
+    for i, (s, w) in enumerate(zip(scores, role_weights, strict=False)):
         fig.add_annotation(
-            x=s + 2, y=i,
-            text=f"×{w:.0%} = {s*w:.1f}",
+            x=s + 2,
+            y=i,
+            text=f"×{w:.0%} = {s * w:.1f}",
             showarrow=False,
             font=dict(size=10, color=TEXT_SECONDARY),
         )
@@ -85,7 +89,9 @@ def committee_card(decision: dict):
     # ── Member statements ────────────────────────────────
     statements_raw = decision.get("member_statements_json", "{}")
     try:
-        statements = json.loads(statements_raw) if isinstance(statements_raw, str) else statements_raw
+        statements = (
+            json.loads(statements_raw) if isinstance(statements_raw, str) else statements_raw
+        )
     except (json.JSONDecodeError, TypeError):
         statements = {}
 
@@ -100,9 +106,7 @@ def committee_card(decision: dict):
             }
             for role_key, stmt in statements.items():
                 if stmt:
-                    st.markdown(
-                        f"**{role_names.get(role_key, role_key)}**: {stmt}"
-                    )
+                    st.markdown(f"**{role_names.get(role_key, role_key)}**: {stmt}")
 
     # ── Monitoring flags ─────────────────────────────────
     flags_raw = decision.get("monitoring_flags_json", "[]")

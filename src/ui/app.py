@@ -17,7 +17,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from src.ui.nav import LABELS, PAGES, key_for
-from src.ui.utils.theme import ACCENT_CYAN, BG_SIDEBAR, BORDER_COLOR, TERMINAL_CSS, TEXT_SECONDARY
+from src.ui.utils.theme import BG_SIDEBAR, BORDER_COLOR, TERMINAL_CSS, TEXT_SECONDARY
 from src.ui.views import (
     committee_room,
     data_stage,
@@ -29,6 +29,9 @@ from src.ui.views import (
     portfolio_stage,
     thesis_tracker,
 )
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ── Page config ──────────────────────────────────────────
 st.set_page_config(
@@ -64,7 +67,8 @@ except ValueError:
 # ── Sidebar ──────────────────────────────────────────────
 with st.sidebar:
     # Brand header
-    st.markdown("""
+    st.markdown(
+        """
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
         <span style="font-size:2rem;">🧬</span>
         <div>
@@ -77,7 +81,9 @@ with st.sidebar:
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.divider()
 
@@ -86,32 +92,37 @@ with st.sidebar:
     status_ok = False
     try:
         from src.ui.utils.db_connector import get_db
+
         db = get_db()
         conn = db.connect()
         agent_count = conn.execute(
             "SELECT COUNT(*) FROM agent_genome_snapshots WHERE status='active'"
         ).fetchone()[0]
-        committee_count = conn.execute(
-            "SELECT COUNT(*) FROM committee_decisions"
-        ).fetchone()[0]
+        committee_count = conn.execute("SELECT COUNT(*) FROM committee_decisions").fetchone()[0]
         row = conn.execute(
             "SELECT market_regime FROM signal_snapshot ORDER BY created_at DESC LIMIT 1"
         ).fetchone()
         conn.close()
-        regime_map = {"bull": "牛市", "bear": "熊市", "rotation": "轮动",
-                      "volatile": "震荡", "crisis": "危机"}
+        regime_map = {
+            "bull": "牛市",
+            "bear": "熊市",
+            "rotation": "轮动",
+            "volatile": "震荡",
+            "crisis": "危机",
+        }
         raw_regime = (row[0] or "") if row else ""
         market_regime = regime_map.get(raw_regime.lower(), raw_regime or "—")
         status_ok = True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("operation failed (was silently ignored): %s", exc)
 
     _status_label = "ONLINE" if status_ok else "DEGRADED"
     _status_color = "#00e676" if status_ok else "#ffab40"
     _dot_class = "status-dot-active" if status_ok else "status-dot-idle"
     _regime_color = {"牛市": "#00e676", "熊市": "#ff5252"}.get(market_regime, "#ffab40")
 
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="
         background: {BG_SIDEBAR}; border: 1px solid {BORDER_COLOR};
         border-radius: 8px; padding: 12px 16px; margin-bottom: 8px;">
@@ -139,7 +150,9 @@ with st.sidebar:
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # ── Navigation ───────────────────────────────────────
     st.markdown('<div class="nav-radio">', unsafe_allow_html=True)
@@ -151,29 +164,32 @@ with st.sidebar:
         on_change=_sync_nav_radio,
         label_visibility="collapsed",
     )
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     st.divider()
 
     # ── Footer ───────────────────────────────────────────
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="font-size:0.7rem; color:{TEXT_SECONDARY};
                 font-family:'JetBrains Mono',monospace; padding: 4px 0;">
         <div>Protocol v1.1 &middot; Genome v3.2 &middot; Committee v1.0.1</div>
-        <div>Stock Sieve v0.1.0 &middot; {datetime.now().strftime('%Y-%m-%d')}</div>
+        <div>Stock Sieve v0.1.0 &middot; {datetime.now().strftime("%Y-%m-%d")}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 # ── Main content routing ─────────────────────────────────
 _route = {
-    "overview":        pipeline_overview.render,
-    "data_stage":      data_stage.render,
-    "factors_stage":   factors_stage.render,
-    "committee_room":  committee_room.render,
-    "leaderboard":     leaderboard.render,
-    "thesis_tracker":  thesis_tracker.render,
+    "overview": pipeline_overview.render,
+    "data_stage": data_stage.render,
+    "factors_stage": factors_stage.render,
+    "committee_room": committee_room.render,
+    "leaderboard": leaderboard.render,
+    "thesis_tracker": thesis_tracker.render,
     "portfolio_stage": portfolio_stage.render,
     "execution_stage": execution_stage.render,
-    "genome_fusion":   genome_fusion.render,
+    "genome_fusion": genome_fusion.render,
 }
 _route.get(key_for(st.session_state.current_page), pipeline_overview.render)()

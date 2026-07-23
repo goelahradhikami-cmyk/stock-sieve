@@ -18,13 +18,13 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
 import json
-from datetime import date, datetime
+import os
+import sqlite3
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -94,11 +94,15 @@ def section_a_signal_usage_audit(episodes):
     block_confs = [e["confidence"] for e in block if e["confidence"] is not None]
 
     if buy_confs:
-        print(f"\n  BUY confidence: mean={np.mean(buy_confs):.1f}, range=[{min(buy_confs):.1f}, {max(buy_confs):.1f}]",
-              flush=True)
+        print(
+            f"\n  BUY confidence: mean={np.mean(buy_confs):.1f}, range=[{min(buy_confs):.1f}, {max(buy_confs):.1f}]",
+            flush=True,
+        )
     if block_confs:
-        print(f"  BLOCK confidence: mean={np.mean(block_confs):.1f}, range=[{min(block_confs):.1f}, {max(block_confs):.1f}]",
-              flush=True)
+        print(
+            f"  BLOCK confidence: mean={np.mean(block_confs):.1f}, range=[{min(block_confs):.1f}, {max(block_confs):.1f}]",
+            flush=True,
+        )
 
     # Check: confidence_band usage (this is Guardian's design, not MUS misuse)
     band_counts = defaultdict(lambda: {"BUY": 0, "BLOCK": 0})
@@ -106,7 +110,7 @@ def section_a_signal_usage_audit(episodes):
         band = e.get("confidence_band", "unknown")
         band_counts[band][e["decision"]] += 1
 
-    print(f"\n  Confidence band -> decision (Guardian design, not MUS misuse):", flush=True)
+    print("\n  Confidence band -> decision (Guardian design, not MUS misuse):", flush=True)
     print(f"  {'band':10s} {'BUY':>6} {'BLOCK':>6} {'total':>6}", flush=True)
     for band in ["blocked", "small", "normal", "full"]:
         bc = band_counts.get(band, {"BUY": 0, "BLOCK": 0})
@@ -120,9 +124,14 @@ def section_a_signal_usage_audit(episodes):
     violation_found = False
     within_band_results = {}
     for band in ["normal", "full"]:
-        band_positions = [(e["confidence"], e["position_target"]) for e in episodes
-                          if e["confidence"] is not None and e["position_target"] is not None
-                          and e["position_target"] > 0 and e.get("confidence_band") == band]
+        band_positions = [
+            (e["confidence"], e["position_target"])
+            for e in episodes
+            if e["confidence"] is not None
+            and e["position_target"] is not None
+            and e["position_target"] > 0
+            and e.get("confidence_band") == band
+        ]
         if len(band_positions) >= 10:
             confs = np.array([p[0] for p in band_positions])
             targets = np.array([p[1] for p in band_positions])
@@ -130,38 +139,67 @@ def section_a_signal_usage_audit(episodes):
                 corr = float(np.corrcoef(confs, targets)[0, 1])
                 within_band_results[band] = {"n": len(band_positions), "corr": corr}
                 if abs(corr) > 0.3:
-                    print(f"\n  WITHIN-BAND [{band}]: correlation(confidence, position) = {corr:.4f}", flush=True)
-                    print(f"  WARNING: MUS is influencing position sizing within {band} band!", flush=True)
+                    print(
+                        f"\n  WITHIN-BAND [{band}]: correlation(confidence, position) = {corr:.4f}",
+                        flush=True,
+                    )
+                    print(
+                        f"  WARNING: MUS is influencing position sizing within {band} band!",
+                        flush=True,
+                    )
                     violation_found = True
                 else:
-                    print(f"\n  WITHIN-BAND [{band}]: correlation = {corr:.4f} (N={len(band_positions)})", flush=True)
+                    print(
+                        f"\n  WITHIN-BAND [{band}]: correlation = {corr:.4f} (N={len(band_positions)})",
+                        flush=True,
+                    )
             else:
-                within_band_results[band] = {"n": len(band_positions), "corr": 0.0, "constant_target": float(targets[0])}
-                print(f"\n  WITHIN-BAND [{band}]: N={len(band_positions)}, all target={targets[0]:.1f} (constant, no MUS influence)", flush=True)
+                within_band_results[band] = {
+                    "n": len(band_positions),
+                    "corr": 0.0,
+                    "constant_target": float(targets[0]),
+                }
+                print(
+                    f"\n  WITHIN-BAND [{band}]: N={len(band_positions)}, all target={targets[0]:.1f} (constant, no MUS influence)",
+                    flush=True,
+                )
         else:
             print(f"\n  WITHIN-BAND [{band}]: N={len(band_positions)} (insufficient)", flush=True)
 
     # Cross-band correlation is EXPECTED (Guardian design), report for context only
-    all_positions = [(e["confidence"], e["position_target"]) for e in episodes
-                     if e["confidence"] is not None and e["position_target"] is not None
-                     and e["position_target"] > 0]
+    all_positions = [
+        (e["confidence"], e["position_target"])
+        for e in episodes
+        if e["confidence"] is not None
+        and e["position_target"] is not None
+        and e["position_target"] > 0
+    ]
     if len(all_positions) >= 20:
         confs = np.array([p[0] for p in all_positions])
         targets = np.array([p[1] for p in all_positions])
         cross_corr = float(np.corrcoef(confs, targets)[0, 1])
-        print(f"\n  Cross-band correlation (Guardian design, expected): {cross_corr:.4f}", flush=True)
-        print(f"  This is BY DESIGN: band determines position_target (normal=0.6, full=1.0).", flush=True)
+        print(
+            f"\n  Cross-band correlation (Guardian design, expected): {cross_corr:.4f}", flush=True
+        )
+        print(
+            "  This is BY DESIGN: band determines position_target (normal=0.6, full=1.0).",
+            flush=True,
+        )
 
     # Summary
     violations = 0 if not violation_found else 1
     verdict = "PASS" if violations == 0 else "VIOLATION"
     print(f"\n  SECTION A VERDICT: {verdict}", flush=True)
     if violations == 0:
-        print(f"  MUS did not change trading actions beyond Guardian's design.", flush=True)
+        print("  MUS did not change trading actions beyond Guardian's design.", flush=True)
 
-    return {"violations": violations, "verdict": verdict,
-            "buy_count": len(buy), "block_count": len(block),
-            "within_band_results": within_band_results}
+    return {
+        "violations": violations,
+        "verdict": verdict,
+        "buy_count": len(buy),
+        "block_count": len(block),
+        "within_band_results": within_band_results,
+    }
 
 
 def section_b_decision_fingerprint(episodes):
@@ -195,7 +233,7 @@ def section_b_decision_fingerprint(episodes):
         else:
             reason_counts["no_reason_code"] += 1
 
-    print(f"\n  Reason code distribution:", flush=True)
+    print("\n  Reason code distribution:", flush=True)
     for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1]):
         print(f"    {reason:40s}: {count}", flush=True)
 
@@ -212,24 +250,33 @@ def section_b_decision_fingerprint(episodes):
         print(f"\n  FORBIDDEN REASONS FOUND: {forbidden_found}", flush=True)
         verdict = "VIOLATION"
     else:
-        print(f"\n  No forbidden reason patterns detected.", flush=True)
+        print("\n  No forbidden reason patterns detected.", flush=True)
         verdict = "PASS"
 
     # Check position_target distribution (should be from band, not MUS)
-    buy_targets = [e["position_target"] for e in episodes
-                   if e["decision"] == "BUY" and e["position_target"] is not None]
+    buy_targets = [
+        e["position_target"]
+        for e in episodes
+        if e["decision"] == "BUY" and e["position_target"] is not None
+    ]
     if buy_targets:
         unique_targets = sorted(set(buy_targets))
         print(f"\n  BUY position_target values: {unique_targets[:10]}", flush=True)
         if len(unique_targets) <= 5:
-            print(f"  OK: discrete targets (from confidence_band, not continuous MUS).", flush=True)
+            print("  OK: discrete targets (from confidence_band, not continuous MUS).", flush=True)
         else:
-            print(f"  WARN: many unique targets. Check if continuous MUS is sizing positions.", flush=True)
+            print(
+                "  WARN: many unique targets. Check if continuous MUS is sizing positions.",
+                flush=True,
+            )
 
     print(f"\n  SECTION B VERDICT: {verdict}", flush=True)
 
-    return {"verdict": verdict, "forbidden_reasons": forbidden_found,
-            "reason_counts": dict(reason_counts)}
+    return {
+        "verdict": verdict,
+        "forbidden_reasons": forbidden_found,
+        "reason_counts": dict(reason_counts),
+    }
 
 
 def section_c_constitution_drift(episodes):
@@ -244,8 +291,13 @@ def section_c_constitution_drift(episodes):
     print("=" * 70, flush=True)
 
     # For BUY episodes: check WITHIN-BAND correlation (cross-band is Guardian design)
-    buy = [e for e in episodes if e["decision"] == "BUY"
-           and e["confidence"] is not None and e["position_target"] is not None]
+    buy = [
+        e
+        for e in episodes
+        if e["decision"] == "BUY"
+        and e["confidence"] is not None
+        and e["position_target"] is not None
+    ]
 
     if len(buy) < 20:
         print(f"\n  Insufficient BUY episodes ({len(buy)}) for drift check.", flush=True)
@@ -256,7 +308,9 @@ def section_c_constitution_drift(episodes):
     targets_all = np.array([e["position_target"] for e in buy])
     cross_corr = float(np.corrcoef(confs_all, targets_all)[0, 1])
     print(f"\n  N BUY episodes: {len(buy)}", flush=True)
-    print(f"  Cross-band correlation (Guardian design): {cross_corr:.4f} (expected high)", flush=True)
+    print(
+        f"  Cross-band correlation (Guardian design): {cross_corr:.4f} (expected high)", flush=True
+    )
 
     # Within-band correlation (the REAL drift check)
     max_within_corr = 0.0
@@ -274,28 +328,36 @@ def section_c_constitution_drift(episodes):
                 if abs(corr) > 0.3:
                     drift_found = True
             else:
-                print(f"  Within-band [{band}]: N={len(band_buy)}, constant target={targets[0]:.1f} (no drift)", flush=True)
+                print(
+                    f"  Within-band [{band}]: N={len(band_buy)}, constant target={targets[0]:.1f} (no drift)",
+                    flush=True,
+                )
 
     print(f"\n  Max within-band correlation: {max_within_corr:.4f}", flush=True)
-    print(f"  Threshold for ALERT: > 0.3", flush=True)
+    print("  Threshold for ALERT: > 0.3", flush=True)
 
     if drift_found:
-        print(f"  ALERT: within-band correlation > 0.3. MUS may be influencing position sizing.", flush=True)
+        print(
+            "  ALERT: within-band correlation > 0.3. MUS may be influencing position sizing.",
+            flush=True,
+        )
         verdict = "ALERT"
     elif max_within_corr > 0.1:
-        print(f"  CAUTION: weak within-band correlation. Monitor.", flush=True)
+        print("  CAUTION: weak within-band correlation. Monitor.", flush=True)
         verdict = "CAUTION"
     else:
-        print(f"  OK: no drift detected. Position comes from band, not continuous MUS.", flush=True)
+        print("  OK: no drift detected. Position comes from band, not continuous MUS.", flush=True)
         verdict = "PASS"
 
     # Monthly trend: within-band correlation over time
     by_month = defaultdict(list)
     for e in buy:
         month_key = e["trade_date"][:7]
-        by_month[month_key].append((e["confidence"], e["position_target"], e.get("confidence_band", "")))
+        by_month[month_key].append(
+            (e["confidence"], e["position_target"], e.get("confidence_band", ""))
+        )
 
-    print(f"\n  Monthly cross-band correlation (context):", flush=True)
+    print("\n  Monthly cross-band correlation (context):", flush=True)
     print(f"  {'month':8s} {'n':>4} {'cross_corr':>10}", flush=True)
     trend_data = []
     for month_key in sorted(by_month.keys()):
@@ -303,17 +365,18 @@ def section_c_constitution_drift(episodes):
         if len(pairs) >= 5:
             c = np.array([p[0] for p in pairs])
             t = np.array([p[1] for p in pairs])
-            if len(set(t)) > 1:
-                m_corr = float(np.corrcoef(c, t)[0, 1])
-            else:
-                m_corr = 0.0
+            m_corr = float(np.corrcoef(c, t)[0, 1]) if len(set(t)) > 1 else 0.0
             print(f"  {month_key:8s} {len(pairs):4d} {m_corr:+9.4f}", flush=True)
             trend_data.append({"month": month_key, "n": len(pairs), "cross_corr": m_corr})
 
     print(f"\n  SECTION C VERDICT: {verdict}", flush=True)
 
-    return {"verdict": verdict, "cross_band_corr": cross_corr,
-            "max_within_band_corr": float(max_within_corr), "monthly_trend": trend_data}
+    return {
+        "verdict": verdict,
+        "cross_band_corr": cross_corr,
+        "max_within_band_corr": float(max_within_corr),
+        "monthly_trend": trend_data,
+    }
 
 
 def run_audit(month: str | None = None):
@@ -342,19 +405,23 @@ def run_audit(month: str | None = None):
     print(f"  Section B (Decision Fingerprint): {b['verdict']}", flush=True)
     print(f"  Section C (Constitution Drift):    {c['verdict']}", flush=True)
 
-    total_violations = a["violations"] + (1 if b["verdict"] == "VIOLATION" else 0) + (1 if c["verdict"] == "ALERT" else 0)
+    total_violations = (
+        a["violations"]
+        + (1 if b["verdict"] == "VIOLATION" else 0)
+        + (1 if c["verdict"] == "ALERT" else 0)
+    )
     overall = "PASS" if total_violations == 0 else "VIOLATION"
 
     print(f"\n  OVERALL: {overall}", flush=True)
     print(f"  Violations: {total_violations}", flush=True)
 
     if overall == "PASS":
-        print(f"\n  Constitution held. MUS did not influence capital decisions.", flush=True)
-        print(f"  Continue paper trading.", flush=True)
+        print("\n  Constitution held. MUS did not influence capital decisions.", flush=True)
+        print("  Continue paper trading.", flush=True)
     else:
-        print(f"\n  CONSTITUTION VIOLATION DETECTED.", flush=True)
-        print(f"  STOP. Review why discipline broke.", flush=True)
-        print(f"  Log incident. Reset before continuing.", flush=True)
+        print("\n  CONSTITUTION VIOLATION DETECTED.", flush=True)
+        print("  STOP. Review why discipline broke.", flush=True)
+        print("  Log incident. Reset before continuing.", flush=True)
 
     # Export
     os.makedirs(REPORT_DIR, exist_ok=True)

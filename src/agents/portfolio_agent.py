@@ -22,6 +22,7 @@ from datetime import datetime
 @dataclass
 class PortfolioState:
     """Current portfolio state."""
+
     cash_balance: float = 1_000_000.0
     positions: list[dict] = field(default_factory=list)
     realized_pnl: float = 0.0
@@ -32,8 +33,9 @@ class PortfolioState:
 @dataclass
 class RiskPolicy:
     """Portfolio-level risk constraints."""
-    max_single_position: float = 0.10        # 10% max per stock
-    conviction_max: float = 0.20             # 20% max for conviction positions
+
+    max_single_position: float = 0.10  # 10% max per stock
+    conviction_max: float = 0.20  # 20% max for conviction positions
     max_positions: int = 15
     min_positions: int = 5
     min_cash: float = 0.05
@@ -48,8 +50,9 @@ class RiskPolicy:
 @dataclass
 class PositionDecision:
     """Single position allocation decision."""
+
     stock_code: str
-    action: str                    # BUY / SELL / HOLD / REDUCE
+    action: str  # BUY / SELL / HOLD / REDUCE
     target_weight: float
     current_weight: float = 0.0
     delta_weight: float = 0.0
@@ -63,6 +66,7 @@ class PositionDecision:
 @dataclass
 class PortfolioDecision:
     """Complete portfolio allocation output."""
+
     policy_id: str
     timestamp: str
     decisions: list[PositionDecision] = field(default_factory=list)
@@ -93,33 +97,33 @@ class PortfolioAgent:
     # ── Conviction → base position mapping (§3.2) ──────────
 
     BASE_POSITION_MAP = [
-        (0, 4,   0.0,   "no_trade"),
+        (0, 4, 0.0, "no_trade"),
         # 4-5: cleared research alpha>=4 gate AND committee APPROVE, but
         # signal is weak - give a micro pilot so the pipeline can still
         # reach execution instead of dead-ending at zero weight.
-        (4, 5,   0.015, "micro_pilot"),
-        (5, 7,   0.03,  "pilot_position"),
-        (7, 8.5, 0.06,  "standard_position"),
+        (4, 5, 0.015, "micro_pilot"),
+        (5, 7, 0.03, "pilot_position"),
+        (7, 8.5, 0.06, "standard_position"),
         (8.5, 10, 0.10, "conviction_position"),
     ]
 
     # ── Alpha → expected excess return mapping (§3.3 Kelly) ─
 
     ALPHA_TO_RETURN = [
-        (0, 5,   0.0),
-        (5, 6,   0.05),
-        (6, 7,   0.10),
-        (7, 8,   0.15),
-        (8, 9,   0.22),
-        (9, 10,  0.30),
+        (0, 5, 0.0),
+        (5, 6, 0.05),
+        (6, 7, 0.10),
+        (7, 8, 0.15),
+        (8, 9, 0.22),
+        (9, 10, 0.30),
     ]
 
     # ── Market regime exposure limits (§3.5) ────────────────
 
     REGIME_CONFIG = {
-        "bull":     {"max_exposure": 0.95, "conviction_multiplier": 1.0, "cash_target": 0.05},
-        "bear":     {"max_exposure": 0.70, "conviction_multiplier": 0.8, "cash_target": 0.20},
-        "crisis":   {"max_exposure": 0.40, "conviction_multiplier": 0.5, "cash_target": 0.30},
+        "bull": {"max_exposure": 0.95, "conviction_multiplier": 1.0, "cash_target": 0.05},
+        "bear": {"max_exposure": 0.70, "conviction_multiplier": 0.8, "cash_target": 0.20},
+        "crisis": {"max_exposure": 0.40, "conviction_multiplier": 0.5, "cash_target": 0.30},
         "rotation": {"max_exposure": 0.85, "conviction_multiplier": 0.9, "cash_target": 0.10},
     }
 
@@ -144,8 +148,7 @@ class PortfolioAgent:
         },
     }
 
-    def __init__(self, policy_id: str = "conservative_value_fund",
-                  risk_policy: RiskPolicy = None):
+    def __init__(self, policy_id: str = "conservative_value_fund", risk_policy: RiskPolicy = None):
         self.policy_id = policy_id
         self.risk_policy = risk_policy or RiskPolicy()
         self.memory: dict = {
@@ -155,10 +158,9 @@ class PortfolioAgent:
             "correlation_failures": [],
         }
 
-    def construct_portfolio(self, analyses: list,
-                             state: PortfolioState,
-                             market: dict,
-                             market_intel: dict = None) -> PortfolioDecision:
+    def construct_portfolio(
+        self, analyses: list, state: PortfolioState, market: dict, market_intel: dict = None
+    ) -> PortfolioDecision:
         """Core construct_portfolio() method (contract §4.2).
 
         Args:
@@ -180,7 +182,7 @@ class PortfolioAgent:
         decisions = []
         total_weight = 0.0
 
-        for rank_idx, analysis in enumerate(ranked[:self.risk_policy.max_positions]):
+        for rank_idx, analysis in enumerate(ranked[: self.risk_policy.max_positions]):
             decision = self._compute_position(
                 analysis, rank_idx, regime_cfg, risk_score, market, market_intel
             )
@@ -188,10 +190,7 @@ class PortfolioAgent:
             total_weight += decision.target_weight
 
         # ── 3. Apply portfolio-level constraints ───────────
-        cash_target = max(
-            self.risk_policy.min_cash,
-            regime_cfg["cash_target"]
-        )
+        cash_target = max(self.risk_policy.min_cash, regime_cfg["cash_target"])
 
         # Normalize if exceeding max exposure
         if total_weight > regime_cfg["max_exposure"]:
@@ -205,7 +204,9 @@ class PortfolioAgent:
         if risk_score > 80:
             warnings.append("市场风险评分过高，建议提高现金比例")
         if len(decisions) < self.risk_policy.min_positions:
-            warnings.append(f"持仓数量不足（当前{len(decisions)}，最低{self.risk_policy.min_positions}）")
+            warnings.append(
+                f"持仓数量不足（当前{len(decisions)}，最低{self.risk_policy.min_positions}）"
+            )
 
         # ── 5. Memory flags (pattern matching) ─────────────
         memory_flags = self._check_memory_patterns(decisions)
@@ -231,19 +232,25 @@ class PortfolioAgent:
         for a in analyses:
             # Weighted ranking factors
             score = (
-                a.alpha_score * 0.35 +
-                a.confidence * 0.25 +
-                (len(a.thesis.evidence) if a.thesis else 0) * 0.20 / 5 * 10 +
-                (10 - a.risk_assessment.get("expected_drawdown_12m", 0.2) * 20) * 0.20
+                a.alpha_score * 0.35
+                + a.confidence * 0.25
+                + (len(a.thesis.evidence) if a.thesis else 0) * 0.20 / 5 * 10
+                + (10 - a.risk_assessment.get("expected_drawdown_12m", 0.2) * 20) * 0.20
             )
             scored.append((score, a))
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return [a for _, a in scored]
 
-    def _compute_position(self, analysis, rank: int,
-                           regime_cfg: dict, risk_score: float,
-                           market: dict, market_intel: dict = None) -> PositionDecision:
+    def _compute_position(
+        self,
+        analysis,
+        rank: int,
+        regime_cfg: dict,
+        risk_score: float,
+        market: dict,
+        market_intel: dict = None,
+    ) -> PositionDecision:
         """8-step final_weight calculation (§3.3 position_engine) + Market Intel (Commit 6-F.2)."""
 
         trace = {}
@@ -251,8 +258,7 @@ class PortfolioAgent:
         # ── Step 1: Base position from conviction ──────────
         # Pass alpha_score so _conviction_to_base can fall back to it when
         # the research agent's confidence scale clusters low (see method doc).
-        base_weight = self._conviction_to_base(analysis.confidence,
-                                                analysis.alpha_score)
+        base_weight = self._conviction_to_base(analysis.confidence, analysis.alpha_score)
         trace["base_weight"] = base_weight
 
         # ── Step 2: Kelly adjustment ──────────────────────
@@ -266,11 +272,13 @@ class PortfolioAgent:
         # ── Step 4: Market Intelligence probability-weighted (Commit 6-F.2) ──
         prob_exposure = 1.0
         if market_intel:
-            probs = market_intel.get('environment', {}).get('probability', {})
-            mkt_risk = market_intel.get('risk', {}).get('overall', risk_score)
+            probs = market_intel.get("environment", {}).get("probability", {})
+            mkt_risk = market_intel.get("risk", {}).get("overall", risk_score)
             # Probability-weighted exposure
-            exposure_weights = {'bull': 0.95, 'bear': 0.70, 'crisis': 0.40, 'rotation': 0.85}
-            prob_exposure = sum(probs.get(s, 0) * exposure_weights.get(s, 0.5) for s in probs) if probs else 1.0
+            exposure_weights = {"bull": 0.95, "bear": 0.70, "crisis": 0.40, "rotation": 0.85}
+            prob_exposure = (
+                sum(probs.get(s, 0) * exposure_weights.get(s, 0.5) for s in probs) if probs else 1.0
+            )
             # Risk gate discount (max 30% reduction)
             risk_gate = max(0.3, 1 - mkt_risk / 200)
             prob_exposure = prob_exposure * risk_gate
@@ -300,10 +308,10 @@ class PortfolioAgent:
         final_weight = min(final_weight * 1.5, max(final_weight, kelly_weight))
 
         # Apply risk penalty
-        final_weight *= (1.0 - risk_penalty)
+        final_weight *= 1.0 - risk_penalty
 
         # Apply liquidity penalty
-        final_weight *= (1.0 - liquidity_penalty)
+        final_weight *= 1.0 - liquidity_penalty
 
         # Apply market intelligence probability-weighted exposure (Commit 6-F.2)
         final_weight *= prob_exposure
@@ -332,8 +340,7 @@ class PortfolioAgent:
             position_engine_trace=trace,
         )
 
-    def _conviction_to_base(self, confidence: float,
-                             alpha_score: float = None) -> float:
+    def _conviction_to_base(self, confidence: float, alpha_score: float = None) -> float:
         """Map confidence to base position weight (§3.2).
 
         Uses an *effective conviction* = max(confidence, alpha_score) so that
@@ -367,7 +374,7 @@ class PortfolioAgent:
                 exp_return = ret
                 break
 
-        variance = 0.15 ** 2  # assumed 15% vol
+        variance = 0.15**2  # assumed 15% vol
         kelly_fraction = exp_return / variance * 0.5  # Half-Kelly
         kelly_fraction = min(0.25, max(0.0, kelly_fraction))
 
@@ -381,9 +388,9 @@ class PortfolioAgent:
         penalty_map = {"low": 0.0, "medium": 0.10, "high": 0.25}
         return penalty_map.get(risk_level, 0.10)
 
-    def classify_drawdown(self, stock_dd: float, market_dd: float,
-                           thesis_invalidated: bool,
-                           fraud_suspected: bool) -> str:
+    def classify_drawdown(
+        self, stock_dd: float, market_dd: float, thesis_invalidated: bool, fraud_suspected: bool
+    ) -> str:
         """Classify decline type per §4.3 drawdown_reasoning.
 
         Returns decline type key for differentiated response.
@@ -398,10 +405,13 @@ class PortfolioAgent:
 
     def get_drawdown_action(self, decline_type: str) -> dict:
         """Get prescribed action for a decline type."""
-        return self.DECLINE_TYPES.get(decline_type, {
-            "action": "mandatory_review",
-            "reason": "未识别的下跌类型，需人工审查",
-        })
+        return self.DECLINE_TYPES.get(
+            decline_type,
+            {
+                "action": "mandatory_review",
+                "reason": "未识别的下跌类型，需人工审查",
+            },
+        )
 
     def _check_memory_patterns(self, decisions: list[PositionDecision]) -> list[dict]:
         """Check current portfolio against historical failure patterns (§5 pattern_matching)."""
@@ -411,10 +421,12 @@ class PortfolioAgent:
         if len(decisions) > 0:
             top3_weight = sum(d.target_weight for d in decisions[:3])
             if top3_weight > 0.40:
-                flags.append({
-                    "flag_type": "concentration_risk_high",
-                    "severity": "warning",
-                    "recommendation": "前3大持仓占比过高，审查集中度风险",
-                })
+                flags.append(
+                    {
+                        "flag_type": "concentration_risk_high",
+                        "severity": "warning",
+                        "recommendation": "前3大持仓占比过高，审查集中度风险",
+                    }
+                )
 
         return flags

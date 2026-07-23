@@ -21,12 +21,15 @@ class RuleMiner:
         """
         conn = self.db.connect()
 
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT failure_type, COUNT(*) as cnt, AVG(severity) as avg_sev
             FROM failure_events
             GROUP BY failure_type
             HAVING cnt >= ? AND avg_sev >= ?
-        """, (min_occurrences, min_confidence)).fetchall()
+        """,
+            (min_occurrences, min_confidence),
+        ).fetchall()
 
         generated = 0
         for row in rows:
@@ -93,36 +96,57 @@ class RuleMiner:
         """Persist a candidate rule to the LOCAL candidate_rules_v2 table
         (PostMortemAnalyzer's postmortem DB) — NOT the central EvaluationDB's
         candidate_rules table."""
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO candidate_rules_v2
             (rule_type, condition_json, action_json, confidence, source, status)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (rule["rule_type"], rule["condition_json"],
-              rule["action_json"], rule["confidence"],
-              rule["source"], rule["status"]))
+        """,
+            (
+                rule["rule_type"],
+                rule["condition_json"],
+                rule["action_json"],
+                rule["confidence"],
+                rule["source"],
+                rule["status"],
+            ),
+        )
 
     def get_promotable_rules(self, min_confidence: float = 0.7) -> list[dict]:
         """Get rules ready for promotion to validated status."""
         conn = self.db.connect()
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT * FROM candidate_rules_v2
             WHERE status = 'pending' AND confidence >= ?
             ORDER BY confidence DESC
-        """, (min_confidence,)).fetchall()
+        """,
+            (min_confidence,),
+        ).fetchall()
         conn.close()
 
-        cols = ["id", "rule_type", "condition_json", "action_json",
-                "confidence", "source", "status"]
-        return [dict(zip(cols, r)) for r in rows]
+        cols = [
+            "id",
+            "rule_type",
+            "condition_json",
+            "action_json",
+            "confidence",
+            "source",
+            "status",
+        ]
+        return [dict(zip(cols, r, strict=False)) for r in rows]
 
     def promote_rules(self, min_confidence: float = 0.7) -> int:
         """Promote high-confidence pending rules to approved."""
         conn = self.db.connect()
-        c = conn.execute("""
+        c = conn.execute(
+            """
             UPDATE candidate_rules_v2
             SET status = 'approved'
             WHERE status = 'pending' AND confidence >= ?
-        """, (min_confidence,))
+        """,
+            (min_confidence,),
+        )
         count = c.rowcount
         conn.commit()
         conn.close()

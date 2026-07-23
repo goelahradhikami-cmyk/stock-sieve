@@ -25,11 +25,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
-from collections import Counter
+import os
+import sqlite3
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -64,7 +63,7 @@ def leakage_test(cache: sqlite3.Connection) -> bool:
         for r in rows[:5]:
             print(f"    {r[0]}: available={r[1]} as_of={r[2]} report={r[3]}", flush=True)
         return False
-    print(f"  Check 1 PASS: 0 rows with available_date > as_of_date", flush=True)
+    print("  Check 1 PASS: 0 rows with available_date > as_of_date", flush=True)
 
     # Check 2: report_date <= available_date + 200 days (sanity: A-share Q3
     # reports (Sep 30) are often announced in Oct of the FOLLOWING year as
@@ -78,11 +77,16 @@ def leakage_test(cache: sqlite3.Connection) -> bool:
     ).fetchall()
     violations_report = len(rows)
     if violations_report > 10:  # allow a few edge cases (restatements)
-        print(f"  WARN: {violations_report} rows have available_date > report_date + 200d", flush=True)
+        print(
+            f"  WARN: {violations_report} rows have available_date > report_date + 200d", flush=True
+        )
         for r in rows[:5]:
             print(f"    {r[0]}: report={r[1]} available={r[2]}", flush=True)
     else:
-        print(f"  Check 2 PASS: {violations_report} rows with abnormal announcement delay (<=10 ok)", flush=True)
+        print(
+            f"  Check 2 PASS: {violations_report} rows with abnormal announcement delay (<=10 ok)",
+            flush=True,
+        )
 
     # Check 3: every row has a non-null sustainability_pass (or explicit INSUFFICIENT_DATA)
     null_pass = cache.execute(
@@ -90,16 +94,20 @@ def leakage_test(cache: sqlite3.Connection) -> bool:
         "AND (failure_reason IS NULL OR failure_reason != 'INSUFFICIENT_DATA')"
     ).fetchone()[0]
     if null_pass > 0:
-        print(f"  WARN: {null_pass} rows have null sustainability_pass without INSUFFICIENT_DATA", flush=True)
+        print(
+            f"  WARN: {null_pass} rows have null sustainability_pass without INSUFFICIENT_DATA",
+            flush=True,
+        )
     else:
-        print(f"  Check 3 PASS: all rows have explicit pass/fail or INSUFFICIENT_DATA", flush=True)
+        print("  Check 3 PASS: all rows have explicit pass/fail or INSUFFICIENT_DATA", flush=True)
 
     print(f"\n  LEAKAGE TEST VERDICT: {'PASS' if violations_primary == 0 else 'FAIL'}", flush=True)
     return violations_primary == 0
 
 
-def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
-                        detail: bool = False) -> None:
+def distribution_report(
+    cache: sqlite3.Connection, shadow: sqlite3.Connection, detail: bool = False
+) -> None:
     """Report sustainability pass/fail distribution for v3 candidates.
 
     Joins earnings_sustainability (cache.db) to shadow_candidates_v3
@@ -125,16 +133,16 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
         ("margin_norm_pass", "margin_normalization_flag = 1"),
         ("sustainability_pass", "sustainability_pass = 1"),
     ]
-    print(f"\n  Sub-component pass rates:", flush=True)
+    print("\n  Sub-component pass rates:", flush=True)
     for label, cond in metrics:
-        n = cache.execute(
-            f"SELECT COUNT(*) FROM earnings_sustainability WHERE {cond}"
-        ).fetchone()[0]
+        n = cache.execute(f"SELECT COUNT(*) FROM earnings_sustainability WHERE {cond}").fetchone()[
+            0
+        ]
         pct = 100.0 * n / total if total else 0
         print(f"    {label:25s}: {n:5d} / {total} ({pct:5.1f}%)", flush=True)
 
     # Failure reason breakdown
-    print(f"\n  Failure reason breakdown (among sustainability_pass = 0):", flush=True)
+    print("\n  Failure reason breakdown (among sustainability_pass = 0):", flush=True)
     reasons = cache.execute(
         "SELECT failure_reason, COUNT(*) AS n FROM earnings_sustainability "
         "WHERE sustainability_pass = 0 OR sustainability_pass IS NULL "
@@ -145,7 +153,7 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
         print(f"    {reason or 'NULL':25s}: {n:5d} ({pct:5.1f}%)", flush=True)
 
     # v3 candidate coverage: Python-side join across cache.db + shadow_trading.db
-    print(f"\n  v3 candidate coverage:", flush=True)
+    print("\n  v3 candidate coverage:", flush=True)
     v3_candidates = shadow.execute(
         "SELECT DISTINCT security_id, trade_date FROM shadow_candidates_v3"
     ).fetchall()
@@ -155,12 +163,12 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
     sustain_rows = cache.execute(
         "SELECT security_id, as_of_date, sustainability_pass FROM earnings_sustainability"
     ).fetchall()
-    sustain_map = {(r["security_id"], r["as_of_date"]): r["sustainability_pass"]
-                   for r in sustain_rows}
+    sustain_map = {
+        (r["security_id"], r["as_of_date"]): r["sustainability_pass"] for r in sustain_rows
+    }
 
     v3_with_sustain = sum(1 for k in v3_keys if k in sustain_map)
-    v3_pass = sum(1 for k in v3_keys
-                  if k in sustain_map and sustain_map[k] == 1)
+    v3_pass = sum(1 for k in v3_keys if k in sustain_map and sustain_map[k] == 1)
     coverage = 100.0 * v3_with_sustain / v3_total if v3_total else 0
     print(f"    v3 candidates total:        {v3_total}", flush=True)
     print(f"    with sustainability data:   {v3_with_sustain} ({coverage:5.1f}%)", flush=True)
@@ -168,20 +176,26 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
     # Among v3 candidates with data, pass rate
     if v3_with_sustain > 0:
         v3_pass_pct = 100.0 * v3_pass / v3_with_sustain
-        print(f"    sustainability_pass = 1:    {v3_pass} ({v3_pass_pct:5.1f}% of covered)", flush=True)
+        print(
+            f"    sustainability_pass = 1:    {v3_pass} ({v3_pass_pct:5.1f}% of covered)",
+            flush=True,
+        )
 
-        print(f"\n  Phase 1.5 readiness (Gate B baseline = FRM-only +2.52%):", flush=True)
-        print(f"    N(FRM+Sustain) = {v3_pass}  (need >= 30 for statistical power, Gate D)", flush=True)
+        print("\n  Phase 1.5 readiness (Gate B baseline = FRM-only +2.52%):", flush=True)
+        print(
+            f"    N(FRM+Sustain) = {v3_pass}  (need >= 30 for statistical power, Gate D)",
+            flush=True,
+        )
         if v3_pass < 30:
-            print(f"    WARNING: N < 30. Phase 1.5 alpha test will be underpowered.", flush=True)
-            print(f"    Consider relaxing thresholds (tunable via stored raw values)", flush=True)
-            print(f"    or extending backfill to more episodes.", flush=True)
+            print("    WARNING: N < 30. Phase 1.5 alpha test will be underpowered.", flush=True)
+            print("    Consider relaxing thresholds (tunable via stored raw values)", flush=True)
+            print("    or extending backfill to more episodes.", flush=True)
         else:
-            print(f"    N >= 30: Phase 1.5 Ablation has sufficient statistical power.", flush=True)
+            print("    N >= 30: Phase 1.5 Ablation has sufficient statistical power.", flush=True)
 
     # Per-industry breakdown (optional)
     if detail:
-        print(f"\n  Per-industry breakdown:", flush=True)
+        print("\n  Per-industry breakdown:", flush=True)
         rows = cache.execute(
             """SELECT industry, COUNT(*) AS n,
                       SUM(CASE WHEN sustainability_pass = 1 THEN 1 ELSE 0 END) AS pass_n
@@ -195,7 +209,7 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
             print(f"    {ind:30s} {n:6d} {pn:6d} {rate:6.1f}%", flush=True)
 
     # profit_elasticity sanity (industry differences expected)
-    print(f"\n  profit_elasticity distribution (industry differences expected):", flush=True)
+    print("\n  profit_elasticity distribution (industry differences expected):", flush=True)
     pe = cache.execute(
         """SELECT
              AVG(profit_elasticity) AS mean,
@@ -208,7 +222,7 @@ def distribution_report(cache: sqlite3.Connection, shadow: sqlite3.Connection,
     ).fetchone()
     if pe and pe[3] > 0:
         print(f"    mean={pe[0]:.2f}  min={pe[1]:.2f}  max={pe[2]:.2f}  n={pe[3]}", flush=True)
-        print(f"    (raw stored - industry standardization deferred to v3.4.1)", flush=True)
+        print("    (raw stored - industry standardization deferred to v3.4.1)", flush=True)
 
 
 def main():

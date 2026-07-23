@@ -35,10 +35,10 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
-from datetime import date
+import sys
 from collections import defaultdict
+from datetime import date
 
 import numpy as np
 
@@ -121,26 +121,27 @@ class SecurityAnalystV2Replay:
             # Composite (if recovery data available, use full 3-layer;
             # otherwise fall back to 2-layer with reweighted weights)
             if recovery is not None:
-                v2_score = (W_MISPRICING * mispricing
-                            + W_BUSINESS * business
-                            + W_RECOVERY * recovery)
+                v2_score = W_MISPRICING * mispricing + W_BUSINESS * business + W_RECOVERY * recovery
             else:
                 # No sector data (pre-2024-06): reweight to 2-layer
-                v2_score = ((W_MISPRICING + W_RECOVERY / 2) * mispricing
-                            + (W_BUSINESS + W_RECOVERY / 2) * business)
+                v2_score = (W_MISPRICING + W_RECOVERY / 2) * mispricing + (
+                    W_BUSINESS + W_RECOVERY / 2
+                ) * business
 
-            scored.append({
-                "stock_code": c["stock_code"],
-                "v1_selected": c["selected"],
-                "v2_score": v2_score,
-                "mispricing": mispricing,
-                "business": business,
-                "recovery": recovery,
-                "frm_direction": c["earnings_revision_direction"],
-                "stock_return": c["stock_return_t20"],
-                "residual_alpha": c["residual_alpha"],
-                "market_beta": c["market_beta"],
-            })
+            scored.append(
+                {
+                    "stock_code": c["stock_code"],
+                    "v1_selected": c["selected"],
+                    "v2_score": v2_score,
+                    "mispricing": mispricing,
+                    "business": business,
+                    "recovery": recovery,
+                    "frm_direction": c["earnings_revision_direction"],
+                    "stock_return": c["stock_return_t20"],
+                    "residual_alpha": c["residual_alpha"],
+                    "market_beta": c["market_beta"],
+                }
+            )
 
         # Sort by v2_score descending
         scored.sort(key=lambda x: -x["v2_score"])
@@ -172,8 +173,7 @@ class SecurityAnalystV2Replay:
             return float(bs * 100)
         return 50.0
 
-    def _recovery_score(self, c: sqlite3.Row,
-                        ep: sqlite3.Row) -> float | None:
+    def _recovery_score(self, c: sqlite3.Row, ep: sqlite3.Row) -> float | None:
         """Layer 3: Recovery Confirmation (Sector Confirmation).
 
         Returns None if sector data unavailable (pre-2024-06).
@@ -223,18 +223,14 @@ class SecurityAnalystV2Replay:
 
         for r in results:
             # v1 selected stocks residual_alpha
-            v1_res = [s["residual_alpha"] for s in r["v1_selected"]
-                      if s["residual_alpha"] is not None]
-            v2_res = [s["residual_alpha"] for s in r["v2_top"]
-                      if s["residual_alpha"] is not None]
-            v1_mb = [s["market_beta"] for s in r["v1_selected"]
-                     if s["market_beta"] is not None]
-            v2_mb = [s["market_beta"] for s in r["v2_top"]
-                     if s["market_beta"] is not None]
-            v1_sr = [s["stock_return"] for s in r["v1_selected"]
-                     if s["stock_return"] is not None]
-            v2_sr = [s["stock_return"] for s in r["v2_top"]
-                     if s["stock_return"] is not None]
+            v1_res = [
+                s["residual_alpha"] for s in r["v1_selected"] if s["residual_alpha"] is not None
+            ]
+            v2_res = [s["residual_alpha"] for s in r["v2_top"] if s["residual_alpha"] is not None]
+            v1_mb = [s["market_beta"] for s in r["v1_selected"] if s["market_beta"] is not None]
+            v2_mb = [s["market_beta"] for s in r["v2_top"] if s["market_beta"] is not None]
+            v1_sr = [s["stock_return"] for s in r["v1_selected"] if s["stock_return"] is not None]
+            v2_sr = [s["stock_return"] for s in r["v2_top"] if s["stock_return"] is not None]
 
             v1_residuals.extend(v1_res)
             v2_residuals.extend(v2_res)
@@ -248,33 +244,39 @@ class SecurityAnalystV2Replay:
             ep_v2_res = float(np.mean(v2_res)) if v2_res else None
             ep_v1_mb = float(np.mean(v1_mb)) if v1_mb else None
             ep_v2_mb = float(np.mean(v2_mb)) if v2_mb else None
-            episode_level.append({
-                "episode_id": r["episode_id"],
-                "date": r["trade_date"],
-                "state": r["market_state"],
-                "n_candidates": r["candidate_count"],
-                "n_v1_selected": len(r["v1_selected"]),
-                "n_v2_top": len(r["v2_top"]),
-                "v1_residual": ep_v1_res,
-                "v2_residual": ep_v2_res,
-                "v1_market_beta": ep_v1_mb,
-                "v2_market_beta": ep_v2_mb,
-            })
+            episode_level.append(
+                {
+                    "episode_id": r["episode_id"],
+                    "date": r["trade_date"],
+                    "state": r["market_state"],
+                    "n_candidates": r["candidate_count"],
+                    "n_v1_selected": len(r["v1_selected"]),
+                    "n_v2_top": len(r["v2_top"]),
+                    "v1_residual": ep_v1_res,
+                    "v2_residual": ep_v2_res,
+                    "v1_market_beta": ep_v1_mb,
+                    "v2_market_beta": ep_v2_mb,
+                }
+            )
 
         def _stats(arr, label):
             if not arr:
                 print(f"  {label}: N=0", flush=True)
                 return None
             a = np.array(arr)
-            print(f"  {label}: N={len(a)} mean={np.mean(a):+.4f} "
-                  f"median={np.median(a):+.4f} >0: {np.mean(a>0):.1%}",
-                  flush=True)
-            return {"n": len(a), "mean": float(np.mean(a)),
-                    "median": float(np.median(a)),
-                    "positive_rate": float(np.mean(a > 0))}
+            print(
+                f"  {label}: N={len(a)} mean={np.mean(a):+.4f} "
+                f"median={np.median(a):+.4f} >0: {np.mean(a > 0):.1%}",
+                flush=True,
+            )
+            return {
+                "n": len(a),
+                "mean": float(np.mean(a)),
+                "median": float(np.median(a)),
+                "positive_rate": float(np.mean(a > 0)),
+            }
 
-        print("\n--- Stock-level residual_alpha (2024-06+ only) ---",
-              flush=True)
+        print("\n--- Stock-level residual_alpha (2024-06+ only) ---", flush=True)
         v1_res_stats = _stats(v1_residuals, "V1 selected")
         v2_res_stats = _stats(v2_residuals, "V2 top-5")
 
@@ -288,17 +290,18 @@ class SecurityAnalystV2Replay:
 
         # Episode-level comparison (only episodes with residual_alpha)
         print("\n--- Episode-level (with residual_alpha data) ---", flush=True)
-        ep_with_res = [e for e in episode_level
-                       if e["v1_residual"] is not None
-                       or e["v2_residual"] is not None]
-        print(f"  Episodes with residual data: {len(ep_with_res)}",
-              flush=True)
+        ep_with_res = [
+            e for e in episode_level if e["v1_residual"] is not None or e["v2_residual"] is not None
+        ]
+        print(f"  Episodes with residual data: {len(ep_with_res)}", flush=True)
         for e in ep_with_res[:15]:
-            v1r = f"{e['v1_residual']:+.4f}" if e['v1_residual'] is not None else "n/a"
-            v2r = f"{e['v2_residual']:+.4f}" if e['v2_residual'] is not None else "n/a"
-            print(f"    {e['date']} {e['state']:22s} v1_res={v1r} v2_res={v2r} "
-                  f"(v1_sel={e['n_v1_selected']}, v2_top={e['n_v2_top']})",
-                  flush=True)
+            v1r = f"{e['v1_residual']:+.4f}" if e["v1_residual"] is not None else "n/a"
+            v2r = f"{e['v2_residual']:+.4f}" if e["v2_residual"] is not None else "n/a"
+            print(
+                f"    {e['date']} {e['state']:22s} v1_res={v1r} v2_res={v2r} "
+                f"(v1_sel={e['n_v1_selected']}, v2_top={e['n_v2_top']})",
+                flush=True,
+            )
 
         # FRM direction analysis on v2 top-5
         print("\n--- FRM direction in V2 top-5 vs V1 selected ---", flush=True)
@@ -312,13 +315,19 @@ class SecurityAnalystV2Replay:
         print(f"  V1 selected FRM directions: {dict(v1_dirs)}", flush=True)
         print(f"  V2 top-5 FRM directions:    {dict(v2_dirs)}", flush=True)
 
-        verdict = self._compute_verdict(v1_res_stats, v2_res_stats,
-                                         v1_sr_stats, v2_sr_stats)
+        verdict = self._compute_verdict(v1_res_stats, v2_res_stats, v1_sr_stats, v2_sr_stats)
 
         # Export report
         report_path = self._export_report(
-            v1_res_stats, v2_res_stats, v1_mb_stats, v2_mb_stats,
-            v1_sr_stats, v2_sr_stats, episode_level, verdict)
+            v1_res_stats,
+            v2_res_stats,
+            v1_mb_stats,
+            v2_mb_stats,
+            v1_sr_stats,
+            v2_sr_stats,
+            episode_level,
+            verdict,
+        )
         print(f"\n=== Report: {report_path} ===", flush=True)
 
         return {"verdict": verdict, "report_path": report_path}
@@ -352,11 +361,11 @@ class SecurityAnalystV2Replay:
             verdict = "V2 NO IMPROVEMENT - selection layer needs deeper redesign"
         return {"gates": gates, "all_passed": all_passed, "verdict": verdict}
 
-    def _export_report(self, v1_res, v2_res, v1_mb, v2_mb,
-                       v1_sr, v2_sr, episode_level, verdict) -> str:
+    def _export_report(
+        self, v1_res, v2_res, v1_mb, v2_mb, v1_sr, v2_sr, episode_level, verdict
+    ) -> str:
         today = date.today().isoformat()
-        path = os.path.join(REPORT_DIR,
-                            f"security_analyst_v2_replay_{today}.md")
+        path = os.path.join(REPORT_DIR, f"security_analyst_v2_replay_{today}.md")
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         lines = []
@@ -369,25 +378,27 @@ class SecurityAnalystV2Replay:
         lines.append("")
         lines.append("## Comparison: V1 (doctrine consensus) vs V2 (three-layer)")
         lines.append("")
-        lines.append("V2 three-layer composite: Mispricing (0.35) + Business "
-                     "Survival/FRM (0.35) + Recovery Confirmation (0.30).")
-        lines.append("V2 selects top-5 by composite score; V1 used doctrine "
-                     "consensus PASS. Both are RANKING only - BUY/BLOCK "
-                     "remains Market Guardian's frozen decision.")
+        lines.append(
+            "V2 three-layer composite: Mispricing (0.35) + Business "
+            "Survival/FRM (0.35) + Recovery Confirmation (0.30)."
+        )
+        lines.append(
+            "V2 selects top-5 by composite score; V1 used doctrine "
+            "consensus PASS. Both are RANKING only - BUY/BLOCK "
+            "remains Market Guardian's frozen decision."
+        )
         lines.append("")
-        lines.append("### Stock-level residual_alpha (true selection alpha, "
-                     "2024-06+ only)")
+        lines.append("### Stock-level residual_alpha (true selection alpha, 2024-06+ only)")
         lines.append("")
         lines.append("| Metric | V1 selected | V2 top-5 |")
         lines.append("|--------|-------------|----------|")
         if v1_res and v2_res:
             lines.append(f"| N | {v1_res['n']} | {v2_res['n']} |")
-            lines.append(f"| mean | {v1_res['mean']:+.4f} | "
-                         f"{v2_res['mean']:+.4f} |")
-            lines.append(f"| median | {v1_res['median']:+.4f} | "
-                         f"{v2_res['median']:+.4f} |")
-            lines.append(f"| positive rate | {v1_res['positive_rate']:.1%} | "
-                         f"{v2_res['positive_rate']:.1%} |")
+            lines.append(f"| mean | {v1_res['mean']:+.4f} | {v2_res['mean']:+.4f} |")
+            lines.append(f"| median | {v1_res['median']:+.4f} | {v2_res['median']:+.4f} |")
+            lines.append(
+                f"| positive rate | {v1_res['positive_rate']:.1%} | {v2_res['positive_rate']:.1%} |"
+            )
         else:
             lines.append("| N | (insufficient data) | |")
         lines.append("")
@@ -396,22 +407,19 @@ class SecurityAnalystV2Replay:
         lines.append("| Metric | V1 selected | V2 top-5 |")
         lines.append("|--------|-------------|----------|")
         if v1_mb and v2_mb:
-            lines.append(f"| mean | {v1_mb['mean']:+.4f} | "
-                         f"{v2_mb['mean']:+.4f} |")
-            lines.append(f"| median | {v1_mb['median']:+.4f} | "
-                         f"{v2_mb['median']:+.4f} |")
+            lines.append(f"| mean | {v1_mb['mean']:+.4f} | {v2_mb['mean']:+.4f} |")
+            lines.append(f"| median | {v1_mb['median']:+.4f} | {v2_mb['median']:+.4f} |")
         lines.append("")
         lines.append("### Stock-level stock_return (all episodes)")
         lines.append("")
         lines.append("| Metric | V1 selected | V2 top-5 |")
         lines.append("|--------|-------------|----------|")
         if v1_sr and v2_sr:
-            lines.append(f"| mean | {v1_sr['mean']:+.4f} | "
-                         f"{v2_sr['mean']:+.4f} |")
-            lines.append(f"| median | {v1_sr['median']:+.4f} | "
-                         f"{v2_sr['median']:+.4f} |")
-            lines.append(f"| positive rate | {v1_sr['positive_rate']:.1%} | "
-                         f"{v2_sr['positive_rate']:.1%} |")
+            lines.append(f"| mean | {v1_sr['mean']:+.4f} | {v2_sr['mean']:+.4f} |")
+            lines.append(f"| median | {v1_sr['median']:+.4f} | {v2_sr['median']:+.4f} |")
+            lines.append(
+                f"| positive rate | {v1_sr['positive_rate']:.1%} | {v2_sr['positive_rate']:.1%} |"
+            )
         lines.append("")
         lines.append("### Verdict")
         lines.append("")
@@ -425,26 +433,34 @@ class SecurityAnalystV2Replay:
         lines.append("")
         if v2_res and v1_res:
             if v2_res["mean"] > v1_res["mean"]:
-                lines.append(f"V2 improved residual_alpha by "
-                             f"{v2_res['mean']-v1_res['mean']:+.4f} "
-                             f"(from {v1_res['mean']:+.4f} to "
-                             f"{v2_res['mean']:+.4f}).")
+                lines.append(
+                    f"V2 improved residual_alpha by "
+                    f"{v2_res['mean'] - v1_res['mean']:+.4f} "
+                    f"(from {v1_res['mean']:+.4f} to "
+                    f"{v2_res['mean']:+.4f})."
+                )
                 if v2_res["mean"] > 0:
-                    lines.append("V2 produces POSITIVE true selection alpha "
-                                "- Security Analyst has genuine stock-picking "
-                                "ability after reconstruction.")
+                    lines.append(
+                        "V2 produces POSITIVE true selection alpha "
+                        "- Security Analyst has genuine stock-picking "
+                        "ability after reconstruction."
+                    )
                 else:
-                    lines.append("V2 improves but residual_alpha is still "
-                                "negative - selection layer needs deeper "
-                                "redesign (anomaly detection itself may be "
-                                "the problem).")
+                    lines.append(
+                        "V2 improves but residual_alpha is still "
+                        "negative - selection layer needs deeper "
+                        "redesign (anomaly detection itself may be "
+                        "the problem)."
+                    )
             else:
-                lines.append(f"V2 did NOT improve residual_alpha "
-                             f"(v1={v1_res['mean']:+.4f}, "
-                             f"v2={v2_res['mean']:+.4f}). The three-layer "
-                             "scoring does not capture the selection edge. "
-                             "The problem may be in the anomaly detection "
-                             "itself, not the scoring layer.")
+                lines.append(
+                    f"V2 did NOT improve residual_alpha "
+                    f"(v1={v1_res['mean']:+.4f}, "
+                    f"v2={v2_res['mean']:+.4f}). The three-layer "
+                    "scoring does not capture the selection edge. "
+                    "The problem may be in the anomaly detection "
+                    "itself, not the scoring layer."
+                )
         lines.append("")
 
         with open(path, "w", encoding="utf-8") as f:

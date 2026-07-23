@@ -1,0 +1,218 @@
+# Doctrine Archetype Library - Genesis Generation 0
+#
+# These 12 archetypes are SEED doctrines (Generation 0), not a ceiling.
+# Evolution produces hybrid doctrines beyond this library (e.g.
+# compound_growth_value from value_purist × growth_hunter).
+# DoctrineRegistry manages the full lifecycle: archetype | generated | extinct.
+#
+# Each archetype is a complete "investment philosophy DNA":
+#   identity_signature  - the identity vector this doctrine naturally arises from
+#   principles          - investment beliefs (semantic, for explainability)
+#   factor_bias         - weights for the 6 factor families (sums to ~1.0)
+#   thesis_priority     - ordered thesis patterns this doctrine prefers
+#   confidence_model    - how this doctrine computes conviction
+#   holding_period      - typical holding days
+#   mutation_cost       - per-dimension cost weights (补丁3: weighted mutation distance)
+
+schema: stock-sieve.io/doctrine-archetype
+schema_version: 1.0.0
+
+# The 8 identity dimensions (must match personality_genome dimensions)
+identity_dimensions: [valuation, quality, growth, momentum, macro, contrarian, patience, concentration]
+
+archetypes:
+  # ── Existing 8 personalities (Genesis seeds) ──────────────
+
+  - doctrine_id: "deep_value_purist"
+    identity_signature: {valuation: 90, quality: 85, growth: 40, momentum: 15, macro: 30, contrarian: 80, patience: 95, concentration: 70}
+    principles:
+      - "intrinsic_value_convergence"
+      - "margin_of_safety_above_all"
+      - "market_pessimism_is_opportunity"
+    factor_bias: {quality: 0.35, value: 0.35, growth: 0.10, momentum: 0.05, risk: 0.10, sentiment: 0.05}
+    thesis_priority: [quality_compound, deep_value, dividend_compound, turnaround_opportunity, growth_at_reasonable_price, momentum_breakout]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.8
+      primary_metrics: [roe, gross_margin, fcf_yield, pe_ttm, pb]
+      consistency_bonus: 0.5
+    holding_period: 250
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.5, momentum: 1.5, macro: 1.0, contrarian: 1.2, patience: 2.0, concentration: 1.0}
+
+  - doctrine_id: "aggressive_growth_hunter"
+    identity_signature: {valuation: 50, quality: 70, growth: 90, momentum: 40, macro: 45, contrarian: 20, patience: 50, concentration: 60}
+    principles:
+      - "growth_compounding"
+      - "pay_for_quality_growth"
+      - "momentum_confirms_fundamentals"
+    factor_bias: {quality: 0.20, value: 0.10, growth: 0.45, momentum: 0.15, risk: 0.05, sentiment: 0.05}
+    thesis_priority: [growth_at_reasonable_price, quality_compound, momentum_breakout, turnaround_opportunity, deep_value, dividend_compound]
+    confidence_model:
+      base: 4.5
+      evidence_weight: 0.7
+      primary_metrics: [revenue_growth_1y, earnings_growth_1y, roe, peg_ratio]
+      consistency_bonus: 0.5
+    holding_period: 120
+    mutation_cost: {valuation: 1.2, quality: 1.0, growth: 1.0, momentum: 1.2, macro: 1.0, contrarian: 1.5, patience: 1.5, concentration: 1.0}
+
+  - doctrine_id: "momentum_trend_follower"
+    identity_signature: {valuation: 10, quality: 40, growth: 40, momentum: 95, macro: 50, contrarian: 5, patience: 20, concentration: 55}
+    principles:
+      - "trend_persistence"
+      - "price_action_leads_fundamentals"
+      - "cut_losers_let_winners_run"
+    factor_bias: {quality: 0.05, value: 0.0, growth: 0.10, momentum: 0.60, risk: 0.15, sentiment: 0.10}
+    thesis_priority: [momentum_breakout, growth_at_reasonable_price, turnaround_opportunity, quality_compound, deep_value, dividend_compound]
+    confidence_model:
+      base: 3.5
+      evidence_weight: 1.0
+      primary_metrics: [momentum_3m, momentum_1m, volume_ratio, rsi_14]
+      consistency_bonus: 0.3
+    holding_period: 30
+    mutation_cost: {valuation: 1.5, quality: 1.2, growth: 1.2, momentum: 1.0, macro: 1.0, contrarian: 2.0, patience: 2.0, concentration: 1.0}
+
+  - doctrine_id: "deep_contrarian"
+    identity_signature: {valuation: 85, quality: 50, growth: 15, momentum: 5, macro: 60, contrarian: 95, patience: 85, concentration: 65}
+    principles:
+      - "mean_reversion"
+      - "buy_when_others_fear"
+      - "negative_momentum_signals_oversold"
+    factor_bias: {quality: 0.20, value: 0.35, growth: 0.10, momentum: 0.15, risk: 0.15, sentiment: 0.05}
+    thesis_priority: [turnaround_opportunity, deep_value, dividend_compound, quality_compound, growth_at_reasonable_price, momentum_breakout]
+    confidence_model:
+      base: 3.5
+      evidence_weight: 0.9
+      primary_metrics: [pb, momentum_6m, roe, debt_to_equity]
+      consistency_bonus: 0.4
+    holding_period: 180
+    mutation_cost: {valuation: 1.0, quality: 1.2, growth: 1.5, momentum: 1.5, macro: 1.0, contrarian: 1.0, patience: 2.0, concentration: 1.0}
+
+  - doctrine_id: "dividend_income_compounder"
+    identity_signature: {valuation: 75, quality: 70, growth: 25, momentum: 10, macro: 35, contrarian: 55, patience: 85, concentration: 50}
+    principles:
+      - "dividend_signal"
+      - "income_compounding"
+      - "stable_cashflow_over_growth"
+    factor_bias: {quality: 0.25, value: 0.35, growth: 0.15, momentum: 0.05, risk: 0.15, sentiment: 0.05}
+    thesis_priority: [dividend_compound, quality_compound, deep_value, turnaround_opportunity, growth_at_reasonable_price, momentum_breakout]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.8
+      primary_metrics: [dividend_yield, roe, debt_to_equity, fcf_yield]
+      consistency_bonus: 0.5
+    holding_period: 250
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.3, momentum: 1.5, macro: 1.0, contrarian: 1.2, patience: 2.0, concentration: 1.0}
+
+  - doctrine_id: "quality_moat_compounder"
+    identity_signature: {valuation: 50, quality: 95, growth: 55, momentum: 15, macro: 25, contrarian: 35, patience: 90, concentration: 80}
+    principles:
+      - "quality_compounding"
+      - "competitive_moat"
+      - "hold_exceptional_businesses_long_term"
+    factor_bias: {quality: 0.45, value: 0.20, growth: 0.15, momentum: 0.05, risk: 0.10, sentiment: 0.05}
+    thesis_priority: [quality_compound, deep_value, growth_at_reasonable_price, dividend_compound, turnaround_opportunity, momentum_breakout]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.8
+      primary_metrics: [roe, roe_5y_avg, roic, gross_margin, accruals_ratio]
+      consistency_bonus: 0.6
+    holding_period: 365
+    mutation_cost: {valuation: 1.2, quality: 1.0, growth: 1.2, momentum: 1.5, macro: 1.0, contrarian: 1.3, patience: 2.0, concentration: 1.0}
+
+  - doctrine_id: "quantitative_factor_rotator"
+    identity_signature: {valuation: 40, quality: 50, growth: 50, momentum: 55, macro: 65, contrarian: 30, patience: 30, concentration: 40}
+    principles:
+      - "factor_diversification"
+      - "data_driven"
+      - "adaptive_markets"
+    factor_bias: {quality: 0.20, value: 0.18, growth: 0.18, momentum: 0.20, risk: 0.14, sentiment: 0.10}
+    thesis_priority: [momentum_breakout, growth_at_reasonable_price, quality_compound, deep_value, turnaround_opportunity, dividend_compound]
+    confidence_model:
+      base: 5.0
+      evidence_weight: 0.6
+      primary_metrics: [momentum_3m, roe, pe_ttm, revenue_growth_1y]
+      consistency_bonus: 0.4
+    holding_period: 60
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.0, momentum: 1.0, macro: 1.0, contrarian: 1.0, patience: 1.0, concentration: 1.0}
+
+  - doctrine_id: "smart_money_tracker"
+    identity_signature: {valuation: 55, quality: 55, growth: 50, momentum: 35, macro: 40, contrarian: 45, patience: 60, concentration: 65}
+    principles:
+      - "insider_signal"
+      - "smart_money"
+      - "follow_those_with_information_edge"
+    factor_bias: {quality: 0.20, value: 0.20, growth: 0.20, momentum: 0.10, risk: 0.10, sentiment: 0.20}
+    thesis_priority: [turnaround_opportunity, deep_value, quality_compound, growth_at_reasonable_price, dividend_compound, momentum_breakout]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.9
+      primary_metrics: [holder_change_pct, volume_ratio, roe, pb]
+      consistency_bonus: 0.4
+    holding_period: 180
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.0, momentum: 1.2, macro: 1.0, contrarian: 1.2, patience: 1.5, concentration: 1.0}
+
+  # ── 4 Hybrid archetypes (intermediate forms evolution can discover) ──
+
+  - doctrine_id: "compound_growth_value"
+    identity_signature: {valuation: 70, quality: 78, growth: 65, momentum: 28, macro: 38, contrarian: 50, patience: 73, concentration: 65}
+    principles:
+      - "quality_at_reasonable_price"
+      - "growth_with_margin_of_safety"
+      - "compound_both_value_and_growth"
+    factor_bias: {quality: 0.28, value: 0.23, growth: 0.27, momentum: 0.10, risk: 0.07, sentiment: 0.05}
+    thesis_priority: [quality_compound, growth_at_reasonable_price, deep_value, dividend_compound, turnaround_opportunity, momentum_breakout]
+    confidence_model:
+      base: 4.2
+      evidence_weight: 0.75
+      primary_metrics: [roe, revenue_growth_1y, pe_ttm, gross_margin]
+      consistency_bonus: 0.5
+    holding_period: 180
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.0, momentum: 1.3, macro: 1.0, contrarian: 1.2, patience: 1.8, concentration: 1.0}
+
+  - doctrine_id: "value_momentum_hybrid"
+    identity_signature: {valuation: 50, quality: 45, growth: 28, momentum: 55, macro: 40, contrarian: 42, patience: 58, concentration: 62}
+    principles:
+      - "buy_cheap_and_rising"
+      - "value_with_catalyst"
+      - "avoid_value_traps"
+    factor_bias: {quality: 0.15, value: 0.25, growth: 0.10, momentum: 0.35, risk: 0.10, sentiment: 0.05}
+    thesis_priority: [deep_value, momentum_breakout, turnaround_opportunity, quality_compound, growth_at_reasonable_price, dividend_compound]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.8
+      primary_metrics: [pe_ttm, pb, momentum_3m, volume_ratio]
+      consistency_bonus: 0.4
+    holding_period: 90
+    mutation_cost: {valuation: 1.0, quality: 1.2, growth: 1.3, momentum: 1.0, macro: 1.0, contrarian: 1.2, patience: 1.5, concentration: 1.0}
+
+  - doctrine_id: "macro_defensive_balanced"
+    identity_signature: {valuation: 58, quality: 65, growth: 35, momentum: 25, macro: 80, contrarian: 50, patience: 75, concentration: 45}
+    principles:
+      - "macro_first"
+      - "defensive_positioning"
+      - "regime_aware_allocation"
+    factor_bias: {quality: 0.25, value: 0.25, growth: 0.10, momentum: 0.10, risk: 0.20, sentiment: 0.10}
+    thesis_priority: [dividend_compound, quality_compound, deep_value, turnaround_opportunity, growth_at_reasonable_price, momentum_breakout]
+    confidence_model:
+      base: 4.0
+      evidence_weight: 0.7
+      primary_metrics: [beta, debt_to_equity, dividend_yield, volatility_1m]
+      consistency_bonus: 0.5
+    holding_period: 200
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.3, momentum: 1.3, macro: 1.0, contrarian: 1.2, patience: 1.8, concentration: 1.0}
+
+  - doctrine_id: "opportunistic_special_situation"
+    identity_signature: {valuation: 60, quality: 55, growth: 55, momentum: 40, macro: 45, contrarian: 60, patience: 55, concentration: 72}
+    principles:
+      - "special_situation"
+      - "catalyst_driven"
+      - "flexible_horizon"
+    factor_bias: {quality: 0.20, value: 0.20, growth: 0.20, momentum: 0.15, risk: 0.10, sentiment: 0.15}
+    thesis_priority: [turnaround_opportunity, growth_at_reasonable_price, deep_value, momentum_breakout, quality_compound, dividend_compound]
+    confidence_model:
+      base: 4.5
+      evidence_weight: 0.85
+      primary_metrics: [holder_change_pct, momentum_1m, revenue_growth_1y, pb]
+      consistency_bonus: 0.4
+    holding_period: 120
+    mutation_cost: {valuation: 1.0, quality: 1.0, growth: 1.0, momentum: 1.0, macro: 1.0, contrarian: 1.0, patience: 1.0, concentration: 1.0}

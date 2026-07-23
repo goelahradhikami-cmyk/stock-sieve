@@ -32,8 +32,7 @@ Usage:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from src.thesis.market_anomaly import MispricingObject
 from src.utils.logger import get_logger
@@ -44,12 +43,13 @@ logger = get_logger(__name__)
 @dataclass
 class UnderwritingResult:
     """One doctrine's underwriting decision on one anomaly."""
+
     doctrine_type: str
-    verdict: str               # "PASS" / "REJECT" / "CONDITIONAL"
-    confidence: float          # 0-1 (how sure the doctrine is)
-    reasons: list[str]         # why PASS or REJECT
-    red_flags: list[str]       # specific concerns found
-    key_questions: dict        # the questions this doctrine asked + answers
+    verdict: str  # "PASS" / "REJECT" / "CONDITIONAL"
+    confidence: float  # 0-1 (how sure the doctrine is)
+    reasons: list[str]  # why PASS or REJECT
+    red_flags: list[str]  # specific concerns found
+    key_questions: dict  # the questions this doctrine asked + answers
 
     def to_dict(self) -> dict:
         return {
@@ -78,8 +78,7 @@ class DoctrineUnderwriter:
       Final Portfolio
     """
 
-    def underwrite(self, anomaly: MispricingObject,
-                    doctrine_type: str) -> UnderwritingResult:
+    def underwrite(self, anomaly: MispricingObject, doctrine_type: str) -> UnderwritingResult:
         """Underwrite an anomaly from a specific doctrine's perspective.
 
         Args:

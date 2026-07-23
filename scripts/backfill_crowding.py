@@ -24,10 +24,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import argparse
+import os
+import sqlite3
+import sys
 
 import numpy as np
 
@@ -43,13 +43,14 @@ CACHE_DB = "data/cache.db"
 
 SCHEMA_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "migrations", "crowding_snapshot.sql",
+    "migrations",
+    "crowding_snapshot.sql",
 )
 
 
 def apply_schema(cache: sqlite3.Connection) -> None:
     """Apply crowding_snapshot.sql (idempotent)."""
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
         cache.executescript(f.read())
     cache.commit()
 
@@ -91,10 +92,18 @@ def backfill_group_a() -> None:
         result = calc.compute(code, trade_date)
 
         # Check if we got enough features
-        feature_count = sum(1 for f in [result.return_20d, result.return_60d,
-                                         result.realized_vol_20d, result.volume_ratio,
-                                         result.abnormal_volume, result.price_gap]
-                           if f is not None)
+        feature_count = sum(
+            1
+            for f in [
+                result.return_20d,
+                result.return_60d,
+                result.realized_vol_20d,
+                result.volume_ratio,
+                result.abnormal_volume,
+                result.price_gap,
+            ]
+            if f is not None
+        )
         if feature_count < 3:
             insufficient += 1
             continue
@@ -107,7 +116,7 @@ def backfill_group_a() -> None:
 
         if len(batch) >= 50:
             _commit_batch(cache, batch)
-            print(f"  ... {i+1}/{len(candidates)} processed, {written} written", flush=True)
+            print(f"  ... {i + 1}/{len(candidates)} processed, {written} written", flush=True)
 
     _commit_batch(cache, batch)
 
@@ -118,7 +127,7 @@ def backfill_group_a() -> None:
     cache.close()
     shadow.close()
 
-    print(f"\n=== Backfill Complete ===", flush=True)
+    print("\n=== Backfill Complete ===", flush=True)
     print(f"  candidates:    {len(candidates)}", flush=True)
     print(f"  written:       {written}", flush=True)
     print(f"  skipped:       {skipped} (already backfilled)", flush=True)
@@ -127,12 +136,17 @@ def backfill_group_a() -> None:
 
 def _result_to_tuple(result) -> tuple:
     return (
-        result.security_id, result.trade_date,
-        result.return_20d, result.return_60d,
-        result.turnover_percentile, result.volume_ratio,
+        result.security_id,
+        result.trade_date,
+        result.return_20d,
+        result.return_60d,
+        result.turnover_percentile,
+        result.volume_ratio,
         result.realized_vol_20d,
-        result.abnormal_volume, result.price_gap,
-        result.market_cap, result.float_mcap,
+        result.abnormal_volume,
+        result.price_gap,
+        result.market_cap,
+        result.float_mcap,
         None,  # crowding_score_v1 computed in _compute_composite_scores
     )
 
@@ -240,29 +254,32 @@ def validate_distribution() -> None:
         ("market_cap", "market_cap IS NOT NULL"),
         ("crowding_score_v1", "crowding_score_v1 IS NOT NULL"),
     ]
-    print(f"\n  Feature coverage:", flush=True)
+    print("\n  Feature coverage:", flush=True)
     for label, cond in features:
-        n = cache.execute(
-            f"SELECT COUNT(*) FROM crowding_snapshot WHERE {cond}"
-        ).fetchone()[0]
+        n = cache.execute(f"SELECT COUNT(*) FROM crowding_snapshot WHERE {cond}").fetchone()[0]
         pct = 100.0 * n / total if total else 0
         print(f"    {label:25s}: {n:3d} / {total} ({pct:5.1f}%)", flush=True)
 
     # Distribution of key features
-    print(f"\n  Feature distributions:", flush=True)
-    for label, col in [("return_20d", "return_20d"), ("return_60d", "return_60d"),
-                        ("realized_vol_20d", "realized_vol_20d"),
-                        ("volume_ratio", "volume_ratio"),
-                        ("abnormal_volume", "abnormal_volume"),
-                        ("crowding_score_v1", "crowding_score_v1")]:
+    print("\n  Feature distributions:", flush=True)
+    for label, col in [
+        ("return_20d", "return_20d"),
+        ("return_60d", "return_60d"),
+        ("realized_vol_20d", "realized_vol_20d"),
+        ("volume_ratio", "volume_ratio"),
+        ("abnormal_volume", "abnormal_volume"),
+        ("crowding_score_v1", "crowding_score_v1"),
+    ]:
         row = cache.execute(
             f"""SELECT AVG({col}) AS mean, MIN({col}) AS min, MAX({col}) AS max,
                        COUNT({col}) AS n
                 FROM crowding_snapshot WHERE {col} IS NOT NULL"""
         ).fetchone()
         if row and row[3] > 0:
-            print(f"    {label:25s}: mean={row[0]:.4f}  min={row[1]:.4f}  max={row[2]:.4f}  n={row[3]}",
-                  flush=True)
+            print(
+                f"    {label:25s}: mean={row[0]:.4f}  min={row[1]:.4f}  max={row[2]:.4f}  n={row[3]}",
+                flush=True,
+            )
 
     # Group A coverage
     ga = shadow.execute(
@@ -281,12 +298,14 @@ def validate_distribution() -> None:
         ).fetchone()
         if exists:
             covered += 1
-    print(f"\n  Group A coverage: {covered} / {ga} ({100.0*covered/ga:.1f}%)" if ga else "",
-          flush=True)
+    print(
+        f"\n  Group A coverage: {covered} / {ga} ({100.0 * covered / ga:.1f}%)" if ga else "",
+        flush=True,
+    )
 
     # crowding_score_v1 quintile vs alpha (preview for Exp9)
-    print(f"\n  PREVIEW: crowding_score_v1 quintile vs residual_alpha", flush=True)
-    print(f"    (full analysis in Exp9, this is a sanity check)", flush=True)
+    print("\n  PREVIEW: crowding_score_v1 quintile vs residual_alpha", flush=True)
+    print("    (full analysis in Exp9, this is a sanity check)", flush=True)
     # Join to shadow_candidates_v3 for residual_alpha
     rows = []
     for r in ga_rows:
@@ -308,7 +327,10 @@ def validate_distribution() -> None:
         rows.sort(key=lambda x: x[0])
         n = len(rows)
         q = n // 5
-        print(f"    {'quintile':10s} {'n':>4} {'crowding_range':>20} {'alpha':>8} {'positive':>9}", flush=True)
+        print(
+            f"    {'quintile':10s} {'n':>4} {'crowding_range':>20} {'alpha':>8} {'positive':>9}",
+            flush=True,
+        )
         for qi in range(5):
             start = qi * q
             end = (qi + 1) * q if qi < 4 else n
@@ -318,8 +340,11 @@ def validate_distribution() -> None:
             alphas = [a for _, a in sub]
             crowds = [c for c, _ in sub]
             pos = 100.0 * sum(1 for a in alphas if a > 0) / len(alphas)
-            print(f"    Q{qi+1:1d}         {len(sub):4d}  [{min(crowds):+.3f},{max(crowds):+.3f}]   "
-                  f"{np.mean(alphas)*100:+6.2f}%  {pos:7.1f}%", flush=True)
+            print(
+                f"    Q{qi + 1:1d}         {len(sub):4d}  [{min(crowds):+.3f},{max(crowds):+.3f}]   "
+                f"{np.mean(alphas) * 100:+6.2f}%  {pos:7.1f}%",
+                flush=True,
+            )
 
     cache.close()
     shadow.close()

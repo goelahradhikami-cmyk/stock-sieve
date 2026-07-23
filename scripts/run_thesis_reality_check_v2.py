@@ -25,29 +25,26 @@ Usage:
 from __future__ import annotations
 
 import os
-import sys
 import sqlite3
-import time
-from collections import Counter, defaultdict
-from dataclasses import dataclass, field
-from typing import Optional
+import sys
+from dataclasses import dataclass
 
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.agents.doctrine_engine import DoctrineEngine
-from src.factors.snapshot_builder import FactorSnapshotBuilder
-from src.data.local_provider import LocalDataProvider
-from src.data.index_provider import IndexDataProvider
 from src.data.akshare_provider import AkshareProvider
+from src.data.index_provider import IndexDataProvider
+from src.data.local_provider import LocalDataProvider
 from src.evolution.attribution import ReturnAttribution
 from src.evolution.factor_neutralization import FactorNeutralizer
-from src.thesis.signal_engine import ThesisSignalEngine
-from src.thesis.residualizer import ThesisResidualizer
-from src.thesis.timing_layer import ThesisTimingLayer
-from src.thesis.thesis_validator import ThesisValidator
+from src.factors.snapshot_builder import FactorSnapshotBuilder
 from src.market.regime_bootstrap import RegimeBootstrap
+from src.thesis.residualizer import ThesisResidualizer
+from src.thesis.signal_engine import ThesisSignalEngine
+from src.thesis.thesis_validator import ThesisValidator
+from src.thesis.timing_layer import ThesisTimingLayer
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -58,6 +55,7 @@ HORIZON = 20
 @dataclass
 class ABResult:
     """One A/B comparison result."""
+
     control_return: float
     treatment_return: float
     incremental_alpha: float
@@ -67,6 +65,7 @@ class ABResult:
 @dataclass
 class RealityCheckResult:
     """Complete result of the reality check."""
+
     # Layer 1: A/B per treatment
     control_avg: float
     treatment_b_avg: float  # timing
@@ -100,8 +99,7 @@ class ThesisRealityCheckV2:
     test whether thesis signals add value beyond factor exposure.
     """
 
-    def __init__(self, eval_db: str = "data/evaluation.db",
-                 cache_db: str = "data/cache.db"):
+    def __init__(self, eval_db: str = "data/evaluation.db", cache_db: str = "data/cache.db"):
         self.eval_db = eval_db
         self.cache_db = cache_db
         self.engine = DoctrineEngine()
@@ -125,14 +123,24 @@ class ThesisRealityCheckV2:
                        (most balanced, best chance of showing thesis value).
         """
         if doctrines is None:
-            doctrines = [self.engine.classify({
-                "valuation": 40, "quality": 50, "growth": 50, "momentum": 55,
-                "macro": 65, "contrarian": 30, "patience": 30, "concentration": 40,
-            })]
+            doctrines = [
+                self.engine.classify(
+                    {
+                        "valuation": 40,
+                        "quality": 50,
+                        "growth": 50,
+                        "momentum": 55,
+                        "macro": 65,
+                        "contrarian": 30,
+                        "patience": 30,
+                        "concentration": 40,
+                    }
+                )
+            ]
 
         # Get all snapshot dates with 1000+ stocks
         dates = self._get_valid_dates()
-        print(f"=== Thesis Reality Check v2 ===")
+        print("=== Thesis Reality Check v2 ===")
         print(f"Dates: {len(dates)} (1000+ stocks each)")
         print(f"Doctrines: {len(doctrines)}")
         print(f"Horizon: T+{HORIZON}")
@@ -171,11 +179,12 @@ class ThesisRealityCheckV2:
             treatment_b_returns.append(treat_b_ret)
 
             # Treatment C: veto (remove vetoed stocks, reweight)
-            non_vetoed = [(p, r) for p, r, a in zip(picks, returns, timing_result.adjustments) if not a.vetoed]
-            if non_vetoed:
-                treat_c_ret = float(np.mean([r for _, r in non_vetoed]))
-            else:
-                treat_c_ret = ctrl_ret
+            non_vetoed = [
+                (p, r)
+                for p, r, a in zip(picks, returns, timing_result.adjustments, strict=False)
+                if not a.vetoed
+            ]
+            treat_c_ret = float(np.mean([r for _, r in non_vetoed])) if non_vetoed else ctrl_ret
             treatment_c_returns.append(treat_c_ret)
 
         ctrl_avg = float(np.mean(control_returns)) if control_returns else 0
@@ -184,18 +193,42 @@ class ThesisRealityCheckV2:
 
         incr_b = treat_b_avg - ctrl_avg
         incr_c = treat_c_avg - ctrl_avg
-        win_b = float(np.mean([1 if t > c else 0 for t, c in zip(treatment_b_returns, control_returns)])) if control_returns else 0
-        win_c = float(np.mean([1 if t > c else 0 for t, c in zip(treatment_c_returns, control_returns)])) if control_returns else 0
+        win_b = (
+            float(
+                np.mean(
+                    [
+                        1 if t > c else 0
+                        for t, c in zip(treatment_b_returns, control_returns, strict=False)
+                    ]
+                )
+            )
+            if control_returns
+            else 0
+        )
+        win_c = (
+            float(
+                np.mean(
+                    [
+                        1 if t > c else 0
+                        for t, c in zip(treatment_c_returns, control_returns, strict=False)
+                    ]
+                )
+            )
+            if control_returns
+            else 0
+        )
 
         print(f"  Control A (factor equal-weight): {ctrl_avg:+.4f}")
-        print(f"  Treatment B (factor+timing):     {treat_b_avg:+.4f}  incr={incr_b:+.4f}  win={win_b:.0%}")
-        print(f"  Treatment C (factor+veto):       {treat_c_avg:+.4f}  incr={incr_c:+.4f}  win={win_c:.0%}")
+        print(
+            f"  Treatment B (factor+timing):     {treat_b_avg:+.4f}  incr={incr_b:+.4f}  win={win_b:.0%}"
+        )
+        print(
+            f"  Treatment C (factor+veto):       {treat_c_avg:+.4f}  incr={incr_c:+.4f}  win={win_c:.0%}"
+        )
 
         # Layer 2: Multi-benchmark
         print("\n--- Layer 2: Multi-Benchmark ---")
-        alpha_hs300, alpha_csiall, alpha_equal = self._compute_multi_benchmark(
-            doctrines[0], dates
-        )
+        alpha_hs300, alpha_csiall, alpha_equal = self._compute_multi_benchmark(doctrines[0], dates)
         alpha_style_neutral = self._compute_style_neutral(doctrines[0], dates)
         print(f"  HS300:           {alpha_hs300:+.4f}")
         print(f"  CSI All:         {alpha_csiall:+.4f}")
@@ -204,9 +237,7 @@ class ThesisRealityCheckV2:
 
         # Layer 3: Signal decomposition
         print("\n--- Layer 3: Signal Decomposition ---")
-        earn_contrib, misp_contrib, cat_contrib = self._decompose_signals(
-            doctrines[0], dates
-        )
+        earn_contrib, misp_contrib, cat_contrib = self._decompose_signals(doctrines[0], dates)
         print(f"  Earnings:    {earn_contrib:+.4f}")
         print(f"  Mispricing:  {misp_contrib:+.4f}")
         print(f"  Catalyst:    {cat_contrib:+.4f}")
@@ -246,14 +277,25 @@ class ThesisRealityCheckV2:
         print(f"\n=== VERDICT: {verdict} ===")
 
         return RealityCheckResult(
-            control_avg=ctrl_avg, treatment_b_avg=treat_b_avg, treatment_c_avg=treat_c_avg,
-            incr_b=incr_b, incr_c=incr_c, win_rate_b=win_b, win_rate_c=win_c,
-            alpha_hs300=alpha_hs300, alpha_csiall=alpha_csiall,
-            alpha_equal=alpha_equal, alpha_style_neutral=alpha_style_neutral,
-            earnings_contribution=earn_contrib, mispricing_contribution=misp_contrib,
+            control_avg=ctrl_avg,
+            treatment_b_avg=treat_b_avg,
+            treatment_c_avg=treat_c_avg,
+            incr_b=incr_b,
+            incr_c=incr_c,
+            win_rate_b=win_b,
+            win_rate_c=win_c,
+            alpha_hs300=alpha_hs300,
+            alpha_csiall=alpha_csiall,
+            alpha_equal=alpha_equal,
+            alpha_style_neutral=alpha_style_neutral,
+            earnings_contribution=earn_contrib,
+            mispricing_contribution=misp_contrib,
             catalyst_contribution=cat_contrib,
-            train_alpha=train_alpha, test_alpha=test_alpha,
-            regime_results=regime_results, passed=passed, verdict=verdict,
+            train_alpha=train_alpha,
+            test_alpha=test_alpha,
+            regime_results=regime_results,
+            passed=passed,
+            verdict=verdict,
         )
 
     def _get_valid_dates(self) -> list[str]:
@@ -284,7 +326,11 @@ class ThesisRealityCheckV2:
     def _compute_returns(self, picks: list[dict], start: str, end: str) -> list[float]:
         returns = []
         for pick in picks:
-            bare = pick["security_id"].split(".")[0] if "." in pick["security_id"] else pick["security_id"]
+            bare = (
+                pick["security_id"].split(".")[0]
+                if "." in pick["security_id"]
+                else pick["security_id"]
+            )
             try:
                 kline = self.local.get_daily_kline(bare, start, end)
                 if kline is not None and not kline.empty and len(kline) >= 2:
@@ -318,13 +364,21 @@ class ThesisRealityCheckV2:
             # CSI All
             conn = sqlite3.connect(self.cache_db)
             try:
-                sp = conn.execute("SELECT close FROM market_index_daily WHERE index_code='000985' AND trade_date >= ? ORDER BY trade_date LIMIT 1", (d,)).fetchone()
-                ep = conn.execute("SELECT close FROM market_index_daily WHERE index_code='000985' AND trade_date <= ? ORDER BY trade_date DESC LIMIT 1", (eval_date,)).fetchone()
-                bench_csiall.append(((ep[0]-sp[0])/sp[0]) if sp and ep and sp[0] else 0.0)
+                sp = conn.execute(
+                    "SELECT close FROM market_index_daily WHERE index_code='000985' AND trade_date >= ? ORDER BY trade_date LIMIT 1",
+                    (d,),
+                ).fetchone()
+                ep = conn.execute(
+                    "SELECT close FROM market_index_daily WHERE index_code='000985' AND trade_date <= ? ORDER BY trade_date DESC LIMIT 1",
+                    (eval_date,),
+                ).fetchone()
+                bench_csiall.append(((ep[0] - sp[0]) / sp[0]) if sp and ep and sp[0] else 0.0)
                 # Equal weight: sample 200 stocks from snapshot (eval_db, not cache_db)
                 eval_conn = sqlite3.connect(self.eval_db)
                 try:
-                    all_rows = eval_conn.execute("SELECT security_id FROM stock_factor_snapshot WHERE trade_date=?", (d,)).fetchall()
+                    all_rows = eval_conn.execute(
+                        "SELECT security_id FROM stock_factor_snapshot WHERE trade_date=?", (d,)
+                    ).fetchall()
                 finally:
                     eval_conn.close()
             finally:
@@ -337,17 +391,26 @@ class ThesisRealityCheckV2:
                 try:
                     kline = self.local.get_daily_kline(bare, d, eval_date)
                     if kline is not None and not kline.empty and len(kline) >= 2:
-                        eq_returns.append((kline["close"].values[-1]-kline["close"].values[0])/kline["close"].values[0])
-                except:
+                        eq_returns.append(
+                            (kline["close"].values[-1] - kline["close"].values[0])
+                            / kline["close"].values[0]
+                        )
+                except Exception:
                     pass
             bench_equal.append(float(np.mean(eq_returns)) if eq_returns else 0.0)
 
         if not portfolio_returns:
             return 0, 0, 0
 
-        alpha_hs300 = float(np.mean([p - b for p, b in zip(portfolio_returns, bench_hs300)]))
-        alpha_csiall = float(np.mean([p - b for p, b in zip(portfolio_returns, bench_csiall)]))
-        alpha_equal = float(np.mean([p - b for p, b in zip(portfolio_returns, bench_equal)]))
+        alpha_hs300 = float(
+            np.mean([p - b for p, b in zip(portfolio_returns, bench_hs300, strict=False)])
+        )
+        alpha_csiall = float(
+            np.mean([p - b for p, b in zip(portfolio_returns, bench_csiall, strict=False)])
+        )
+        alpha_equal = float(
+            np.mean([p - b for p, b in zip(portfolio_returns, bench_equal, strict=False)])
+        )
 
         return alpha_hs300, alpha_csiall, alpha_equal
 
@@ -385,18 +448,24 @@ class ThesisRealityCheckV2:
 
             # Compute signals for each pick
             for pick in picks:
-                bare = pick["security_id"].split(".")[0] if "." in pick["security_id"] else pick["security_id"]
+                bare = (
+                    pick["security_id"].split(".")[0]
+                    if "." in pick["security_id"]
+                    else pick["security_id"]
+                )
                 try:
                     signals = self.signal_engine.compute_signals(bare, d)
                     # Get return
                     kline = self.local.get_daily_kline(bare, d, eval_date)
                     if kline is not None and not kline.empty and len(kline) >= 2:
-                        ret = (kline["close"].values[-1]-kline["close"].values[0])/kline["close"].values[0]
+                        ret = (kline["close"].values[-1] - kline["close"].values[0]) / kline[
+                            "close"
+                        ].values[0]
                         # Correlate return with each signal
                         earn_returns.append((signals.fundamental_acceleration, ret))
                         misp_returns.append((signals.mispricing_gap, ret))
                         cat_returns.append((signals.catalyst_proxy, ret))
-                except:
+                except Exception:
                     pass
 
         # Compute IC (information coefficient) per signal
@@ -440,23 +509,27 @@ def main():
     check = ThesisRealityCheckV2()
     result = check.run()
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("THESIS REALITY CHECK v2 - FINAL REPORT")
-    print(f"{'='*70}")
-    print(f"\nLayer 1 (A/B):")
+    print(f"{'=' * 70}")
+    print("\nLayer 1 (A/B):")
     print(f"  Control (factor):     {result.control_avg:+.4f}")
-    print(f"  Treatment B (timing): {result.treatment_b_avg:+.4f}  incr={result.incr_b:+.4f}  win={result.win_rate_b:.0%}")
-    print(f"  Treatment C (veto):   {result.treatment_c_avg:+.4f}  incr={result.incr_c:+.4f}  win={result.win_rate_c:.0%}")
-    print(f"\nLayer 2 (Multi-Benchmark):")
+    print(
+        f"  Treatment B (timing): {result.treatment_b_avg:+.4f}  incr={result.incr_b:+.4f}  win={result.win_rate_b:.0%}"
+    )
+    print(
+        f"  Treatment C (veto):   {result.treatment_c_avg:+.4f}  incr={result.incr_c:+.4f}  win={result.win_rate_c:.0%}"
+    )
+    print("\nLayer 2 (Multi-Benchmark):")
     print(f"  HS300:          {result.alpha_hs300:+.4f}")
     print(f"  CSI All:        {result.alpha_csiall:+.4f}")
     print(f"  Equal Weight:   {result.alpha_equal:+.4f}")
     print(f"  Style Neutral:  {result.alpha_style_neutral:+.4f}")
-    print(f"\nLayer 3 (Signal IC):")
+    print("\nLayer 3 (Signal IC):")
     print(f"  Earnings:    {result.earnings_contribution:+.4f}")
     print(f"  Mispricing:  {result.mispricing_contribution:+.4f}")
     print(f"  Catalyst:    {result.catalyst_contribution:+.4f}")
-    print(f"\nLayer 4 (Anti-Overfitting):")
+    print("\nLayer 4 (Anti-Overfitting):")
     print(f"  Train alpha:  {result.train_alpha:+.4f}")
     print(f"  Test alpha:   {result.test_alpha:+.4f}")
     for regime, alpha in result.regime_results.items():

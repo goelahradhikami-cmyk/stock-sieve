@@ -29,6 +29,7 @@ from enum import Enum
 # Error Classification Enums
 # ═══════════════════════════════════════════════════════════
 
+
 class ErrorCategory(Enum):
     THESIS_ERROR = "THESIS_ERROR"
     VALUATION_ERROR = "VALUATION_ERROR"
@@ -64,16 +65,18 @@ class ErrorSubtype(Enum):
 # Data Classes
 # ═══════════════════════════════════════════════════════════
 
+
 @dataclass
 class PostMortemResult:
     """Complete post-mortem analysis of a failed investment decision."""
+
     decision_id: str
     agent_id: str
     stock_code: str
     error_category: ErrorCategory
     error_subtype: ErrorSubtype
-    rule_trigger: dict                # Data that triggered the classification
-    primary_cause: str                # Human-readable summary
+    rule_trigger: dict  # Data that triggered the classification
+    primary_cause: str  # Human-readable summary
     wrong_assumption: str | None = None
     missed_signal: str | None = None
     llm_analysis: str | None = None  # LLM-generated deep analysis (optional, deferred)
@@ -141,85 +144,103 @@ LESSON_MAP = {
 # Mutation Generation Templates
 # ═══════════════════════════════════════════════════════════
 
-def generate_mutations(category: ErrorCategory, subtype: ErrorSubtype,
-                        trigger: dict, research: dict) -> list[dict]:
+
+def generate_mutations(
+    category: ErrorCategory, subtype: ErrorSubtype, trigger: dict, research: dict
+) -> list[dict]:
     """Generate mutation candidates based on error classification."""
 
     mutations = []
 
     if category == ErrorCategory.THESIS_ERROR:
         thesis_pattern = research.get("thesis_pattern", "unknown")
-        mutations.append({
-            "type": "reduce_thesis_scoring",
-            "target": "thesis_engine.thesis_scoring",
-            "pattern": thesis_pattern,
-            "direction": "decrease",
-            "delta_max": 0.05,
-            "reason": f"连续 {subtype.value} 类型的 thesis 失败",
-        })
+        mutations.append(
+            {
+                "type": "reduce_thesis_scoring",
+                "target": "thesis_engine.thesis_scoring",
+                "pattern": thesis_pattern,
+                "direction": "decrease",
+                "delta_max": 0.05,
+                "reason": f"连续 {subtype.value} 类型的 thesis 失败",
+            }
+        )
         # If evidence failure, suggest stricter evidence filters
         if subtype == ErrorSubtype.EVIDENCE_FAILURE:
-            mutations.append({
-                "type": "add_filter",
-                "target": "thesis_engine.evidence_rules",
-                "filter": "require_3rd_party_confirmation",
-                "threshold": True,
-                "reason": "证据被证伪，需增加第三方数据交叉验证",
-            })
+            mutations.append(
+                {
+                    "type": "add_filter",
+                    "target": "thesis_engine.evidence_rules",
+                    "filter": "require_3rd_party_confirmation",
+                    "threshold": True,
+                    "reason": "证据被证伪，需增加第三方数据交叉验证",
+                }
+            )
 
     if category == ErrorCategory.VALUATION_ERROR:
-        mutations.append({
-            "type": "add_filter",
-            "target": "valuation_gate",
-            "filter": "pe_percentile_max",
-            "threshold": 0.70,
-            "reason": "估值压缩导致损失，需增加估值分位数过滤",
-        })
+        mutations.append(
+            {
+                "type": "add_filter",
+                "target": "valuation_gate",
+                "filter": "pe_percentile_max",
+                "threshold": 0.70,
+                "reason": "估值压缩导致损失，需增加估值分位数过滤",
+            }
+        )
 
     if category == ErrorCategory.TIMING_ERROR:
         if subtype == ErrorSubtype.EARLY_ENTRY:
-            mutations.append({
-                "type": "add_filter",
-                "target": "decision_graph",
-                "filter": "momentum_confirmation",
-                "threshold": "price_momentum_3m > 0",
-                "reason": "入场过早，需增加动量确认过滤",
-            })
+            mutations.append(
+                {
+                    "type": "add_filter",
+                    "target": "decision_graph",
+                    "filter": "momentum_confirmation",
+                    "threshold": "price_momentum_3m > 0",
+                    "reason": "入场过早，需增加动量确认过滤",
+                }
+            )
         if subtype == ErrorSubtype.LATE_EXIT:
-            mutations.append({
-                "type": "add_filter",
-                "target": "decision_graph",
-                "filter": "trailing_stop",
-                "threshold": 0.15,  # 15% from peak
-                "reason": "未能及时止盈，需增加移动止损",
-            })
+            mutations.append(
+                {
+                    "type": "add_filter",
+                    "target": "decision_graph",
+                    "filter": "trailing_stop",
+                    "threshold": 0.15,  # 15% from peak
+                    "reason": "未能及时止盈，需增加移动止损",
+                }
+            )
 
     if category == ErrorCategory.REGIME_ERROR:
-        mutations.append({
-            "type": "adjust_regime_weight",
-            "target": "market_regime_adapter",
-            "direction": "increase_sensitivity",
-            "reason": "市场状态与策略持续不匹配",
-        })
+        mutations.append(
+            {
+                "type": "adjust_regime_weight",
+                "target": "market_regime_adapter",
+                "direction": "increase_sensitivity",
+                "reason": "市场状态与策略持续不匹配",
+            }
+        )
 
     if category == ErrorCategory.RISK_ERROR:
         if subtype == ErrorSubtype.POSITION_SIZE_ERROR:
-            mutations.append({
-                "type": "tighten_constraint",
-                "target": "position_sizing.single_position",
-                "constraint": "max_weight",
-                "current": research.get("final_weight", 0.10),
-                "suggested": max(0.03, research.get("final_weight", 0.10) * 0.7),
-                "reason": "仓位过大导致超出风险预算",
-            })
+            mutations.append(
+                {
+                    "type": "tighten_constraint",
+                    "target": "position_sizing.single_position",
+                    "constraint": "max_weight",
+                    "current": research.get("final_weight", 0.10),
+                    "suggested": max(0.03, research.get("final_weight", 0.10) * 0.7),
+                    "reason": "仓位过大导致超出风险预算",
+                }
+            )
         if subtype == ErrorSubtype.CORRELATION_FAILURE:
-            mutations.append({
-                "type": "add_filter",
-                "target": "portfolio_constraints",
-                "filter": "effective_diversification",
-                "threshold": "effective_n >= 8",
-                "reason": "组合分散化不足，相关性危机中失效",
-            })
+            mutations.append(
+                {
+                    "type": "add_filter",
+                    "target": "portfolio_constraints",
+                    "filter": "effective_diversification",
+                    "threshold": "effective_n >= 8",
+                    "reason": "组合分散化不足，相关性危机中失效",
+                }
+            )
 
     return mutations
 
@@ -227,6 +248,7 @@ def generate_mutations(category: ErrorCategory, subtype: ErrorSubtype,
 # ═══════════════════════════════════════════════════════════
 # Post-Mortem Engine
 # ═══════════════════════════════════════════════════════════
+
 
 class PostMortemAnalyzer:
     """Rule-based failure classification and mutation generation.
@@ -254,18 +276,24 @@ class PostMortemAnalyzer:
           5. Optional LLM deep analysis
         """
         # ── 1. Load data ─────────────────────────────────
-        eval_data = self.db.connect().execute(
-            "SELECT * FROM evaluation_results WHERE id = ?", (evaluation_result_id,)
-        ).fetchone()
+        eval_data = (
+            self.db.connect()
+            .execute("SELECT * FROM evaluation_results WHERE id = ?", (evaluation_result_id,))
+            .fetchone()
+        )
         if not eval_data:
             raise ValueError(f"Evaluation result {evaluation_result_id} not found")
 
         eval_data = dict(eval_data)
 
-        research = self.db.connect().execute(
-            "SELECT * FROM research_decisions WHERE id = ?",
-            (eval_data["research_decision_id"],)
-        ).fetchone()
+        research = (
+            self.db.connect()
+            .execute(
+                "SELECT * FROM research_decisions WHERE id = ?",
+                (eval_data["research_decision_id"],),
+            )
+            .fetchone()
+        )
         research = dict(research) if research else {}
 
         # ── 2. Rule-engine classify ──────────────────────
@@ -273,10 +301,13 @@ class PostMortemAnalyzer:
 
         # ── 3. Extract lessons ───────────────────────────
         lesson_key = (category, subtype)
-        lesson_data = LESSON_MAP.get(lesson_key, {
-            "lesson": f"{category.value}/{subtype.value} 类型的损失",
-            "action": "review_related_filters",
-        })
+        lesson_data = LESSON_MAP.get(
+            lesson_key,
+            {
+                "lesson": f"{category.value}/{subtype.value} 类型的损失",
+                "action": "review_related_filters",
+            },
+        )
         lessons = {
             "lesson": lesson_data["lesson"],
             "action": lesson_data["action"],
@@ -333,8 +364,10 @@ class PostMortemAnalyzer:
                 subtype,
                 {
                     "invalidation_triggered": True,
-                    "triggered_conditions": self._get_triggered_invalidations(invalidation, eval_data),
-                }
+                    "triggered_conditions": self._get_triggered_invalidations(
+                        invalidation, eval_data
+                    ),
+                },
             )
 
         # ── Check Alpha: both market and sector negative ──
@@ -352,19 +385,23 @@ class PostMortemAnalyzer:
                     return (
                         ErrorCategory.REGIME_ERROR,
                         ErrorSubtype.MACRO_SHIFT,
-                        {"regime": regime, "agent_preference": agent_pref, "pref_score": pref_score}
+                        {
+                            "regime": regime,
+                            "agent_preference": agent_pref,
+                            "pref_score": pref_score,
+                        },
                     )
                 else:
                     return (
                         ErrorCategory.REGIME_ERROR,
                         ErrorSubtype.FACTOR_ROTATION,
-                        {"regime": regime, "factor_rotation_detected": True}
+                        {"regime": regime, "factor_rotation_detected": True},
                     )
 
             return (
                 ErrorCategory.REGIME_ERROR,
                 ErrorSubtype.FACTOR_ROTATION,
-                {"regime": regime, "factor_rotation_detected": True}
+                {"regime": regime, "factor_rotation_detected": True},
             )
 
         # ── Check valuation compression ──────────────────
@@ -375,7 +412,7 @@ class PostMortemAnalyzer:
                 {
                     "pe_change": eval_data.get("pe_change", 0),
                     "pb_change": eval_data.get("pb_change", 0),
-                }
+                },
             )
 
         # ── Check: had profit during holding period ──────
@@ -390,7 +427,7 @@ class PostMortemAnalyzer:
                 {
                     "max_profit_during": max_profit,
                     "final_return": stock_return,
-                }
+                },
             )
 
         # ── Check: early entry (deep drawdown then recovery) ──
@@ -401,7 +438,7 @@ class PostMortemAnalyzer:
                 {
                     "max_drawdown_during": max_drawdown,
                     "final_return": stock_return,
-                }
+                },
             )
 
         # ── Check position size ──────────────────────────
@@ -410,14 +447,14 @@ class PostMortemAnalyzer:
             return (
                 ErrorCategory.RISK_ERROR,
                 ErrorSubtype.POSITION_SIZE_ERROR,
-                {"final_weight": portfolio_weight}
+                {"final_weight": portfolio_weight},
             )
 
         # ── Default: correlation failure ─────────────────
         return (
             ErrorCategory.RISK_ERROR,
             ErrorSubtype.CORRELATION_FAILURE,
-            {"note": "default classification — probable correlation failure"}
+            {"note": "default classification — probable correlation failure"},
         )
 
     def _invalidation_triggered(self, invalidation: list, eval_data: dict) -> bool:
@@ -471,23 +508,29 @@ class PostMortemAnalyzer:
         if not agent_id:
             return {}
 
-        row = self.db.connect().execute(
-            "SELECT genome_yaml FROM agent_genome_snapshots WHERE agent_id = ? AND status = 'active' ORDER BY birth_date DESC LIMIT 1",
-            (agent_id,)
-        ).fetchone()
+        row = (
+            self.db.connect()
+            .execute(
+                "SELECT genome_yaml FROM agent_genome_snapshots WHERE agent_id = ? AND status = 'active' ORDER BY birth_date DESC LIMIT 1",
+                (agent_id,),
+            )
+            .fetchone()
+        )
 
         if not row:
             return {}
 
         try:
             import yaml
+
             genome = yaml.safe_load(row[0]) or {}
             return genome.get("doctrine", {}).get("market_regime_preference", {})
         except Exception:
             return {}
 
-    def _classify_invalidation_subtype(self, invalidation: list,
-                                        eval_data: dict, research: dict) -> ErrorSubtype:
+    def _classify_invalidation_subtype(
+        self, invalidation: list, eval_data: dict, research: dict
+    ) -> ErrorSubtype:
         """Determine which subtype of THESIS_ERROR occurred."""
         # Check if catalyst was the issue
         thesis_catalyst = research.get("thesis_catalyst", "")
@@ -528,41 +571,67 @@ class PostMortemAnalyzer:
 
     # ── Cause extraction ──────────────────────────────────
 
-    def _build_primary_cause(self, category: ErrorCategory, subtype: ErrorSubtype,
-                              trigger: dict, research: dict) -> str:
+    def _build_primary_cause(
+        self, category: ErrorCategory, subtype: ErrorSubtype, trigger: dict, research: dict
+    ) -> str:
         """Build human-readable primary cause string."""
         stock = research.get("security_id", "unknown")
         pattern = research.get("thesis_pattern", "unknown")
         causes = {
-            (ErrorCategory.THESIS_ERROR, ErrorSubtype.EVIDENCE_FAILURE):
-                f"{stock} thesis '{pattern}' evidence invalidated by market data",
-            (ErrorCategory.THESIS_ERROR, ErrorSubtype.ASSUMPTION_FAILURE):
-                f"{stock} core assumption of thesis '{pattern}' disproven",
-            (ErrorCategory.THESIS_ERROR, ErrorSubtype.CATALYST_FAILURE):
-                f"{stock} catalyst for thesis '{pattern}' expired without effect",
-            (ErrorCategory.VALUATION_ERROR, ErrorSubtype.MULTIPLE_COMPRESSION):
-                f"{stock} PE/PB multiple compressed despite fundamentals intact",
-            (ErrorCategory.VALUATION_ERROR, ErrorSubtype.EXPECTATION_OVERPRICED):
-                f"{stock} positive news failed to lift price (expectation overpriced)",
-            (ErrorCategory.TIMING_ERROR, ErrorSubtype.EARLY_ENTRY):
-                f"{stock} entered too early — suffered {trigger.get('max_drawdown_during', 0):.1%} drawdown before recovery",
-            (ErrorCategory.TIMING_ERROR, ErrorSubtype.LATE_EXIT):
-                f"{stock} held too long — gave back {trigger.get('max_profit_during', 0):.1%} profit to {trigger.get('final_return', 0):.1%} loss",
-            (ErrorCategory.TIMING_ERROR, ErrorSubtype.CATALYST_DELAY):
-                f"{stock} catalyst delayed beyond thesis horizon",
-            (ErrorCategory.REGIME_ERROR, ErrorSubtype.MACRO_SHIFT):
-                f"Market regime '{trigger.get('regime', 'unknown')}' mismatched agent strategy",
-            (ErrorCategory.REGIME_ERROR, ErrorSubtype.FACTOR_ROTATION):
-                f"Factor rotation during regime '{trigger.get('regime', 'unknown')}'",
-            (ErrorCategory.RISK_ERROR, ErrorSubtype.POSITION_SIZE_ERROR):
-                f"{stock} position {trigger.get('final_weight', 0):.1%} exceeded risk budget",
-            (ErrorCategory.RISK_ERROR, ErrorSubtype.CORRELATION_FAILURE):
-                f"{stock} diversification failed — correlation breakdown in crisis",
+            (
+                ErrorCategory.THESIS_ERROR,
+                ErrorSubtype.EVIDENCE_FAILURE,
+            ): f"{stock} thesis '{pattern}' evidence invalidated by market data",
+            (
+                ErrorCategory.THESIS_ERROR,
+                ErrorSubtype.ASSUMPTION_FAILURE,
+            ): f"{stock} core assumption of thesis '{pattern}' disproven",
+            (
+                ErrorCategory.THESIS_ERROR,
+                ErrorSubtype.CATALYST_FAILURE,
+            ): f"{stock} catalyst for thesis '{pattern}' expired without effect",
+            (
+                ErrorCategory.VALUATION_ERROR,
+                ErrorSubtype.MULTIPLE_COMPRESSION,
+            ): f"{stock} PE/PB multiple compressed despite fundamentals intact",
+            (
+                ErrorCategory.VALUATION_ERROR,
+                ErrorSubtype.EXPECTATION_OVERPRICED,
+            ): f"{stock} positive news failed to lift price (expectation overpriced)",
+            (
+                ErrorCategory.TIMING_ERROR,
+                ErrorSubtype.EARLY_ENTRY,
+            ): f"{stock} entered too early — suffered {trigger.get('max_drawdown_during', 0):.1%} drawdown before recovery",
+            (
+                ErrorCategory.TIMING_ERROR,
+                ErrorSubtype.LATE_EXIT,
+            ): f"{stock} held too long — gave back {trigger.get('max_profit_during', 0):.1%} profit to {trigger.get('final_return', 0):.1%} loss",
+            (
+                ErrorCategory.TIMING_ERROR,
+                ErrorSubtype.CATALYST_DELAY,
+            ): f"{stock} catalyst delayed beyond thesis horizon",
+            (
+                ErrorCategory.REGIME_ERROR,
+                ErrorSubtype.MACRO_SHIFT,
+            ): f"Market regime '{trigger.get('regime', 'unknown')}' mismatched agent strategy",
+            (
+                ErrorCategory.REGIME_ERROR,
+                ErrorSubtype.FACTOR_ROTATION,
+            ): f"Factor rotation during regime '{trigger.get('regime', 'unknown')}'",
+            (
+                ErrorCategory.RISK_ERROR,
+                ErrorSubtype.POSITION_SIZE_ERROR,
+            ): f"{stock} position {trigger.get('final_weight', 0):.1%} exceeded risk budget",
+            (
+                ErrorCategory.RISK_ERROR,
+                ErrorSubtype.CORRELATION_FAILURE,
+            ): f"{stock} diversification failed — correlation breakdown in crisis",
         }
         return causes.get((category, subtype), f"{category.value}/{subtype.value} on {stock}")
 
-    def _extract_wrong_assumption(self, category: ErrorCategory, subtype: ErrorSubtype,
-                                   research: dict) -> str | None:
+    def _extract_wrong_assumption(
+        self, category: ErrorCategory, subtype: ErrorSubtype, research: dict
+    ) -> str | None:
         """Extract which assumption was wrong."""
         if category == ErrorCategory.THESIS_ERROR:
             return research.get("thesis_claim", "Unknown thesis claim")
@@ -576,31 +645,47 @@ class PostMortemAnalyzer:
             return "Assumed portfolio diversification would protect against drawdown"
         return None
 
-    def _extract_missed_signal(self, category: ErrorCategory, subtype: ErrorSubtype,
-                                trigger: dict) -> str | None:
+    def _extract_missed_signal(
+        self, category: ErrorCategory, subtype: ErrorSubtype, trigger: dict
+    ) -> str | None:
         """Identify what signal was missed."""
         signals = {
-            (ErrorCategory.THESIS_ERROR, ErrorSubtype.EVIDENCE_FAILURE):
-                "Early evidence contradicting thesis claim",
-            (ErrorCategory.VALUATION_ERROR, ErrorSubtype.MULTIPLE_COMPRESSION):
-                "Rising interest rates or sector de-rating signals",
-            (ErrorCategory.TIMING_ERROR, ErrorSubtype.LATE_EXIT):
-                f"Exit signal at {trigger.get('max_profit_during', 0):.1%} profit peak",
-            (ErrorCategory.TIMING_ERROR, ErrorSubtype.EARLY_ENTRY):
-                "Momentum confirmation before entry",
-            (ErrorCategory.REGIME_ERROR, ErrorSubtype.MACRO_SHIFT):
-                f"Early regime shift indicators for regime '{trigger.get('regime', 'unknown')}'",
-            (ErrorCategory.RISK_ERROR, ErrorSubtype.POSITION_SIZE_ERROR):
-                "Kelly formula suggesting lower position size",
-            (ErrorCategory.RISK_ERROR, ErrorSubtype.CORRELATION_FAILURE):
-                "Rising cross-asset correlation before crisis",
+            (
+                ErrorCategory.THESIS_ERROR,
+                ErrorSubtype.EVIDENCE_FAILURE,
+            ): "Early evidence contradicting thesis claim",
+            (
+                ErrorCategory.VALUATION_ERROR,
+                ErrorSubtype.MULTIPLE_COMPRESSION,
+            ): "Rising interest rates or sector de-rating signals",
+            (
+                ErrorCategory.TIMING_ERROR,
+                ErrorSubtype.LATE_EXIT,
+            ): f"Exit signal at {trigger.get('max_profit_during', 0):.1%} profit peak",
+            (
+                ErrorCategory.TIMING_ERROR,
+                ErrorSubtype.EARLY_ENTRY,
+            ): "Momentum confirmation before entry",
+            (
+                ErrorCategory.REGIME_ERROR,
+                ErrorSubtype.MACRO_SHIFT,
+            ): f"Early regime shift indicators for regime '{trigger.get('regime', 'unknown')}'",
+            (
+                ErrorCategory.RISK_ERROR,
+                ErrorSubtype.POSITION_SIZE_ERROR,
+            ): "Kelly formula suggesting lower position size",
+            (
+                ErrorCategory.RISK_ERROR,
+                ErrorSubtype.CORRELATION_FAILURE,
+            ): "Rising cross-asset correlation before crisis",
         }
         return signals.get((category, subtype))
 
     # ── LLM Analysis (optional, deferred) ─────────────────
 
-    def _llm_analyze(self, eval_data: dict, research: dict,
-                      category: ErrorCategory, subtype: ErrorSubtype) -> str | None:
+    def _llm_analyze(
+        self, eval_data: dict, research: dict, category: ErrorCategory, subtype: ErrorSubtype
+    ) -> str | None:
         """Generate natural language post-mortem analysis via LLM.
 
         Per evolution_engine_spec §8: LLM only provides observation.
@@ -612,14 +697,14 @@ class PostMortemAnalyzer:
         prompt = f"""[LLM] 投资尸检分析 — 仅用于解释复盘，不修改分类。
 
 错误类型: {category.value}/{subtype.value}
-股票: {research.get('security_id', 'unknown')}
-Thesis: {research.get('thesis_claim', '无')}
-Alpha评分: {research.get('alpha_score', 'N/A')}
-确信度: {research.get('confidence', 'N/A')}
-实际收益: {eval_data.get('stock_return', 'N/A')}
-行业收益: {eval_data.get('sector_return', 'N/A')}
-市场收益: {eval_data.get('market_return', 'N/A')}
-持有期最大回撤: {eval_data.get('max_drawdown_during', 'N/A')}
+股票: {research.get("security_id", "unknown")}
+Thesis: {research.get("thesis_claim", "无")}
+Alpha评分: {research.get("alpha_score", "N/A")}
+确信度: {research.get("confidence", "N/A")}
+实际收益: {eval_data.get("stock_return", "N/A")}
+行业收益: {eval_data.get("sector_return", "N/A")}
+市场收益: {eval_data.get("market_return", "N/A")}
+持有期最大回撤: {eval_data.get("max_drawdown_during", "N/A")}
 
 请分析（必须引用上面具体数据）：
 1. 这次失败的根本原因是什么？
@@ -649,6 +734,7 @@ Alpha评分: {research.get('alpha_score', 'N/A')}
 # Evolution Engine Integration
 # ═══════════════════════════════════════════════════════════
 
+
 def collect_post_mortem_mutations(db, agent_id: str, lookback_months: int = 6) -> list[dict]:
     """Collect mutation_candidates from recent post-mortems.
 
@@ -657,13 +743,16 @@ def collect_post_mortem_mutations(db, agent_id: str, lookback_months: int = 6) -
     """
     conn = db.connect()
     six_months_ago = f"date('now', '-{lookback_months} months')"
-    rows = conn.execute(f"""
+    rows = conn.execute(
+        f"""
         SELECT mutation_candidates
         FROM post_mortems
         WHERE agent_id = ?
           AND created_at > {six_months_ago}
           AND applied = 0
-    """, (agent_id,)).fetchall()
+    """,
+        (agent_id,),
+    ).fetchall()
     conn.close()
 
     all_candidates = []
@@ -694,31 +783,36 @@ def update_failure_patterns(db, post_mortem_results: list[PostMortemResult]):
 
         # Check if pattern exists
         existing = conn.execute(
-            "SELECT id, occurrence_count FROM failure_patterns WHERE pattern_id = ?",
-            (pattern_id,)
+            "SELECT id, occurrence_count FROM failure_patterns WHERE pattern_id = ?", (pattern_id,)
         ).fetchone()
 
         if existing:
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE failure_patterns
                 SET occurrence_count = occurrence_count + 1,
                     last_occurrence = date('now'),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE pattern_id = ?
-            """, (pattern_id,))
+            """,
+                (pattern_id,),
+            )
         else:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO failure_patterns
                 (pattern_id, pattern_name, error_category, error_subtype,
                  occurrence_count, last_occurrence,
                  avg_loss_magnitude, pattern_confidence)
                 VALUES (?, ?, ?, ?, 1, date('now'), 0.0, 0.0)
-            """, (
-                pattern_id,
-                f"{pm.error_category.value}/{pm.error_subtype.value}",
-                pm.error_category.value,
-                pm.error_subtype.value,
-            ))
+            """,
+                (
+                    pattern_id,
+                    f"{pm.error_category.value}/{pm.error_subtype.value}",
+                    pm.error_category.value,
+                    pm.error_subtype.value,
+                ),
+            )
 
     conn.commit()
     conn.close()

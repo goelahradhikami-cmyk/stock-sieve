@@ -47,10 +47,10 @@ Usage:
 
 from __future__ import annotations
 
-import os
-import sys
-import sqlite3
 import json
+import os
+import sqlite3
+import sys
 from datetime import date
 
 import numpy as np
@@ -66,9 +66,9 @@ CACHE_DB = "data/cache.db"
 REPORT_DIR = "data/reports"
 
 # Frozen gate thresholds (6-S.16.0a)
-GATE_B1_ALPHA_LIFT_PP = 1.5      # +1.5pp
-GATE_B2_HITRATE_LIFT_PP = 5.0    # +5pp
-GATE_B3_DISPERSION_FLOOR = 0.005 # return std must stay above 0.5%
+GATE_B1_ALPHA_LIFT_PP = 1.5  # +1.5pp
+GATE_B2_HITRATE_LIFT_PP = 5.0  # +5pp
+GATE_B3_DISPERSION_FLOOR = 0.005  # return std must stay above 0.5%
 MIN_N_FOR_STATISTICAL_POWER = 30
 
 
@@ -96,9 +96,7 @@ def load_candidate_rows():
 
     # Sustainability lookup: (security_id, as_of_date) -> row
     sustain_map = {}
-    for r in cache.execute(
-        """SELECT * FROM earnings_sustainability"""
-    ).fetchall():
+    for r in cache.execute("""SELECT * FROM earnings_sustainability""").fetchall():
         sustain_map[(r["security_id"], r["as_of_date"])] = dict(r)
 
     shadow.close()
@@ -109,31 +107,33 @@ def load_candidate_rows():
     for c in cand_rows:
         key = (c["security_id"], c["trade_date"])
         s = sustain_map.get(key, {})
-        merged.append({
-            "security_id": c["security_id"],
-            "trade_date": c["trade_date"],
-            "episode_id": c["episode_id"],
-            "residual_alpha": c["residual_alpha"],
-            "market_beta": c["market_beta"],
-            "sector_beta": c["sector_beta"],
-            "stock_return_t20": c["stock_return_t20"],
-            "rs_data_available": c["rs_data_available"],
-            "frm_direction": c["frm_direction"],
-            "frm_score": c["frm_score"],
-            # Sustainability fields (None if not covered)
-            "sustainability_pass": s.get("sustainability_pass"),
-            "alignment_flag": s.get("alignment_flag"),
-            "consistency_flag": s.get("consistency_flag"),
-            "margin_normalization_flag": s.get("margin_normalization_flag"),
-            "failure_reason": s.get("failure_reason"),
-            "profit_elasticity": s.get("profit_elasticity"),
-            "accel_trend": s.get("accel_trend"),
-            "accel_volatility": s.get("accel_volatility"),
-            "reversal_count": s.get("reversal_count"),
-            "company_margin_zscore": s.get("company_margin_zscore"),
-            "industry_margin_zscore": s.get("industry_margin_zscore"),
-            "operating_margin_current": s.get("operating_margin_current"),
-        })
+        merged.append(
+            {
+                "security_id": c["security_id"],
+                "trade_date": c["trade_date"],
+                "episode_id": c["episode_id"],
+                "residual_alpha": c["residual_alpha"],
+                "market_beta": c["market_beta"],
+                "sector_beta": c["sector_beta"],
+                "stock_return_t20": c["stock_return_t20"],
+                "rs_data_available": c["rs_data_available"],
+                "frm_direction": c["frm_direction"],
+                "frm_score": c["frm_score"],
+                # Sustainability fields (None if not covered)
+                "sustainability_pass": s.get("sustainability_pass"),
+                "alignment_flag": s.get("alignment_flag"),
+                "consistency_flag": s.get("consistency_flag"),
+                "margin_normalization_flag": s.get("margin_normalization_flag"),
+                "failure_reason": s.get("failure_reason"),
+                "profit_elasticity": s.get("profit_elasticity"),
+                "accel_trend": s.get("accel_trend"),
+                "accel_volatility": s.get("accel_volatility"),
+                "reversal_count": s.get("reversal_count"),
+                "company_margin_zscore": s.get("company_margin_zscore"),
+                "industry_margin_zscore": s.get("industry_margin_zscore"),
+                "operating_margin_current": s.get("operating_margin_current"),
+            }
+        )
     return merged
 
 
@@ -165,13 +165,20 @@ def print_stats(s, indent=2):
         print(f"{pad}{s['label']}: EMPTY", flush=True)
         return
     print(f"{pad}{s['label']}: N={s['n']}", flush=True)
-    print(f"{pad}  residual_alpha: mean={s['residual_alpha_mean_pct']:.2f}%  "
-          f"median={s['residual_alpha_median_pct']:.2f}%  "
-          f"positive_rate={s['positive_rate_pct']:.1f}%", flush=True)
-    print(f"{pad}  market_beta={s['market_beta_pct']:.2f}%  "
-          f"sector_beta={s['sector_beta_pct']:.2f}%", flush=True)
-    print(f"{pad}  return: mean={s['return_mean_pct']:.2f}%  "
-          f"std={s['return_std_pct']:.2f}%", flush=True)
+    print(
+        f"{pad}  residual_alpha: mean={s['residual_alpha_mean_pct']:.2f}%  "
+        f"median={s['residual_alpha_median_pct']:.2f}%  "
+        f"positive_rate={s['positive_rate_pct']:.1f}%",
+        flush=True,
+    )
+    print(
+        f"{pad}  market_beta={s['market_beta_pct']:.2f}%  sector_beta={s['sector_beta_pct']:.2f}%",
+        flush=True,
+    )
+    print(
+        f"{pad}  return: mean={s['return_mean_pct']:.2f}%  std={s['return_std_pct']:.2f}%",
+        flush=True,
+    )
 
 
 def run_ablation():
@@ -205,8 +212,11 @@ def run_ablation():
     print("Group B: FRM + Sustainability (subset of Group A, pass=1)", flush=True)
     print("-" * 70, flush=True)
     print(f"  Group A total:          {len(group_a)}", flush=True)
-    print(f"  Group A covered:        {len(group_a_covered)} "
-          f"({100.0*len(group_a_covered)/max(len(group_a),1):.1f}%)", flush=True)
+    print(
+        f"  Group A covered:        {len(group_a_covered)} "
+        f"({100.0 * len(group_a_covered) / max(len(group_a), 1):.1f}%)",
+        flush=True,
+    )
     print(f"  Group B (pass=1):       {len(group_b)}", flush=True)
     print(f"  Group A fail (pass=0):  {len(group_b_fail)}", flush=True)
     print_stats(stats_b)
@@ -230,11 +240,14 @@ def run_ablation():
             "group_b_alpha": stats_b["residual_alpha_mean_pct"],
             "verdict": "PASS" if alpha_lift >= GATE_B1_ALPHA_LIFT_PP else "FAIL",
         }
-        print(f"\n  Gate B1 (Alpha lift):", flush=True)
+        print("\n  Gate B1 (Alpha lift):", flush=True)
         print(f"    required: {gates['B1_alpha_lift']['required']}", flush=True)
-        print(f"    actual:   {gates['B1_alpha_lift']['actual']}  "
-              f"(A={stats_a['residual_alpha_mean_pct']:.2f}% -> "
-              f"B={stats_b['residual_alpha_mean_pct']:.2f}%)", flush=True)
+        print(
+            f"    actual:   {gates['B1_alpha_lift']['actual']}  "
+            f"(A={stats_a['residual_alpha_mean_pct']:.2f}% -> "
+            f"B={stats_b['residual_alpha_mean_pct']:.2f}%)",
+            flush=True,
+        )
         print(f"    verdict:  {gates['B1_alpha_lift']['verdict']}", flush=True)
 
     # Gate B2: Hit rate lift >= +5pp
@@ -247,11 +260,14 @@ def run_ablation():
             "group_b_positive_rate": stats_b["positive_rate_pct"],
             "verdict": "PASS" if hitrate_lift >= GATE_B2_HITRATE_LIFT_PP else "FAIL",
         }
-        print(f"\n  Gate B2 (Hit rate lift):", flush=True)
+        print("\n  Gate B2 (Hit rate lift):", flush=True)
         print(f"    required: {gates['B2_hitrate_lift']['required']}", flush=True)
-        print(f"    actual:   {gates['B2_hitrate_lift']['actual']}  "
-              f"(A={stats_a['positive_rate_pct']:.1f}% -> "
-              f"B={stats_b['positive_rate_pct']:.1f}%)", flush=True)
+        print(
+            f"    actual:   {gates['B2_hitrate_lift']['actual']}  "
+            f"(A={stats_a['positive_rate_pct']:.1f}% -> "
+            f"B={stats_b['positive_rate_pct']:.1f}%)",
+            flush=True,
+        )
         print(f"    verdict:  {gates['B2_hitrate_lift']['verdict']}", flush=True)
 
     # Gate B3: Not just risk filter (alpha_delta > 0 AND dispersion preserved)
@@ -260,15 +276,18 @@ def run_ablation():
         dispersion_b = stats_b["return_std_pct"]
         dispersion_preserved = dispersion_b >= GATE_B3_DISPERSION_FLOOR * 100
         gates["B3_not_just_risk"] = {
-            "required": f"alpha_delta > 0 AND return_std >= {GATE_B3_DISPERSION_FLOOR*100}%",
+            "required": f"alpha_delta > 0 AND return_std >= {GATE_B3_DISPERSION_FLOOR * 100}%",
             "actual_alpha_delta": f"{alpha_delta:+.2f}pp",
             "actual_return_std": f"{dispersion_b:.2f}%",
             "verdict": "PASS" if (alpha_delta > 0 and dispersion_preserved) else "FAIL",
         }
-        print(f"\n  Gate B3 (Not just risk filter):", flush=True)
+        print("\n  Gate B3 (Not just risk filter):", flush=True)
         print(f"    required: {gates['B3_not_just_risk']['required']}", flush=True)
-        print(f"    actual:   alpha_delta={gates['B3_not_just_risk']['actual_alpha_delta']}, "
-              f"return_std={gates['B3_not_just_risk']['actual_return_std']}", flush=True)
+        print(
+            f"    actual:   alpha_delta={gates['B3_not_just_risk']['actual_alpha_delta']}, "
+            f"return_std={gates['B3_not_just_risk']['actual_return_std']}",
+            flush=True,
+        )
         print(f"    verdict:  {gates['B3_not_just_risk']['verdict']}", flush=True)
 
     # ─────────────────────────────────────────────────────────────
@@ -307,28 +326,38 @@ def run_ablation():
         q_size = n // 5
         quintiles = {}
         print(f"\n  N with composite proxy: {n}\n", flush=True)
-        print(f"  {'quintile':10s} {'n':>4} {'proxy':>8} {'alpha':>8} "
-              f"{'positive':>9} {'sustain_pass%':>14}", flush=True)
+        print(
+            f"  {'quintile':10s} {'n':>4} {'proxy':>8} {'alpha':>8} "
+            f"{'positive':>9} {'sustain_pass%':>14}",
+            flush=True,
+        )
         for qi in range(5):
             start = qi * q_size
             end = (qi + 1) * q_size if qi < 4 else n
             q_rows = [r for r, _ in rows_with_proxy[start:end]]
             q_proxy = np.mean([p for _, p in rows_with_proxy[start:end]])
-            s = stats(q_rows, f"Q{qi+1}")
-            pass_rate = 100.0 * sum(1 for r in q_rows if r["sustainability_pass"] == 1) / max(len(q_rows), 1)
-            quintiles[f"Q{qi+1}"] = {
+            s = stats(q_rows, f"Q{qi + 1}")
+            pass_rate = (
+                100.0
+                * sum(1 for r in q_rows if r["sustainability_pass"] == 1)
+                / max(len(q_rows), 1)
+            )
+            quintiles[f"Q{qi + 1}"] = {
                 "n": s["n"],
                 "proxy_mean": float(q_proxy),
                 "alpha_pct": s["residual_alpha_mean_pct"],
                 "positive_rate_pct": s["positive_rate_pct"],
                 "sustain_pass_rate_pct": float(pass_rate),
             }
-            print(f"  Q{qi+1:1d}         {s['n']:4d} {q_proxy:8.3f} "
-                  f"{s['residual_alpha_mean_pct']:7.2f}% "
-                  f"{s['positive_rate_pct']:8.1f}% {pass_rate:13.1f}%", flush=True)
+            print(
+                f"  Q{qi + 1:1d}         {s['n']:4d} {q_proxy:8.3f} "
+                f"{s['residual_alpha_mean_pct']:7.2f}% "
+                f"{s['positive_rate_pct']:8.1f}% {pass_rate:13.1f}%",
+                flush=True,
+            )
 
         # Diagnose Case A / B / C
-        alphas = [quintiles[f"Q{i+1}"]["alpha_pct"] for i in range(5)]
+        alphas = [quintiles[f"Q{i + 1}"]["alpha_pct"] for i in range(5)]
         print(f"\n  Quintile alpha profile: {alphas}", flush=True)
         if len(alphas) == 5:
             # Monotonic trend test (Spearman-like: correlation with rank)
@@ -358,8 +387,9 @@ def run_ablation():
     print("PHASE 1.5 VERDICT", flush=True)
     print("=" * 70, flush=True)
 
-    gate_results = {k: v.get("verdict") for k, v in gates.items()
-                    if isinstance(v, dict) and "verdict" in v}
+    gate_results = {
+        k: v.get("verdict") for k, v in gates.items() if isinstance(v, dict) and "verdict" in v
+    }
     all_pass = all(v == "PASS" for v in gate_results.values()) and len(gate_results) >= 3
     n_b = stats_b["n"]
 
@@ -374,14 +404,21 @@ def run_ablation():
     if all_pass:
         verdict = "PASS - proceed to Phase 2 EQE Composer"
         print(f"\n  >>> VERDICT: {verdict}", flush=True)
-        print(f"  >>> Sustainability lifts FRM alpha. 'Recovery + credibility' is rewarded.", flush=True)
-        print(f"  >>> Next: Phase 2 EQE Composer (FRM + Sustainability + Gap sweet spot)", flush=True)
+        print(
+            "  >>> Sustainability lifts FRM alpha. 'Recovery + credibility' is rewarded.",
+            flush=True,
+        )
+        print(
+            "  >>> Next: Phase 2 EQE Composer (FRM + Sustainability + Gap sweet spot)", flush=True
+        )
     else:
         verdict = "FAIL - STOP. Do not tune parameters."
         print(f"\n  >>> VERDICT: {verdict}", flush=True)
-        print(f"  >>> Frozen decision: FRM alpha comes from recovery itself,", flush=True)
-        print(f"  >>> NOT from recovery quality. Re-examine why FRM has alpha.", flush=True)
-        print(f"  >>> Do NOT proceed to Phase 2. Pivot to v3.5 per failure_decision_tree.", flush=True)
+        print("  >>> Frozen decision: FRM alpha comes from recovery itself,", flush=True)
+        print("  >>> NOT from recovery quality. Re-examine why FRM has alpha.", flush=True)
+        print(
+            "  >>> Do NOT proceed to Phase 2. Pivot to v3.5 per failure_decision_tree.", flush=True
+        )
 
     # Export report
     os.makedirs(REPORT_DIR, exist_ok=True)

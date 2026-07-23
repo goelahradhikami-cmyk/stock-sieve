@@ -82,59 +82,106 @@ def composite_result():
 
 
 def test_import_evaluation_db():
-    pass
+    from src.data.evaluation_db import EvaluationDB
+
+    assert EvaluationDB is not None
 
 
 def test_import_data_provider():
-    pass
+    from src.data.provider import DataProvider, MarketSnapshot, StockSnapshot
+
+    assert DataProvider is not None and MarketSnapshot is not None and StockSnapshot is not None
 
 
 def test_import_market_brain():
-    pass
+    from src.data.market_brain import MarketBrain
+
+    assert MarketBrain is not None
 
 
 def test_import_factor_engine():
-    pass
+    from src.factors.engine import FactorEngine
+
+    assert FactorEngine is not None
 
 
 def test_import_evolution_engine():
-    pass
+    from src.evolution.genome import AgentGenome
+    from src.evolution.spec_engine import (
+        CrossoverEngine,
+        EvolutionEngine,
+        MutationEngine,
+        SandboxValidator,
+        SelectionEngine,
+        SurvivalCriteria,
+    )
+
+    assert all(
+        c is not None
+        for c in (
+            AgentGenome,
+            EvolutionEngine,
+            SelectionEngine,
+            MutationEngine,
+            CrossoverEngine,
+            SandboxValidator,
+            SurvivalCriteria,
+        )
+    )
 
 
 def test_import_research_agent():
-    pass
+    from src.agents.research_agent import ResearchAgent, SecurityAnalysis
+
+    assert ResearchAgent is not None and SecurityAnalysis is not None
 
 
 def test_import_portfolio_agent():
-    pass
+    from src.agents.portfolio_agent import PortfolioAgent, PortfolioState, RiskPolicy
+
+    assert PortfolioAgent is not None and PortfolioState is not None and RiskPolicy is not None
 
 
 def test_import_committee_agent():
-    pass
+    from src.agents.committee_agent import CommitteeAgent, CommitteeDecision
+
+    assert CommitteeAgent is not None and CommitteeDecision is not None
 
 
 def test_import_post_mortem():
-    pass
+    from src.evaluation.post_mortem import ErrorCategory, ErrorSubtype, PostMortemAnalyzer
+
+    assert PostMortemAnalyzer is not None and ErrorCategory is not None and ErrorSubtype is not None
 
 
 def test_import_thesis_validator():
-    pass
+    from src.validation.thesis_validator import ThesisValidator
+
+    assert ThesisValidator is not None
 
 
 def test_import_rule_registry():
-    pass
+    from src.validation.rule_registry import RuleRegistry
+
+    assert RuleRegistry is not None
 
 
 def test_import_evidence_checker():
-    pass
+    from src.validation.evidence_checker import EvidenceChecker
+
+    assert EvidenceChecker is not None
 
 
 def test_import_complexity_checker():
-    pass
+    from src.validation.complexity_checker import ComplexityChecker
+
+    assert ComplexityChecker is not None
 
 
 def test_import_report_exporter():
-    pass
+    from src.utils.report_exporter import ReportExporter
+
+    assert ReportExporter is not None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -511,7 +558,7 @@ def test_chairman_decision():
 
 
 def test_evolution_engine_init(db):
-    from src.evolution.engine import EvolutionEngine
+    from src.evolution.spec_engine import EvolutionEngine
 
     ee = EvolutionEngine(db)
     assert ee is not None, "engine init"
@@ -523,7 +570,7 @@ def test_evolution_engine_init(db):
 
 def test_evolution_crossover(db):
     from src.agents.research_agent import ResearchAgent
-    from src.evolution.engine import EvolutionEngine
+    from src.evolution.spec_engine import EvolutionEngine
 
     with open(os.path.join(CONFIG_DIR, "value_purist.yaml"), encoding="utf-8") as f:
         ga_yaml = f.read()

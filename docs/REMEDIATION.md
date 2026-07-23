@@ -31,6 +31,20 @@
 | CI 门禁升级 | `ruff check src/` 与 `ruff format --check src/` 转为**硬失败**（不再 continue-on-error）；mypy 保持 informational |
 | 工具链对齐 | pre-commit 的 ruff `v0.5.7` → `v0.15.22`，与本次基线及 CI 一致 |
 
+### 第三轮：进化引擎双轨合并（2026-07-23，先测试后重构）
+
+> Anti-Rule-Creep 评估：纯代码结构重构——不新增规则、不新增进化能力、不修改任何
+> 冻结协议行为。属 Phase 4 允许的 "bug fix / observability" 范畴。
+
+| 项 | 内容 |
+|---|---|
+| 先补回归测试 | 新增 `tests/test_evolution_v1_regression.py`（8 个特征化测试）：固定 fitness 公式数值、MIN_SAMPLES 门控、冷启动保护、dry-run 零状态变更、余弦多样性、交叉插值不变量、变异权重钳制——定义「行为不变」的判据 |
+| 抽取 genome.py | `AgentGenome` / `PerformanceRecord` / `MutationCandidate` / `SelectionResult` 四个数据类从 engine.py 移至 `src/evolution/genome.py`（单一事实来源）；spec_engine 再导出保持兼容 |
+| 命名歧义消除 | `engine.py` → **`spec_engine.py`**（协议级季度机制 `EvolutionEngine`）；`engine_v1.py` 保留（生产级每日引擎 `EvolutionEngineV1`）；`evolution/__init__.py` 增加模块地图注释；两个引擎文件 docstring 互相指认 |
+| 导入方更新 | `research_agent.py` 改从 `genome` 导入；`test_integration.py` 3 处改指 `spec_engine` |
+| 顺带修复 | 恢复 `test_integration.py` 中 14 个被以往 F401 自动修复清空的 import 冒烟测试（补 assert 防止再次被清空） |
+| 验证 | 重构前基线 168 passed → 重构后 **168 passed**，完全一致；`ruff check src/` 零错误；冻结兼容：未触碰选择/变异/沙盒/冻结任何逻辑，仅移动代码位置 |
+
 ### 验证
 
 - `compileall` 全量通过（src + scripts）
@@ -49,8 +63,8 @@
 
 ### P1 — 模块冗余/演进残留
 
-4. **进化引擎双轨并存**：`evolution/engine.py`（755 行，`EvolutionEngine`/`AgentGenome`）与 `evolution/engine_v1.py`（468 行，`EvolutionEngineV1`）均为活代码——`engine.py` 被 `research_agent.py` 和 `evolution/__init__.py` 引用。建议明确两者职责边界（数据类 vs 运行时引擎），或将 `AgentGenome` 等共享数据类抽到 `evolution/genome.py` 后重命名消除 v1 后缀歧义。
-5. **三竞技场并存**：`arena.py` / `competitive_arena.py` / `survival_arena.py` 职责描述重叠，建议合并或重命名以体现差异。
+4. ~~进化引擎双轨并存~~：**已完成**（见上方第三轮）——`genome.py` 抽取 + `engine.py`→`spec_engine.py` 重命名，职责边界：genome.py=数据类 / spec_engine.py=协议级季度机制 / engine_v1.py=生产级每日引擎。
+5. **三竞技场并存**：`arena.py` / `competitive_arena.py` / `survival_arena.py` 职责描述重叠，建议合并或重命名以体现差异（同样需先补特征化测试）。
 6. **数据层四文件边界**：`data/` 下 `evaluation_db.py` / `evaluation_crud.py` / `evaluation_schema.py` / `evaluation_migration.py` 职责边界需确认。
 
 ### P2 — 工程卫生

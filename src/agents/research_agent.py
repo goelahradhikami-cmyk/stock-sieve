@@ -20,7 +20,7 @@ from datetime import datetime
 import yaml
 
 from ..data import MarketSnapshot, StockSnapshot
-from ..evolution.engine import AgentGenome
+from ..evolution.genome import AgentGenome
 from ..factors.engine import CompositeResult, FactorEngine
 
 

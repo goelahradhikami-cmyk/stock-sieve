@@ -1,6 +1,11 @@
 """
 Stock Sieve Evolution Engine v1.0 — Production Ready
 
+Naming: this is the PRODUCTION daily-cycle engine (EvolutionEngineV1,
+data-driven selection + sandbox validation). The spec-level quarterly
+machinery (EvolutionEngine) lives in spec_engine.py; genome data classes
+live in genome.py.
+
 Features:
   - Fitness from evaluation_results (real data)
   - Cosine distance diversity preservation

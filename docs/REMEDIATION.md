@@ -70,6 +70,15 @@
 | 验证 | **201 passed**（178 + 23 新），零回归；冻结文件 `state_transition.py` 零改动 |
 | 测试覆盖进展 | `thesis/` 包从近零覆盖到 Guardian 核心完整特征化；剩余：`confidence_overlay.py`（另一个冻结核心）及 thesis/ 其余模块 |
 
+### 第六轮：Confidence Overlay 特征化测试（2026-07-23，observability）
+
+| 项 | 内容 |
+|---|---|
+| 新增测试 | `tests/test_confidence_overlay.py`（19 个）：复合公式（0.10/0.50/0.40 权重）、55/65/75 全部档位边界（含 54.9/55、64.9/65、74.9/75 临界）、`allows_anomaly` 仅 normal/full 放行、三个子分数公式与中性默认值、MA20>MA60 的 +10 加成 |
+| **行为发现 1** | `confidence_overlay.py` 模块 docstring 描述的是**旧版**公式（0.4/0.3/0.3 权重、30/50/70 阈值），实际代码是 6-S.5.5b 版（0.10/0.50/0.40、55/65/75）。测试钉住的是**代码行为**。docstring 未改（冻结文件），建议解冻窗口修正文档 |
+| **行为发现 2** | `_compute_breadth_recovery` 的 try/finally **没有 except**——`stock_factor_snapshot` 表缺失时抛 `sqlite3.OperationalError`；而 `state_transition._get_breadth` 同类场景捕获异常回退 0.5。两个 Guardian 核心组件的错误处理不一致，已用测试分别钉住现状，留待解冻决策 |
+| 验证 | **220 passed**（201 + 19 新），零回归；冻结文件 `confidence_overlay.py` 零改动 |
+
 ### 验证
 
 - `compileall` 全量通过（src + scripts）
@@ -82,7 +91,7 @@
 
 ### P1 — 测试与质量门禁
 
-1. **测试覆盖不足**：~~`evolution/`~~ 已改善（engine_v1 回归 8 个 + 三竞技场 10 个）；`thesis/` 已起步（`state_transition.py` 23 个特征化测试）。剩余重点：`thesis/confidence_overlay.py`（另一个冻结核心）、`thesis/` 其余模块。建议按本轮模式继续补特征化测试。
+1. **测试覆盖不足**：~~`evolution/`~~ 已改善（engine_v1 回归 8 个 + 三竞技场 10 个）；`thesis/` Guardian 双核心已覆盖（`state_transition.py` 23 个 + `confidence_overlay.py` 19 个特征化测试）。剩余：`thesis/` 其余约 20 个模块。建议按本轮模式继续补特征化测试。
 2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。lint 与 format 已转硬门禁，剩余路线仅剩 mypy 按包逐步取消 `check_untyped_defs = False`。
 3. **tests/ 与 scripts/ 残余风格项**：约 37 处（F841/B007/E741/SIM115 等）遗留在一次性脚本与测试中，不影响 `src/` 零错误基线与 CI 门禁，可随用随清。
 

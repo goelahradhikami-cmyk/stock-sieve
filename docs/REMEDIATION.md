@@ -58,6 +58,18 @@
 | 文档同步 | `evolution/__init__.py` 模块地图补三竞技场职责；两个重命名模块 docstring 互相指认 + 标注与 `competition.py`（6-N.2 竞争矩阵）的边界；`PROJECT_HANDOVER.md` 两处引用更新 |
 | 验证 | 重构后 **178 passed**（168 + 10 新），零回归；`ruff check src/` 零错误；未触碰任何 tournament/crowding/survival 逻辑，仅移动与重命名 |
 
+### 第五轮：Market Guardian 核心特征化测试（2026-07-23，observability）
+
+> 原则：特征化测试只**记录**冻结引擎当前行为，不规定应然行为。降级路径测试中初版断言
+> 与实测不符（首日降级至 STABILIZING 而非 PANIC），经核实符合既定分类规则后，按**实测行为**固定断言。
+
+| 项 | 内容 |
+|---|---|
+| 新增测试 | `tests/test_state_transition.py`（23 个）：状态常量与 anomaly 权重、`_classify_day` 全部 6 分支 + 分支优先级（EUPHORIA 先于 CONFIRMED_RECOVERY）、升级需 3 日确认/降级立即生效（合成价格序列端到端）、`get_state` 最近前序回退、`allows_anomaly` 0.5 阈值、`_get_breadth` 快照计算与 0.5 默认、状态分布与转移事件提取 |
+| 行为观察 | ① 无因子快照时 breadth=0.5，崩盘首日只能降到 STABILIZING，vol_20d 累积超 0.25 后才到 PANIC——降级是逐级的；② `_get_breadth` 每交易日各开一次 sqlite 连接（冻结代码，未改动） |
+| 验证 | **201 passed**（178 + 23 新），零回归；冻结文件 `state_transition.py` 零改动 |
+| 测试覆盖进展 | `thesis/` 包从近零覆盖到 Guardian 核心完整特征化；剩余：`confidence_overlay.py`（另一个冻结核心）及 thesis/ 其余模块 |
+
 ### 验证
 
 - `compileall` 全量通过（src + scripts）
@@ -70,7 +82,7 @@
 
 ### P1 — 测试与质量门禁
 
-1. **测试覆盖不足**：测试/源码行数比约 10%，`evolution/`、`thesis/` 两个最核心包几乎无直接测试。建议优先为 `evolution/engine_v1.py`、`thesis/state_transition.py`（已冻结的 Market Guardian 核心）补回归测试。
+1. **测试覆盖不足**：~~`evolution/`~~ 已改善（engine_v1 回归 8 个 + 三竞技场 10 个）；`thesis/` 已起步（`state_transition.py` 23 个特征化测试）。剩余重点：`thesis/confidence_overlay.py`（另一个冻结核心）、`thesis/` 其余模块。建议按本轮模式继续补特征化测试。
 2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。lint 与 format 已转硬门禁，剩余路线仅剩 mypy 按包逐步取消 `check_untyped_defs = False`。
 3. **tests/ 与 scripts/ 残余风格项**：约 37 处（F841/B007/E741/SIM115 等）遗留在一次性脚本与测试中，不影响 `src/` 零错误基线与 CI 门禁，可随用随清。
 

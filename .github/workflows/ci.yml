@@ -14,13 +14,12 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-
-      - name: Install uv
-        run: pip install uv
+          python-version: "3.11"
 
       - name: Install project + dev deps
-        run: uv pip install --system -e ".[dev]" ruff mypy
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]" ruff mypy
 
       # src/ baseline is zero-error and fully formatted (cleaned 2026-07-23).
       # Lint and format are now hard gates — keep them green.

@@ -95,6 +95,17 @@
 - pytest **160 passed / 1 skipped / 2 failed**——与改动前完全一致；2 个失败均为 `test_real_data.py` 依赖 mootdx 实时行情库（环境依赖，非改动引入）
 - 冻结兼容原则：所有修复均为行为等价变换（日志增强、死代码删除、`strict=False`、AST 等价格式化）；未修改任何 `config/*.yaml` 冻结协议与冻结门槛逻辑
 
+### 第八轮（2026-07-24）：仓库拆分执行（P2 第 7 项）
+
+| 项 | 内容 |
+|---|---|
+| 前置评估 | `docs/REPO_SPLIT_ASSESSMENT.md`——67 个相关提交、272 个跟踪文件、零交叉引用、零敏感文件；**CI 从未生效**（`.github/workflows/` 埋在子目录）为首要拆分理由 |
+| 执行 | 镜像克隆（`--no-local` 物理隔离）→ `git filter-repo --subdirectory-filter stock-sieve` → 工作仓库验证 → hash 映射批注 → 新远程推送。原目录全程只读未动 |
+| 结果 | 217MB → **1.3MB**；80 → 68 提交（纯 stock-sieve 历史）；`.github/` 升至仓库根，**CI 首次生效** |
+| 验证 | pytest 220 passed / 1 skipped / 2 failed（与拆分前逐项一致，2 失败仍为 mootdx 环境依赖）；ruff `src/` 零错误、scripts+tests 37 处既有告警逐条相同；远程 CI 两次运行（`a2de09f`、`3de7374`）**均 success** |
+| hash 映射 | `cda3940`→`6545137`、`e2429db`→`b109ab4`、`471f88c`→`084c6bc`、`8e94efb`→`a2de09f`；批注于 `PROJECT_HANDOVER.md` ×1 + `PROJECT_HANDOVER_2026-07-19.md` ×2，完整 68 条映射存 `docs/COMMIT_MAP_REPO_SPLIT.txt` |
+| 远程布局 | 旧仓库改名 `zcode-misc-archive`（全量历史在线归档）；新 `stock-sieve` 仓库名实相符，承接拆分后历史 |
+
 ---
 
 ## 二、待办 backlog（按优先级）
@@ -113,7 +124,7 @@
 
 ### P2 — 工程卫生
 
-7. **仓库根不独立**：git 根在父目录 `ZCodeProject`，stock-sieve 与多个兄弟项目混在一个 repo，且大量源文件未被 git 跟踪（`git status` 显示成片 `??`）。建议拆分为独立仓库，或至少将 `src/`、`config/` 全部纳入版本控制。
+7. ~~仓库根不独立~~：**已完成**（见上方第八轮）——已按方案 A 拆分为独立仓库（`git filter-repo --subdirectory-filter`），旧仓库改名 `zcode-misc-archive` 归档，新 `stock-sieve` 仓库 CI 首次生效且两次运行全绿。拆分前未跟踪文件仍留在原目录，不随拆分迁移。
 8. **scripts/ 归档**：46 个一次性脚本 / 14,536 行（约为源码 45%）。已冻结阶段的验证脚本建议移入 `scripts/archive/` 或按 milestone 分子目录。
 9. **print/logger 混用**：`src/` 内 222 处 `print()`，业务模块建议统一走 `src.utils.logger`。
 10. ~~pre-commit 与 CI 的 ruff 版本对齐~~：**已完成**——pre-commit 升级至 `v0.15.22`，与基线一致。

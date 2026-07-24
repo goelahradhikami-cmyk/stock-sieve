@@ -38,6 +38,21 @@
   2. 都降级但**上报**（日志 + 状态位），保留可观测性。
   当前状态（一崩一默）是最差组合。
 
+### T-3. DoctrineUnderwriter 的 None 字段防护被 red_flag f-string 绕过
+
+- **位置**：`src/thesis/doctrine_underwriting.py` `_underwrite_quality`（Q2/Q3/Q4 的 red_flag 分支，
+  第 157/166/175 行附近）；`_underwrite_value` 的 debt/margin 分支同构。
+- **现象**：检查逻辑有 `is not None` 防护（`margin_change is not None and ...`），字段为 None
+  时正确地判定检查不通过——但随后 red_flag 的 f-string `f"Margin change={a.margin_change:+.4f}"`
+  对 None 做数值格式化，抛 `TypeError` 直接穿出 `underwrite()`。
+- **证据**：`tests/test_doctrine_underwriting.py::TestQuality::test_none_fields_fail_checks` 等 3 个
+  （pytest.raises(TypeError) 钉住现状）。
+- **影响**：`MispricingObject` 的 margin_change/debt_ratio/roe_stability 默认 0.0 不触发，
+  但任何显式构造 None 的调用方（或未来改为 None 默认）会让承保流程整体崩溃而非优雅 REJECT。
+  quality/compounder 路径是 v4.0 承保链一环，崩溃面比返回值错误更大。
+- **建议**：解冻时把 red_flag 分支加 None 短路（如 `f"Margin change={a.margin_change} declining"` 或
+  条件文案），并把 `is not None` 防护与文案生成都收进同一个 helper，消除"检查过了但格式化炸了"类问题。
+
 ---
 
 ## P2 — 行为观察（不一定是缺陷，解冻时应知情）

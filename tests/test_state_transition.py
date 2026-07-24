@@ -84,51 +84,79 @@ class TestConstants:
 class TestClassifyDay:
     def test_euphoria(self, engine):
         state, reason = engine._classify_day(
-            vol_20d=0.10, vol_change=-0.05, trend=0.20,
-            recovery_prob=0.80, breadth=0.50, current_state="PANIC",
+            vol_20d=0.10,
+            vol_change=-0.05,
+            trend=0.20,
+            recovery_prob=0.80,
+            breadth=0.50,
+            current_state="PANIC",
         )
         assert state == "EUPHORIA"
         assert "overbought" in reason
 
     def test_confirmed_recovery(self, engine):
         state, _ = engine._classify_day(
-            vol_20d=0.20, vol_change=-0.05, trend=0.05,
-            recovery_prob=0.60, breadth=0.50, current_state="PANIC",
+            vol_20d=0.20,
+            vol_change=-0.05,
+            trend=0.05,
+            recovery_prob=0.60,
+            breadth=0.50,
+            current_state="PANIC",
         )
         assert state == "CONFIRMED_RECOVERY"
 
     def test_early_recovery(self, engine):
         state, _ = engine._classify_day(
-            vol_20d=0.20, vol_change=-0.02, trend=0.01,
-            recovery_prob=0.50, breadth=0.42, current_state="PANIC",
+            vol_20d=0.20,
+            vol_change=-0.02,
+            trend=0.01,
+            recovery_prob=0.50,
+            breadth=0.42,
+            current_state="PANIC",
         )
         assert state == "EARLY_RECOVERY"
 
     def test_stabilizing(self, engine):
         state, _ = engine._classify_day(
-            vol_20d=0.20, vol_change=-0.005, trend=0.0,
-            recovery_prob=0.40, breadth=0.38, current_state="PANIC",
+            vol_20d=0.20,
+            vol_change=-0.005,
+            trend=0.0,
+            recovery_prob=0.40,
+            breadth=0.38,
+            current_state="PANIC",
         )
         assert state == "STABILIZING"
 
     def test_panic_high_vol(self, engine):
         state, _ = engine._classify_day(
-            vol_20d=0.30, vol_change=0.01, trend=-0.05,
-            recovery_prob=0.30, breadth=0.30, current_state="EUPHORIA",
+            vol_20d=0.30,
+            vol_change=0.01,
+            trend=-0.05,
+            recovery_prob=0.30,
+            breadth=0.30,
+            current_state="EUPHORIA",
         )
         assert state == "PANIC"
 
     def test_panic_vol_expanding_weak_breadth(self, engine):
         state, _ = engine._classify_day(
-            vol_20d=0.20, vol_change=0.03, trend=0.0,
-            recovery_prob=0.40, breadth=0.30, current_state="EUPHORIA",
+            vol_20d=0.20,
+            vol_change=0.03,
+            trend=0.0,
+            recovery_prob=0.40,
+            breadth=0.30,
+            current_state="EUPHORIA",
         )
         assert state == "PANIC"
 
     def test_default_maintains_current(self, engine):
         state, reason = engine._classify_day(
-            vol_20d=0.20, vol_change=0.0, trend=0.0,
-            recovery_prob=0.45, breadth=0.30, current_state="EARLY_RECOVERY",
+            vol_20d=0.20,
+            vol_change=0.0,
+            trend=0.0,
+            recovery_prob=0.45,
+            breadth=0.30,
+            current_state="EARLY_RECOVERY",
         )
         assert state == "EARLY_RECOVERY"
         assert "maintaining" in reason
@@ -137,8 +165,12 @@ class TestClassifyDay:
         # Indicators satisfy BOTH EUPHORIA and CONFIRMED_RECOVERY;
         # EUPHORIA wins because it is checked first.
         state, _ = engine._classify_day(
-            vol_20d=0.10, vol_change=-0.05, trend=0.20,
-            recovery_prob=0.80, breadth=0.50, current_state="PANIC",
+            vol_20d=0.10,
+            vol_change=-0.05,
+            trend=0.20,
+            recovery_prob=0.80,
+            breadth=0.50,
+            current_state="PANIC",
         )
         assert state == "EUPHORIA"
 
@@ -170,7 +202,7 @@ class TestStateQuery:
         engine._state_history["d5"] = make_record("d5", "EUPHORIA")  # 0.3
         assert engine.allows_anomaly("d1") is False
         assert engine.allows_anomaly("d2") is False
-        assert engine.allows_anomaly("d3") is True   # 0.6 >= 0.5
+        assert engine.allows_anomaly("d3") is True  # 0.6 >= 0.5
         assert engine.allows_anomaly("d4") is True
         assert engine.allows_anomaly("d5") is False  # euphoria blocked
         assert engine.allows_anomaly("unknown") is False
@@ -301,10 +333,10 @@ class TestHistoryAnalysis:
     def test_get_transitions_only_on_change(self, engine):
         engine._state_history = {
             "d1": make_record("d1", "PANIC"),
-            "d2": make_record("d2", "PANIC"),      # no change
+            "d2": make_record("d2", "PANIC"),  # no change
             "d3": make_record("d3", "STABILIZING"),  # change
-            "d4": make_record("d4", "EUPHORIA"),     # change
-            "d5": make_record("d5", "EUPHORIA"),     # no change
+            "d4": make_record("d4", "EUPHORIA"),  # change
+            "d5": make_record("d5", "EUPHORIA"),  # no change
         }
         transitions = engine.get_transitions()
         assert [t.date for t in transitions] == ["d3", "d4"]

@@ -1,4 +1,8 @@
 """
+[ARCHIVED 2026-07-23 — v2-v3 research tool, zero production callers.
+ Kept with its characterization tests (tests/test_evolution_arenas.py).
+ See src/evolution/archive/__init__.py for revival procedure.]
+
 Evolution Tournament v1.1 — Real-market competitive tournament.
 
 Runs all active agents against the same historical market dates,
@@ -6,9 +10,9 @@ with real trading constraints (circuit breakers, suspensions).
 Ranks by multi-dimensional fitness, not just raw returns.
 
 Arena roles in this package (renamed 2026-07-23 to disambiguate):
-  - tournament.py     (this file) — multi-agent tournament + fitness ranking
-  - crowding_arena.py — single-date crowding / overlap / alpha-decay metrics
-  - survival_arena.py — doctrine backtest with return attribution + survival selection
+  - archive/tournament.py     (this file) — multi-agent tournament + fitness ranking
+  - archive/crowding_arena.py — single-date crowding / overlap / alpha-decay metrics
+  - survival_arena.py         — doctrine backtest with return attribution + survival selection
 """
 
 from datetime import date, timedelta

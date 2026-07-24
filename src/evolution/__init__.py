@@ -4,9 +4,10 @@
 #   genome.py         — 基因组数据类（AgentGenome 等）
 #   spec_engine.py    — 协议级季度进化机制（EvolutionEngine，实现 evolution_engine_spec_v1）
 #   engine_v1.py      — 生产级每日进化引擎（EvolutionEngineV1，数据驱动选择 + 沙盒验证）
-#   tournament.py     — 多 Agent 同场竞赛 + 多维 fitness 排名（真实交易模拟）
-#   crowding_arena.py — 单日拥挤度 / 重叠率 / alpha 衰减度量
+#   tournament.py     — [已归档 2026-07-23 → archive/] 多 Agent 同场竞赛 + 多维 fitness 排名
+#   crowding_arena.py — [已归档 2026-07-23 → archive/] 单日拥挤度 / 重叠率 / alpha 衰减度量
 #   survival_arena.py — doctrine 回测 + 收益归因 + 生存选择（生产使用中）
+#   archive/          — v2-v3 研究工具（零生产调用，测试随行保留）
 from .genome import AgentGenome, MutationCandidate, PerformanceRecord, SelectionResult
 from .spec_engine import (
     CrossoverEngine,

@@ -71,7 +71,7 @@ class TestCompositeAndBands:
             (80.0, 65.0, "normal", 0.6, True),
             (99.8, 74.9, "normal", 0.6, True),
             (100.0, 75.0, "full", 1.0, True),
-        ]
+        ],
     )
     def test_band_edges(self, monkeypatch, rc, vol, expected_conf, band, weight, allows):
         # breadth=trend=50 -> base 25, confidence = 25 + 0.5*vol

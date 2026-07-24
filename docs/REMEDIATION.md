@@ -80,6 +80,15 @@
 | 解冻候选清单 | 两条发现 + 三条行为观察已整理为独立文档 [GUARDIAN_THAW_CANDIDATES.md](GUARDIAN_THAW_CANDIDATES.md)（observability 性质，非 freeze entry） |
 | 验证 | **220 passed**（201 + 19 新），零回归；冻结文件 `confidence_overlay.py` 零改动 |
 
+### 第七轮：零调用竞技场归档（2026-07-23，工程卫生）
+
+| 项 | 内容 |
+|---|---|
+| 归档决策 | `tournament.py` 与 `crowding_arena.py` 经核实为 v2-v3 演进遗留的研究工具（零生产调用），非 v4.0 运营组件。**归档不删除**——10 个特征化测试随行保留 |
+| 执行 | 两文件移至 `src/evolution/archive/`，新增 `archive/__init__.py` 说明归档原因与复活程序（移回 + 跑测试 + 按当前协议重新评估）；两文件 docstring 加 ARCHIVED 标记 |
+| 引用同步 | `test_evolution_arenas.py` 导入路径、`evolution/__init__.py` 模块地图、`PROJECT_HANDOVER.md` 两处引用全部更新 |
+| 验证 | **220 passed**，零回归；`ruff check src/` 零错误 |
+
 ### 验证
 
 - `compileall` 全量通过（src + scripts）
@@ -99,7 +108,7 @@
 ### P1 — 模块冗余/演进残留
 
 4. ~~进化引擎双轨并存~~：**已完成**（见上方第三轮）——`genome.py` 抽取 + `engine.py`→`spec_engine.py` 重命名，职责边界：genome.py=数据类 / spec_engine.py=协议级季度机制 / engine_v1.py=生产级每日引擎。
-5. ~~三竞技场并存~~：**已完成**（见上方第四轮）——职责核实为「锦标赛 / 拥挤度 / 生存选择」三者分工，`arena.py`→`tournament.py`、`competitive_arena.py`→`crowding_arena.py` 重命名消歧，`survival_arena.py` 保留。遗留：`tournament.py` 与 `crowding_arena.py` 目前零代码调用，若长期无调用方可在下一轮评估归档。
+5. ~~三竞技场并存~~：**已完成**（见上方第四、七轮）——职责核实为「锦标赛 / 拥挤度 / 生存选择」三者分工；`arena.py`→`tournament.py`、`competitive_arena.py`→`crowding_arena.py` 重命名消歧后，两个零调用模块已归档至 `src/evolution/archive/`（测试随行），`survival_arena.py` 保留生产使用。
 6. ~~数据层四文件边界~~：**已核实，无需重构**（2026-07-23）——四文件已是清晰的 Facade + Mixin 结构：`evaluation_schema.py`=DDL 常量（391 行）、`evaluation_crud.py`=CRUD Mixin（663 行）、`evaluation_migration.py`=迁移 Mixin（424 行）、`evaluation_db.py`=门面（101 行，仅 `__init__`/`init_db`/`connect` + 再导出）。CRUD 与 Migration 两个 Mixin 零方法名冲突，全库 14 处导入均经门面路径，`test_evaluation_db_connections.py` + `test_db_connection_governance.py` 10 个测试覆盖有效。
 
 ### P2 — 工程卫生

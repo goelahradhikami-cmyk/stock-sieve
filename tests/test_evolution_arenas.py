@@ -1,9 +1,9 @@
 """Characterization tests for the three evolution arenas.
 
-Pins CURRENT behavior before the module-rename refactor:
-  - arena.py            (EvolutionArena)        -> tournament.py     [done]
-  - competitive_arena.py (CompetitiveArena)     -> crowding_arena.py [done]
-  - survival_arena.py   (DoctrineSurvivalArena) -> unchanged (active production)
+Pins CURRENT behavior of the three arenas through two refactors:
+  - arena.py            -> tournament.py            -> archive/tournament.py     [archived]
+  - competitive_arena.py -> crowding_arena.py       -> archive/crowding_arena.py [archived]
+  - survival_arena.py   (DoctrineSurvivalArena)     -> unchanged (active production)
 
 These tests must stay green across the rename — they define "no behavior change".
 Heavy provider/network dependencies are bypassed (``__new__`` + direct attribute
@@ -18,9 +18,9 @@ import pandas as pd
 import pytest
 
 from src.agents.doctrine_engine import DoctrineGenome
-from src.evolution.crowding_arena import CompetitiveArena
+from src.evolution.archive.crowding_arena import CompetitiveArena
+from src.evolution.archive.tournament import EvolutionArena
 from src.evolution.survival_arena import DoctrineSurvivalArena
-from src.evolution.tournament import EvolutionArena
 
 # ─────────────────────────────────────────────────────────
 # arena.py — EvolutionArena (tournament engine)

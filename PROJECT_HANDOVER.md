@@ -1,7 +1,8 @@
 # Stock Sieve 项目交接表
 
-> **最新交接：** [PROJECT_HANDOVER_2026-07-19.md](PROJECT_HANDOVER_2026-07-19.md) - UI 终端主题改造（设计评审 / P0 已入库 cda3940 / P1 在未跟踪新页面 / P2 backlog）
+> **最新交接：** [PROJECT_HANDOVER_2026-07-19.md](PROJECT_HANDOVER_2026-07-19.md) - UI 终端主题改造（设计评审 / P0 已入库 cda3940（拆分后 6545137） / P1 在未跟踪新页面 / P2 backlog）
 > **v1.1 冻结增量（2026-07-21）：** Market Guardian v1.1 FROZEN，见下方「投资大脑（Investment Brain）」章节
+> **仓库拆分（2026-07-24）：** 历史经 `git filter-repo --subdirectory-filter stock-sieve` 重写，所有 commit hash 变更。关键映射：cda3940→6545137 / e2429db→b109ab4 / 471f88c→084c6bc / 8e94efb→a2de09f。完整映射见 `docs/COMMIT_MAP_REPO_SPLIT.txt`。
 
 **版本：** v0.1.0  
 **日期：** 2026-07-15  

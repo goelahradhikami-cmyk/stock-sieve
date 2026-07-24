@@ -2,7 +2,7 @@
 
 **类型：** 增量交接（主交接表见 `PROJECT_HANDOVER.md`，2026-07-15）
 **范围：** Streamlit 面板设计评审 → P0/P1 修复 → 截图验证 → 部分入库
-**提交：** `cda3940` `style(ui): terminal theme consistency fixes from design review`
+**提交：** `cda3940`（2026-07-24 仓库拆分后新 hash：`6545137`） `style(ui): terminal theme consistency fixes from design review`
 
 ---
 
@@ -10,7 +10,7 @@
 
 对 9 个页面逐一截图评审（真实数据，端口 8503），按优先级修了两批：
 
-### P0 — 已入库（commit cda3940，6 文件 +52/−29）
+### P0 — 已入库（commit cda3940，拆分后 6545137，6 文件 +52/−29）
 
 | 文件 | 改动 |
 |------|------|

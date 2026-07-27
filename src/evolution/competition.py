@@ -172,11 +172,11 @@ class CompetitionEngine:
         doctrine_id: str,
         death_generation: int,
         death_reason: str,
-        alpha_peak: float = None,
-        alpha_final: float = None,
-        alpha_half_life: int = None,
-        avg_crowding: float = None,
-        top_competitors: list[str] = None,
+        alpha_peak: float | None = None,
+        alpha_final: float | None = None,
+        alpha_half_life: int | None = None,
+        avg_crowding: float | None = None,
+        top_competitors: list[str] | None = None,
     ) -> None:
         """Record a doctrine's death (called when extinct)."""
         conn = sqlite3.connect(self.eval_db)
@@ -283,7 +283,7 @@ class CompetitionEngine:
             return 0
 
         # Shift alphas to be positive for log transform
-        min_alpha = np.min(alphas)
+        min_alpha: float = np.min(alphas)
         alphas_shifted = alphas - min_alpha + 0.001 if min_alpha <= 0 else alphas
 
         try:

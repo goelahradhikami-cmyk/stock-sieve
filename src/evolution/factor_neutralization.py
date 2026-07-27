@@ -303,8 +303,8 @@ class FactorNeutralizer:
             factor_explained = portfolio_return - selection_alpha
 
             # R² (confidence)
-            ss_res = np.sum(residuals**2)
-            ss_tot = np.sum((y - np.mean(y)) ** 2)
+            ss_res: float = np.sum(residuals**2)
+            ss_tot: float = np.sum((y - np.mean(y)) ** 2)
             r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
             # Factor exposures (doctrine's average factor tilt)

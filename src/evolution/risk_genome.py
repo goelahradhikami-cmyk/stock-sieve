@@ -67,7 +67,7 @@ class RiskMutationEngine:
         "risk_aversion_shift",
     ]
 
-    def mutate(self, parent: dict, agent_identity: dict = None) -> dict:
+    def mutate(self, parent: dict, agent_identity: dict | None = None) -> dict:
         mutation_type = np.random.choice(self.MUTATION_TYPES)
         child = deepcopy(parent)
 

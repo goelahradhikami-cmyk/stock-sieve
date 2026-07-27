@@ -148,7 +148,7 @@ class SelectionEngine:
         return result
 
     def _group_scores(self, performances: list[PerformanceRecord]) -> dict:
-        groups = {}
+        groups: dict[str, list[PerformanceRecord]] = {}
         for p in performances:
             groups.setdefault(p.agent_id, []).append(p)
         return groups
@@ -170,7 +170,7 @@ class SelectionEngine:
         for i, a in enumerate(elite):
             if a.agent_id in used:
                 continue
-            candidates = []
+            candidates: list[tuple[AgentGenome, float, float]] = []
             for j, b in enumerate(elite):
                 if i == j or b.agent_id in used:
                     continue
@@ -218,7 +218,7 @@ class MutationEngine:
 
     def generate_candidates(self, genome: AgentGenome) -> list[MutationCandidate]:
         """Generate mutation candidates from all 4 sources."""
-        candidates = []
+        candidates: list[MutationCandidate] = []
 
         # Source 1: Factor memory
         candidates.extend(self._factor_memory_mutations(genome))
@@ -236,7 +236,7 @@ class MutationEngine:
 
     def _factor_memory_mutations(self, genome: AgentGenome) -> list[MutationCandidate]:
         """If a factor's IC is significantly above 5yr mean, propose weight increase."""
-        candidates = []
+        candidates: list[MutationCandidate] = []
         six_months_ago = (date.today() - timedelta(days=180)).isoformat()
 
         for factor_name, weight in genome.factor_weights.items():
@@ -277,7 +277,7 @@ class MutationEngine:
         mortems = self.db.get_post_mortems_since(genome.agent_id, six_months_ago)
 
         # Count suggested action frequency
-        action_counts = {}
+        action_counts: dict[str, int] = {}
         for pm in mortems:
             actions = pm.get("suggested_actions")
             if not actions:
@@ -291,7 +291,7 @@ class MutationEngine:
             except (json.JSONDecodeError, TypeError):
                 pass
 
-        candidates = []
+        candidates: list[MutationCandidate] = []
         for key, count in action_counts.items():
             if count >= self.POST_MORTEM_THRESHOLD:
                 action_type, target = key.split(":", 1)
@@ -313,13 +313,13 @@ class MutationEngine:
 
     def _thesis_outcome_mutations(self, genome: AgentGenome) -> list[MutationCandidate]:
         """If a thesis pattern has sustained low win_rate, reduce its weight."""
-        candidates = []
+        candidates: list[MutationCandidate] = []
         # TODO: Query thesis_outcomes table for low-performing patterns
         return candidates
 
     def _regime_adaptation_mutations(self, genome: AgentGenome) -> list[MutationCandidate]:
         """If current regime mismatches genome's preference for 6+ months, suggest adaptation."""
-        candidates = []
+        candidates: list[MutationCandidate] = []
         # TODO: Check market_regime_snapshots vs genome's market_regime_preference
         return candidates
 
@@ -585,13 +585,13 @@ class EvolutionEngine:
         self,
         genomes: list[AgentGenome],
         performances: list[PerformanceRecord],
-        historical_data: dict = None,
+        historical_data: dict | None = None,
     ) -> dict:
         """Run one complete evolution cycle (quarterly).
 
         Returns dict with cycle summary.
         """
-        result = {
+        result: dict[str, list] = {
             "new_children": [],
             "frozen": [],
             "watchlist_added": [],

@@ -83,10 +83,10 @@ class EvolutionEngineV1:
     def _log_event(
         self,
         event_type: str,
-        agent_id: str = None,
-        parent_id: str = None,
+        agent_id: str | None = None,
+        parent_id: str | None = None,
         description: str = "",
-        details: dict = None,
+        details: dict | None = None,
     ):
         self.db.execute(
             """
@@ -510,7 +510,7 @@ class EvolutionEngineV1:
                 continue
             target = m.get("target", "")
             if target == "decision_graph":
-                sub = DECISION_GRAPH_FILTER_MAP.get(m.get("filter"))
+                sub = DECISION_GRAPH_FILTER_MAP.get(m.get("filter") or "")
             else:
                 sub = POST_MORTEM_DIMENSION_MAP.get(target)
             if not sub:

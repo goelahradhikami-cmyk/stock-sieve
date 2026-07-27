@@ -113,7 +113,7 @@ class RegimeProbabilityPolicy:
     }
 
     @classmethod
-    def get_exposure(cls, probs: dict, policy: dict = None) -> float:
+    def get_exposure(cls, probs: dict, policy: dict | None = None) -> float:
         """Determine equity exposure from regime probabilities and policy."""
         if policy is None:
             policy = cls.DEFAULT

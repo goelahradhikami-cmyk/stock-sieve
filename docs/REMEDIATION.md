@@ -106,15 +106,38 @@
 | hash 映射 | `cda3940`→`6545137`、`e2429db`→`b109ab4`、`471f88c`→`084c6bc`、`8e94efb`→`a2de09f`；批注于 `PROJECT_HANDOVER.md` ×1 + `PROJECT_HANDOVER_2026-07-19.md` ×2，完整 68 条映射存 `docs/COMMIT_MAP_REPO_SPLIT.txt` |
 | 远程布局 | 旧仓库改名 `zcode-misc-archive`（全量历史在线归档）；新 `stock-sieve` 仓库名实相符，承接拆分后历史 |
 
+### 第九轮（2026-07-27）：thesis/ 测试全覆盖 + 归档收尾 + 门禁收紧
+
+> 原则不变：特征化测试只钉现状不改行为；归档不删除；冻结层零改动。
+> 本轮测试总量 220 → **582 passed / 1 skipped / 2 failed**（2 失败仍为 mootdx 环境依赖）。
+
+| 项 | 内容 |
+|---|---|
+| thesis/ 特征化测试全覆盖 | 20 个模块共 **332 个测试**（八批提交）：market_anomaly/signal_engine/market_recovery(63)、thesis_validator/residualizer(26)、doctrine_underwriting/bayesian_allocation(28)、event_reaction/expectation_gap(26)、fundamental_recovery/factor_momentum/sector_confirmation(46)、investment_memory/thesis_ledger(28，含冻结 KillCriteria)、timing_layer/counterfactual(22)、candidate_generator/crowding_calculator/sustainability_calculator(93) |
+| thesis/ 零调用模块归档 | `adaptive_router.py`（6-Q.5b softmax 路由器）、`market_state_machine.py`（6-S.5.3 四态分类器，已被冻结的 state_transition.py 取代）→ `src/thesis/archive/`；先补 30 个特征化测试随行，`archive/__init__.py` 记录原因与复活程序 |
+| scripts/ 归档 | 46 → 20 保留 + 25 归档：保留全部 `backfill_*`（数据重建路径）、`shadow_*`/`monthly_belief_audit`（日常运营）、`run_bootstrap_validation`（冻结门槛复现，被冻结配置引用 5 次）、`run_evolution_observation`（Phase 4 观察）；25 个一次性研究脚本（实验/解剖/消融/replay）移入 `scripts/archive/` 并附 README 路径映射（冻结文档中的旧路径引用 → 新位置）。已核实脚本间零交叉导入、测试与 CI 零引用 |
+| print→logger | 业务模块 **54 处** `print()` 全部改走 `src.utils.logger`（14 文件，按 ⚠️/❌/🚨/💀 分级 warning，其余 info）；CLI 入口（`cli.py`/`runner.py`/`daily_run.py`/`paper_trading/runner.py` 共 166 处）**有意保留**——logger 输出走 stderr 带时间戳，转换会改变面向用户的 stdout 协议，属 UX 行为变更 |
+| ruff 全面清零 | 修复 19 处残余（SIM115 上下文管理器 ×7、B007 循环变量 ×7、SIM105 suppress ×3、F401/SIM300 自动修复 ×3，其中 6 处为本轮新写测试引入，已自查自修）；19 个测试文件补齐 `ruff format`；`scripts/archive/` 加入 `extend-exclude`（归档历史脚本不再 lint）。**`ruff check src tests scripts` 与 `ruff format --check` 全绿** |
+| mypy 首轮收紧 | `check_untyped_defs = True` 启用（此前无注解函数体完全不检查）。收紧只暴露 25 个增量错误，其中 23 个源于 `candidate_generator._funnel_log_buffer` 一处注解错误（`list[tuple]` 实为 `list[dict]`），另 2 个为 `ra`/`out` 缺变量注解——3 处注解 bug 已修复（纯注解，零行为变更，被 26 个特征化测试保护）。基线保持 **186 错误 / 50 文件**；包分布：data 56、thesis 25、factors 22、agents 21、evolution 18、validation 15，simulation 等零错误。下一步按包清零后再开 `disallow_untyped_defs` |
+
+**本轮钉住的行为 QUIRK**（测试内有 `QUIRK (pinned)` 注释，供解冻窗口评估）：
+
+- `sustainability_calculator`：`accel_q2 = accel_q1` 占位符 → `reversal_count` 实际恒 ≤1，`CONSISTENCY_MAX_REVERSALS=1` 检查形同虚设
+- `crowding_calculator`：`compute()` 的 `crowding_score_v1` **恒为 None**（横截面复合分只在 backfill 脚本里算）
+- `candidate_generator`：Stage 2 自 v3.3 起**无硬门控**（`RS_HARD_GATE_THRESHOLD=0.0` 是死常量）；`recovery_score` 字段被 EGE 占用（`gap_score*50+50`）；Stage 1 公式实际值域 [20,80]，0-100 钳制永不触发
+- `market_state_machine`（已归档）：`recovery_prob == 0.48` 恰好不满足 `>0.48` 也不满足 `<0.48`，落入默认 uncertain 分支
+- `adaptive_router`（已归档）：docstring 示例数值有误（0.45×-0.02+0.15×-0.03=-0.0135，非 -0.013）
+- 既有清单延续：EGE/counterfactual 浮点残差、timing_layer `+1` blend、factor_momentum `or 50` 吞 0.0（见各测试文件注释）
+
 ---
 
 ## 二、待办 backlog（按优先级）
 
 ### P1 — 测试与质量门禁
 
-1. **测试覆盖不足**：~~`evolution/`~~ 已改善（engine_v1 回归 8 个 + 三竞技场 10 个）；`thesis/` Guardian 双核心已覆盖（`state_transition.py` 23 个 + `confidence_overlay.py` 19 个特征化测试）。剩余：`thesis/` 其余约 20 个模块。建议按本轮模式继续补特征化测试。
-2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。lint 与 format 已转硬门禁，剩余路线仅剩 mypy 按包逐步取消 `check_untyped_defs = False`。
-3. **tests/ 与 scripts/ 残余风格项**：约 37 处（F841/B007/E741/SIM115 等）遗留在一次性脚本与测试中，不影响 `src/` 零错误基线与 CI 门禁，可随用随清。
+1. ~~**测试覆盖不足**~~：**已完成**（2026-07-27，见上方第九轮）——`thesis/` 全部 20 个模块 332 个特征化测试补齐；全量 582 passed。剩余已知空白：`test_real_data.py` 2 个失败为 mootdx 环境依赖（需本机安装 mootdx 才能转绿）。
+2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。mypy 首轮收紧已完成（第九轮，`check_untyped_defs = True`），剩余路线：186 个基线错误按包清零（data 56 为最大头）→ 再评估 `disallow_untyped_defs`。
+3. ~~**tests/ 与 scripts/ 残余风格项**~~：**已完成**（2026-07-27，见上方第九轮）——19 处全部修复，`ruff check src tests scripts` 与 format 检查全绿；归档脚本排除出 lint 范围。
 
 ### P1 — 模块冗余/演进残留
 
@@ -125,8 +148,8 @@
 ### P2 — 工程卫生
 
 7. ~~仓库根不独立~~：**已完成**（见上方第八轮）——已按方案 A 拆分为独立仓库（`git filter-repo --subdirectory-filter`），旧仓库改名 `zcode-misc-archive` 归档，新 `stock-sieve` 仓库 CI 首次生效且两次运行全绿。拆分前未跟踪文件仍留在原目录，不随拆分迁移。
-8. **scripts/ 归档**：46 个一次性脚本 / 14,536 行（约为源码 45%）。已冻结阶段的验证脚本建议移入 `scripts/archive/` 或按 milestone 分子目录。
-9. **print/logger 混用**：`src/` 内 222 处 `print()`，业务模块建议统一走 `src.utils.logger`。
+8. ~~**scripts/ 归档**~~：**已完成**（2026-07-27，见上方第九轮）——25 个一次性研究脚本移入 `scripts/archive/`（附 README 路径映射），20 个运营/冻结复现脚本保留原位。
+9. ~~**print/logger 混用**~~：**已完成**（2026-07-27，见上方第九轮）——业务模块 54 处统一走 `src.utils.logger`；CLI 入口 166 处 print 经评估为有意 stdout UX，保留不改。
 10. ~~pre-commit 与 CI 的 ruff 版本对齐~~：**已完成**——pre-commit 升级至 `v0.15.22`，与基线一致。
 
 ---

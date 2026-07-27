@@ -152,7 +152,11 @@ class FactorEngine:
                 self._all_factors.append(f)
 
     def compute_single_stock(
-        self, code: str, financial_data: dict, price_data: pd.DataFrame, market_data: dict = None
+        self,
+        code: str,
+        financial_data: dict,
+        price_data: pd.DataFrame,
+        market_data: dict | None = None,
     ) -> CompositeResult:
         """Compute all factors for a single stock.
 
@@ -190,7 +194,7 @@ class FactorEngine:
 
         # ── Compute composite scores per family ───────────
 
-        def family_score(family: str, direction: str = None) -> float:
+        def family_score(family: str, direction: str | None = None) -> float:
             """Average of factors in a family, normalized 0-100."""
             f_factors = [f for f in factors if f.family == family and f.raw_value is not None]
             if not f_factors:
@@ -203,7 +207,7 @@ class FactorEngine:
                     continue
                 # Convert raw to 0-100 based on direction
                 raw = f.raw_value
-                if pd.isna(raw):
+                if raw is None or pd.isna(raw):
                     continue
                 if fd["direction"] == "higher_better":
                     scores.append(raw * 100 if abs(raw) <= 1 else min(100, max(0, raw)))
@@ -226,7 +230,7 @@ class FactorEngine:
         return result
 
     def _compute_factor(
-        self, name: str, financial: dict, prices: pd.DataFrame, market: dict = None
+        self, name: str, financial: dict, prices: pd.DataFrame, market: dict | None = None
     ) -> float | None:
         """Compute a single factor value."""
 

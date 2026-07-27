@@ -25,7 +25,7 @@ from datetime import date, timedelta
 from src.data.financial_provider import get_financial_provider
 from src.data.local_provider import LocalDataProvider
 from src.data.provider import MarketDataProvider
-from src.factors.engine import FactorEngine
+from src.factors.engine import CompositeResult, FactorEngine
 from src.factors.snapshot_schema import DDL_STOCK_FACTOR_SNAPSHOT
 from src.utils.logger import get_logger
 
@@ -106,7 +106,7 @@ class FactorSnapshotBuilder:
         start_date = (date.fromisoformat(trade_date) - timedelta(days=lookback_days)).isoformat()
 
         # Phase 1: compute per-stock factors
-        results: list[tuple[str, object]] = []  # (code, CompositeResult)
+        results: list[tuple[str, CompositeResult]] = []
         for i, code in enumerate(codes):
             # Strip exchange suffix (.SZ/.SH/.BJ) - factor engine and K-line
             # providers expect the bare 6-digit code.
@@ -195,8 +195,8 @@ class FactorSnapshotBuilder:
         """
         from collections import defaultdict
 
-        sums = defaultdict(float)
-        counts = defaultdict(int)
+        sums: defaultdict[str, float] = defaultdict(float)
+        counts: defaultdict[str, int] = defaultdict(int)
         for f in composite.factors:
             if f.percentile is not None and f.family:
                 sums[f.family] += f.percentile

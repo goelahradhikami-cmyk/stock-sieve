@@ -30,15 +30,10 @@ _GROWTH_MAP likely needs a tweak for your baostock version - every extraction
 goes through the defensive _pick() helper, so adding an alternate key is 1 line.
 """
 
-import sqlite3
-import os
 import json
+import sqlite3
 import time
 from datetime import datetime
-from typing import Optional
-
-import pandas as pd
-import numpy as np
 
 from src.utils.logger import get_logger
 
@@ -50,44 +45,44 @@ logger = get_logger(__name__)
 # growth_data has NO revenue-YOY field, so 1y/3y growth is derived from the
 # profit series (see _yoy / _ttm_cagr) rather than from growth_data.
 _PROFIT_MAP = {
-    'roe': ['roeAvg', 'roe'],
-    'gross_margin': ['gpMargin', 'grossProfitRatio'],
-    'net_margin': ['npMargin', 'netProfitRatio'],
-    'net_profit': ['netProfit', 'np'],
-    'revenue': ['MBRevenue', 'operateIncome', 'revenue'],
-    'eps': ['epsTTM', 'niPerShare'],
+    "roe": ["roeAvg", "roe"],
+    "gross_margin": ["gpMargin", "grossProfitRatio"],
+    "net_margin": ["npMargin", "netProfitRatio"],
+    "net_profit": ["netProfit", "np"],
+    "revenue": ["MBRevenue", "operateIncome", "revenue"],
+    "eps": ["epsTTM", "niPerShare"],
 }
 _GROWTH_MAP = {
-    'earnings_growth_yoy': ['YOYNI', 'npYOY'],
+    "earnings_growth_yoy": ["YOYNI", "npYOY"],
 }
 _BALANCE_MAP = {
-    'debt_to_assets': ['liabilityToAsset', 'debtToAssets'],
-    'current_ratio': ['currentRatio'],
-    'asset_to_equity': ['assetToEquity'],
+    "debt_to_assets": ["liabilityToAsset", "debtToAssets"],
+    "current_ratio": ["currentRatio"],
+    "asset_to_equity": ["assetToEquity"],
 }
 
 
 def _bs_code(code):
     code = str(code).zfill(6)
-    if code.startswith('6'):
-        return 'sh.' + code
-    if code.startswith(('0', '3')):
-        return 'sz.' + code
-    if code.startswith(('4', '8')):
-        return 'bj.' + code
-    return 'sh.' + code
+    if code.startswith("6"):
+        return "sh." + code
+    if code.startswith(("0", "3")):
+        return "sz." + code
+    if code.startswith(("4", "8")):
+        return "bj." + code
+    return "sh." + code
 
 
 def _pick(row, *candidates):
     for c in candidates:
-        if c in row and row[c] not in (None, '', 'None'):
+        if c in row and row[c] not in (None, "", "None"):
             return row[c]
     return None
 
 
 def _to_float(v):
     try:
-        if v in (None, '', 'None'):
+        if v in (None, "", "None"):
             return None
         return float(v)
     except (TypeError, ValueError):
@@ -97,7 +92,7 @@ def _to_float(v):
 class BaostockProvider:
     """Multi-period A-share fundamentals via baostock (no token, proxy-friendly)."""
 
-    def __init__(self, db_path='data/cache.db', cache_ttl_days=30, n_years=3):
+    def __init__(self, db_path="data/cache.db", cache_ttl_days=30, n_years=3):
         self.db_path = db_path
         self.cache_ttl_days = cache_ttl_days
         # 3 years (12 quarters) is enough to derive growth_1y (needs 5 quarters)
@@ -111,22 +106,22 @@ class BaostockProvider:
         # WAL + busy_timeout: allows concurrent writers (e.g. two backfill
         # instances) without "database is locked" rollback corruption that
         # previously wiped committed rows. Safe to set on every init.
-        conn.execute('PRAGMA journal_mode=WAL')
-        conn.execute('PRAGMA busy_timeout=5000')
-        conn.execute('''
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS baostock_cache (
                 code TEXT PRIMARY KEY,
                 data TEXT NOT NULL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+        """)
         conn.commit()
         conn.close()
 
     def _cache_get(self, code):
         conn = sqlite3.connect(self.db_path)
         row = conn.execute(
-            'SELECT data, updated_at FROM baostock_cache WHERE code=?', (code,)
+            "SELECT data, updated_at FROM baostock_cache WHERE code=?", (code,)
         ).fetchone()
         conn.close()
         if not row:
@@ -143,7 +138,7 @@ class BaostockProvider:
     def _cache_set(self, code, data):
         conn = sqlite3.connect(self.db_path)
         conn.execute(
-            'INSERT OR REPLACE INTO baostock_cache (code, data, updated_at) VALUES (?,?,?)',
+            "INSERT OR REPLACE INTO baostock_cache (code, data, updated_at) VALUES (?,?,?)",
             (code, json.dumps(data, default=str), datetime.now().isoformat()),
         )
         conn.commit()
@@ -153,12 +148,10 @@ class BaostockProvider:
         try:
             import baostock as bs
         except ImportError:
-            raise ImportError(
-                'baostock not installed. Install with: pip install baostock'
-            )
+            raise ImportError("baostock not installed. Install with: pip install baostock")
         lg = bs.login()
-        if lg.error_code != '0':
-            raise ConnectionError('baostock login failed: ' + str(lg.error_msg))
+        if lg.error_code != "0":
+            raise ConnectionError("baostock login failed: " + str(lg.error_msg))
         return bs
 
     @staticmethod
@@ -166,8 +159,8 @@ class BaostockProvider:
         func = getattr(bs, func_name)
         rs = func(code=code, year=year, quarter=quarter)
         rows = []
-        while rs.error_code == '0' and rs.next():
-            row = dict(zip(rs.fields, rs.get_row_data()))
+        while rs.error_code == "0" and rs.next():
+            row = dict(zip(rs.fields, rs.get_row_data(), strict=False))
             if row:
                 rows.append(row)
         return rows
@@ -190,20 +183,26 @@ class BaostockProvider:
         bs = self._login()
         bcode = _bs_code(code)
         cur_year = datetime.now().year
-        back = (n_years or self.n_years)
+        back = n_years or self.n_years
         years = range(cur_year, cur_year - back - 1, -1)
 
-        out: dict = {'profit': [], 'growth': [], 'balance': [], 'operation': [],
-                     'cashflow': [], 'dupont': []}
+        out: dict = {
+            "profit": [],
+            "growth": [],
+            "balance": [],
+            "operation": [],
+            "cashflow": [],
+            "dupont": [],
+        }
 
         # Phase 1: profit_data for all year-quarters (needed for growth derivation)
         for y in years:
             for q in (1, 2, 3, 4):
                 try:
-                    rows = self._query(bs, 'query_profit_data', bcode, y, q)
-                    out['profit'].extend(rows)
+                    rows = self._query(bs, "query_profit_data", bcode, y, q)
+                    out["profit"].extend(rows)
                 except Exception as e:
-                    logger.debug('baostock: profit %s Q%d failed: %s', y, q, e)
+                    logger.debug("baostock: profit %s Q%d failed: %s", y, q, e)
                 time.sleep(0.03)
 
         # Phase 2: balance_data ONLY for the latest available quarter (1 query)
@@ -211,33 +210,35 @@ class BaostockProvider:
         for y in range(cur_year, cur_year - 3, -1):
             for q in (4, 3, 2, 1):
                 try:
-                    rows = self._query(bs, 'query_balance_data', bcode, y, q)
+                    rows = self._query(bs, "query_balance_data", bcode, y, q)
                     if rows:
-                        out['balance'] = rows
+                        out["balance"] = rows
                         break
                 except Exception as exc:
                     logger.debug("operation failed (was silently ignored): %s", exc)
                 time.sleep(0.03)
-            if out['balance']:
+            if out["balance"]:
                 break
 
         bs.logout()
 
         series = []
-        for r in out['profit']:
-            sd = r.get('statDate') or r.get('date')
+        for r in out["profit"]:
+            sd = r.get("statDate") or r.get("date")
             if not sd:
                 continue
-            series.append({
-                'statDate': sd,
-                'net_profit': _to_float(_pick(r, *_PROFIT_MAP['net_profit'])),
-                'revenue': _to_float(_pick(r, *_PROFIT_MAP['revenue'])),
-                'gross_margin': _to_float(_pick(r, *_PROFIT_MAP['gross_margin'])),
-                'net_margin': _to_float(_pick(r, *_PROFIT_MAP['net_margin'])),
-                'roe': _to_float(_pick(r, *_PROFIT_MAP['roe'])),
-            })
-        series.sort(key=lambda x: x['statDate'])
-        out['series'] = series
+            series.append(
+                {
+                    "statDate": sd,
+                    "net_profit": _to_float(_pick(r, *_PROFIT_MAP["net_profit"])),
+                    "revenue": _to_float(_pick(r, *_PROFIT_MAP["revenue"])),
+                    "gross_margin": _to_float(_pick(r, *_PROFIT_MAP["gross_margin"])),
+                    "net_margin": _to_float(_pick(r, *_PROFIT_MAP["net_margin"])),
+                    "roe": _to_float(_pick(r, *_PROFIT_MAP["roe"])),
+                }
+            )
+        series.sort(key=lambda x: x["statDate"])
+        out["series"] = series
         return out
 
     @staticmethod
@@ -276,7 +277,7 @@ class BaostockProvider:
         # Build a lookup: (year, quarter) -> value, only for non-None
         lookup = {}
         for s in series:
-            sd = s.get('statDate')
+            sd = s.get("statDate")
             v = s.get(key)
             if sd and v is not None:
                 y = BaostockProvider._year_of(sd)
@@ -313,7 +314,7 @@ class BaostockProvider:
             return None
         lookup = {}
         for s in series:
-            sd = s.get('statDate')
+            sd = s.get("statDate")
             v = s.get(key)
             if sd and v is not None:
                 y = BaostockProvider._year_of(sd)
@@ -340,7 +341,7 @@ class BaostockProvider:
 
     @staticmethod
     def _margin_trend(series):
-        gm = [s.get('gross_margin') for s in series if s.get('gross_margin') is not None]
+        gm = [s.get("gross_margin") for s in series if s.get("gross_margin") is not None]
         if len(gm) < 13:
             return None
         return gm[-1] - gm[-13]
@@ -351,23 +352,28 @@ class BaostockProvider:
         except ImportError:
             return {}
         c = str(code).zfill(6)
-        prefix = ('sh' if c.startswith(('60', '68'))
-                  else 'sz' if c.startswith(('00', '30'))
-                  else 'bj' if c.startswith(('4', '8'))
-                  else 'sh')
+        prefix = (
+            "sh"
+            if c.startswith(("60", "68"))
+            else "sz"
+            if c.startswith(("00", "30"))
+            else "bj"
+            if c.startswith(("4", "8"))
+            else "sh"
+        )
         try:
             s = requests.Session()
             s.trust_env = False
-            resp = s.get('https://qt.gtimg.cn/q=' + prefix + c, timeout=8)
-            resp.encoding = 'gbk'
-            fields = resp.text.split('~')
+            resp = s.get("https://qt.gtimg.cn/q=" + prefix + c, timeout=8)
+            resp.encoding = "gbk"
+            fields = resp.text.split("~")
             return {
-                'pe_ttm': _to_float(fields[39]) if len(fields) > 39 and fields[39] else None,
-                'pb': _to_float(fields[46]) if len(fields) > 46 and fields[46] else None,
-                'mcap': _to_float(fields[45]) if len(fields) > 45 and fields[45] else None,
+                "pe_ttm": _to_float(fields[39]) if len(fields) > 39 and fields[39] else None,
+                "pb": _to_float(fields[46]) if len(fields) > 46 and fields[46] else None,
+                "mcap": _to_float(fields[45]) if len(fields) > 45 and fields[45] else None,
             }
         except Exception as e:
-            logger.warning('baostock_provider: Tencent quote failed for %s: %s', code, e)
+            logger.warning("baostock_provider: Tencent quote failed for %s: %s", code, e)
             return {}
 
     def get_financial_dict(self, code):
@@ -382,28 +388,30 @@ class BaostockProvider:
         try:
             raw = self.fetch_multiperiod(code)
         except Exception as e:
-            logger.warning('baostock_provider: fetch failed for %s: %s', code, e)
+            logger.warning("baostock_provider: fetch failed for %s: %s", code, e)
             return {}
 
-        series = raw.get('series', [])
+        series = raw.get("series", [])
         latest_profit = series[-1] if series else {}
-        latest_growth = raw.get('growth', [{}])[-1] if raw.get('growth') else {}
-        latest_balance = raw.get('balance', [{}])[-1] if raw.get('balance') else {}
+        latest_balance = raw.get("balance", [{}])[-1] if raw.get("balance") else {}
 
-        net_profit = latest_profit.get('net_profit')
-        roe = latest_profit.get('roe')
-        gross_margin = latest_profit.get('gross_margin')
-        net_margin = latest_profit.get('net_margin')
+        net_profit = latest_profit.get("net_profit")
+        roe = latest_profit.get("roe")
+        gross_margin = latest_profit.get("gross_margin")
+        net_margin = latest_profit.get("net_margin")
 
-        debt_to_assets = _to_float(_pick(latest_balance, *_BALANCE_MAP['debt_to_assets']))
-        asset_to_equity = _to_float(_pick(latest_balance, *_BALANCE_MAP['asset_to_equity']))
-        current_ratio = _to_float(_pick(latest_balance, *_BALANCE_MAP['current_ratio']))
+        debt_to_assets = _to_float(_pick(latest_balance, *_BALANCE_MAP["debt_to_assets"]))
+        asset_to_equity = _to_float(_pick(latest_balance, *_BALANCE_MAP["asset_to_equity"]))
+        current_ratio = _to_float(_pick(latest_balance, *_BALANCE_MAP["current_ratio"]))
 
         # baostock balance summary exposes no raw equity; derive it so we can
         # build debt_to_equity and roic.
         equity = (net_profit / roe) if (net_profit and roe) else None
-        debt_to_equity = (debt_to_assets / (1 - debt_to_assets)) if (
-            debt_to_assets is not None and 0 < debt_to_assets < 1) else None
+        debt_to_equity = (
+            (debt_to_assets / (1 - debt_to_assets))
+            if (debt_to_assets is not None and 0 < debt_to_assets < 1)
+            else None
+        )
         if net_profit and equity and asset_to_equity:
             invested = equity * asset_to_equity  # assetToEquity = A/E
             roic = (net_profit / invested) if invested else roe
@@ -412,38 +420,39 @@ class BaostockProvider:
 
         # Growth derived from the multi-quarter profit series (baostock
         # growth_data lacks a revenue-YOY field).
-        revenue_growth_1y = self._yoy(series, 'revenue')
-        earnings_growth_1y = self._yoy(series, 'net_profit')
-        revenue_growth_3y = self._ttm_cagr(series, 'revenue', 3)
-        earnings_growth_3y = self._ttm_cagr(series, 'net_profit', 3)
+        revenue_growth_1y = self._yoy(series, "revenue")
+        earnings_growth_1y = self._yoy(series, "net_profit")
+        revenue_growth_3y = self._ttm_cagr(series, "revenue", 3)
+        earnings_growth_3y = self._ttm_cagr(series, "net_profit", 3)
         margin_trend = self._margin_trend(series)
 
         tq = self._tencent_quote(code)
 
         result = {
-            'roe': roe,
-            'roic': roic,
-            'roa': latest_profit.get('roa'),
-            'gross_margin': gross_margin,
-            'net_margin': net_margin,
-            'pe_ttm': tq.get('pe_ttm'),
-            'pb': tq.get('pb'),
-            'mcap': tq.get('mcap'),
-            'fcf_yield': (net_profit / (tq.get('mcap') * 1e8)) if (
-                net_profit and tq.get('mcap')) else None,
-            'fcf': net_profit,
-            'debt_to_equity': debt_to_equity,
-            'interest_coverage': None,
-            'current_ratio': current_ratio,
-            'revenue_growth_1y': revenue_growth_1y,
-            'earnings_growth_1y': earnings_growth_1y,
-            'revenue_growth_3y': revenue_growth_3y,
-            'earnings_growth_3y': earnings_growth_3y,
-            'margin_trend': margin_trend,
-            'dividend_yield': None,
-            'bvps': None,
-            'holder_change_pct': None,
-            '_date': latest_profit.get('statDate', datetime.now().strftime('%Y-%m-%d')),
+            "roe": roe,
+            "roic": roic,
+            "roa": latest_profit.get("roa"),
+            "gross_margin": gross_margin,
+            "net_margin": net_margin,
+            "pe_ttm": tq.get("pe_ttm"),
+            "pb": tq.get("pb"),
+            "mcap": tq.get("mcap"),
+            "fcf_yield": (net_profit / (tq.get("mcap") * 1e8))
+            if (net_profit and tq.get("mcap"))
+            else None,
+            "fcf": net_profit,
+            "debt_to_equity": debt_to_equity,
+            "interest_coverage": None,
+            "current_ratio": current_ratio,
+            "revenue_growth_1y": revenue_growth_1y,
+            "earnings_growth_1y": earnings_growth_1y,
+            "revenue_growth_3y": revenue_growth_3y,
+            "earnings_growth_3y": earnings_growth_3y,
+            "margin_trend": margin_trend,
+            "dividend_yield": None,
+            "bvps": None,
+            "holder_change_pct": None,
+            "_date": latest_profit.get("statDate", datetime.now().strftime("%Y-%m-%d")),
         }
         self._cache_set(code, result)
         return result

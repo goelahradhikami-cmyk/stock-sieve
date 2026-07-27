@@ -294,5 +294,5 @@ class ExpectationGapEngine:
             z_pr = (r[1] - pr_mean) / pr_std if pr_std > 0 else 0
             gaps.append(z_ea - z_pr)
 
-        gaps = np.array(gaps)
-        return float(np.mean(gaps <= gap_score))
+        gaps_arr = np.array(gaps)
+        return float(np.mean(gaps_arr <= gap_score))

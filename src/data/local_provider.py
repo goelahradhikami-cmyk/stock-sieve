@@ -5,15 +5,15 @@ Format: 32-byte records: I(date) I(open) I(high) I(low) I(close) f(amount) I(vol
 Prices are in cents (÷100). Volume is in lots.
 """
 
-import struct
 import os
+import struct
+
 import pandas as pd
-from datetime import date, datetime
-from typing import Optional
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class LocalDataProvider:
     """Reads Tongdaxin local .day files."""
@@ -24,8 +24,8 @@ class LocalDataProvider:
     #   STOCK_SIEVE_TDX_VIPDOC  -> exact path to the "vipdoc" directory
     #   STOCK_SIEVE_TDX_ROOT    -> TDX install root; its "vipdoc" subdir is used
     DEFAULT_TDX_PATHS = [
-        "D:/new_tdx_mock/vipdoc",     # Updated daily (to 2026-07-15)
-        "C:/new_tdx/vipdoc",          # Historical (to 2026-02-27)
+        "D:/new_tdx_mock/vipdoc",  # Updated daily (to 2026-07-15)
+        "C:/new_tdx/vipdoc",  # Historical (to 2026-02-27)
         "D:/goldsun/vipdoc",
     ]
 
@@ -33,10 +33,12 @@ class LocalDataProvider:
         self._cache = {}
         self.tdx_root = self._resolve_tdx_root()
         if self.tdx_root is None:
-            logger.warning("  ⚠️ No TDX vipdoc directory found. Set STOCK_SIEVE_TDX_ROOT "
-                  "or STOCK_SIEVE_TDX_VIPDOC, or ensure one of the default paths exists.")
+            logger.warning(
+                "  ⚠️ No TDX vipdoc directory found. Set STOCK_SIEVE_TDX_ROOT "
+                "or STOCK_SIEVE_TDX_VIPDOC, or ensure one of the default paths exists."
+            )
 
-    def _resolve_tdx_root(self) -> Optional[str]:
+    def _resolve_tdx_root(self) -> str | None:
         """Return the first existing TDX vipdoc directory.
 
         Environment overrides take priority over the hardcoded defaults, so the
@@ -55,7 +57,7 @@ class LocalDataProvider:
                 return p
         return None
 
-    def _find_file(self, code: str) -> Optional[str]:
+    def _find_file(self, code: str) -> str | None:
         """Locate the .day file for a stock code."""
         if not self.tdx_root:
             return None
@@ -74,8 +76,9 @@ class LocalDataProvider:
             return path
         return None
 
-    def get_daily_kline(self, code: str, start_date: str = None,
-                         end_date: str = None) -> pd.DataFrame:
+    def get_daily_kline(
+        self, code: str, start_date: str | None = None, end_date: str | None = None
+    ) -> pd.DataFrame:
         """Read TDX .day file and return DataFrame with OHLCV.
 
         Returns columns: date, open, high, low, close, adj_close, volume, amount
@@ -106,16 +109,18 @@ class LocalDataProvider:
                     if end_date and date_str > end_date:
                         continue
 
-                    records.append({
-                        "date": date_str,
-                        "open": op / 100.0,
-                        "high": hi / 100.0,
-                        "low": lo / 100.0,
-                        "close": cl / 100.0,
-                        "adj_close": cl / 100.0,  # TDX .day is already adjusted
-                        "volume": float(vol),
-                        "amount": amt,
-                    })
+                    records.append(
+                        {
+                            "date": date_str,
+                            "open": op / 100.0,
+                            "high": hi / 100.0,
+                            "low": lo / 100.0,
+                            "close": cl / 100.0,
+                            "adj_close": cl / 100.0,  # TDX .day is already adjusted
+                            "volume": float(vol),
+                            "amount": amt,
+                        }
+                    )
 
             if not records:
                 return pd.DataFrame()
@@ -136,10 +141,14 @@ class LocalDataProvider:
             return {}
         row = df.iloc[-1]
         return {
-            "code": code, "date": str(row["date"])[:10],
-            "price": row["close"], "open": row["open"],
-            "high": row["high"], "low": row["low"],
-            "volume": row["volume"], "amount": row["amount"],
+            "code": code,
+            "date": str(row["date"])[:10],
+            "price": row["close"],
+            "open": row["open"],
+            "high": row["high"],
+            "low": row["low"],
+            "volume": row["volume"],
+            "amount": row["amount"],
         }
 
     def has_data(self, code: str) -> bool:

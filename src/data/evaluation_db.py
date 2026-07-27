@@ -16,13 +16,12 @@ unchanged — this module re-exports every public symbol that was previously
 defined here.
 """
 
-import sqlite3
 import os
-from typing import Optional
+import sqlite3
 
-from .evaluation_schema import DDL, DDL_V21          # noqa: F401 (re-export)
-from .evaluation_crud import with_conn, EvaluationCRUDMixin, logger  # noqa: F401
+from .evaluation_crud import EvaluationCRUDMixin, logger, with_conn  # noqa: F401
 from .evaluation_migration import EvaluationMigrationMixin
+from .evaluation_schema import DDL, DDL_V21  # noqa: F401 (re-export)
 
 
 class EvaluationDB(EvaluationCRUDMixin, EvaluationMigrationMixin):
@@ -59,9 +58,10 @@ class EvaluationDB(EvaluationCRUDMixin, EvaluationMigrationMixin):
 # personality_score calculation (module-level functions)
 # ═══════════════════════════════════════════════════════════
 
-def compute_personality_score(total_return: float, sharpe: float,
-                               max_drawdown: float, calibration: float,
-                               thesis: float) -> float:
+
+def compute_personality_score(
+    total_return: float, sharpe: float, max_drawdown: float, calibration: float, thesis: float
+) -> float:
     """Compute the composite personality_score per evolution_engine §1.
 
     personality_score = return×0.3 + sharpe×0.25 + drawdown×0.2
@@ -70,18 +70,14 @@ def compute_personality_score(total_return: float, sharpe: float,
     All inputs normalized 0-1.
     """
     # Normalize to 0-1
-    ret_norm = min(1.0, max(0.0, total_return / 0.50))       # 50% return = 1.0
-    sharpe_norm = min(1.0, max(0.0, sharpe / 2.0))           # Sharpe 2.0 = 1.0
+    ret_norm = min(1.0, max(0.0, total_return / 0.50))  # 50% return = 1.0
+    sharpe_norm = min(1.0, max(0.0, sharpe / 2.0))  # Sharpe 2.0 = 1.0
     dd_norm = min(1.0, max(0.0, 1.0 - abs(max_drawdown) / 0.40))  # 0% DD = 1.0, 40% DD = 0.0
-    cal_norm = min(1.0, max(0.0, calibration))               # already 0-1
-    thesis_norm = min(1.0, max(0.0, thesis))                 # already 0-1
+    cal_norm = min(1.0, max(0.0, calibration))  # already 0-1
+    thesis_norm = min(1.0, max(0.0, thesis))  # already 0-1
 
     return (
-        ret_norm * 0.30 +
-        sharpe_norm * 0.25 +
-        dd_norm * 0.20 +
-        cal_norm * 0.15 +
-        thesis_norm * 0.10
+        ret_norm * 0.30 + sharpe_norm * 0.25 + dd_norm * 0.20 + cal_norm * 0.15 + thesis_norm * 0.10
     )
 
 

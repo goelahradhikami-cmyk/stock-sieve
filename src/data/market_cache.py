@@ -19,10 +19,8 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import sqlite3
 import time
-from typing import Optional
 
 import pandas as pd
 
@@ -92,15 +90,22 @@ class MarketDataCache:
                     rows = []
                     for _, row in kline.iterrows():
                         date_val = row.get("date", row.name)
-                        date_str = str(date_val)[:10] if hasattr(date_val, "strftime") else str(date_val)[:10]
-                        rows.append((
-                            code, date_str,
-                            float(row.get("open", 0)),
-                            float(row.get("high", 0)),
-                            float(row.get("low", 0)),
-                            float(row.get("close", 0)),
-                            float(row.get("volume", 0)),
-                        ))
+                        date_str = (
+                            str(date_val)[:10]
+                            if hasattr(date_val, "strftime")
+                            else str(date_val)[:10]
+                        )
+                        rows.append(
+                            (
+                                code,
+                                date_str,
+                                float(row.get("open", 0)),
+                                float(row.get("high", 0)),
+                                float(row.get("low", 0)),
+                                float(row.get("close", 0)),
+                                float(row.get("volume", 0)),
+                            )
+                        )
 
                     conn.executemany(
                         "INSERT OR REPLACE INTO price_snapshot_cache "
@@ -115,16 +120,25 @@ class MarketDataCache:
                 if (i + 1) % 50 == 0:
                     conn.commit()
                     elapsed = time.time() - t0
-                    logger.info("market_cache: %d/%d symbols, %d rows (%.1fs)",
-                               i + 1, len(symbols), total_written, elapsed)
+                    logger.info(
+                        "market_cache: %d/%d symbols, %d rows (%.1fs)",
+                        i + 1,
+                        len(symbols),
+                        total_written,
+                        elapsed,
+                    )
 
             conn.commit()
         finally:
             conn.close()
 
         elapsed = time.time() - t0
-        logger.info("market_cache: preloaded %d rows for %d symbols in %.1fs",
-                    total_written, len(symbols), elapsed)
+        logger.info(
+            "market_cache: preloaded %d rows for %d symbols in %.1fs",
+            total_written,
+            len(symbols),
+            elapsed,
+        )
         return total_written
 
     def get_kline(self, code: str, start_date: str, end_date: str) -> pd.DataFrame:
@@ -140,7 +154,8 @@ class MarketDataCache:
                 "FROM price_snapshot_cache "
                 "WHERE security_id=? AND trade_date >= ? AND trade_date <= ? "
                 "ORDER BY trade_date",
-                conn, params=(code, start_date, end_date),
+                conn,
+                params=(code, start_date, end_date),
             )
         finally:
             conn.close()

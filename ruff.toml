@@ -4,7 +4,7 @@
 target-version = "py310"
 line-length = 100
 extend-exclude = [
-    "data",
+    "data/**",  # repo-root runtime data dir (anchored: bare "data" also excluded src/data!)
     ".playwright-cli",
     ".workbuddy",
     # Archived one-off research scripts (2026-07-27) — historical artifacts,

@@ -14,27 +14,26 @@ Uses indicators:
 
 import math
 from dataclasses import dataclass
-from datetime import date, timedelta
-from typing import Optional
+from datetime import date
 
 import pandas as pd
-import numpy as np
 
 
 @dataclass
 class RegimeResult:
     """Market regime classification output."""
+
     date: str
-    regime_type: str          # bull / bear / crisis / rotation / unknown
-    risk_score: float         # 0-100, higher = riskier
+    regime_type: str  # bull / bear / crisis / rotation / unknown
+    risk_score: float  # 0-100, higher = riskier
     growth_env_score: float
     value_env_score: float
     momentum_env_score: float
     defensive_env_score: float
     liquidity_score: float
-    market_pe_percentile: Optional[float] = None
-    market_pb_percentile: Optional[float] = None
-    indicators: dict = None
+    market_pe_percentile: float | None = None
+    market_pb_percentile: float | None = None
+    indicators: dict | None = None
 
     def __post_init__(self):
         if self.indicators is None:
@@ -47,8 +46,8 @@ class MarketBrain:
     # ── Regime thresholds ───────────────────────────────
 
     # Bull: uptrend, low vol, high liquidity
-    BULL_MA_TREND = 0.03        # 3% above MA60
-    BULL_VOL_MAX = 0.20         # annualized vol < 20%
+    BULL_MA_TREND = 0.03  # 3% above MA60
+    BULL_VOL_MAX = 0.20  # annualized vol < 20%
     BULL_LIQUIDITY_MIN = 60
 
     # Bear: downtrend, moderate vol
@@ -97,10 +96,7 @@ class MarketBrain:
         trend_pct = (current_close / ma60 - 1) if pd.notna(ma60) and ma60 > 0 else 0
 
         # Momentum: 20-day rate of change
-        if len(df) >= 20:
-            roc_20d = (df["close"].iloc[-1] / df["close"].iloc[-20] - 1)
-        else:
-            roc_20d = 0
+        roc_20d = df["close"].iloc[-1] / df["close"].iloc[-20] - 1 if len(df) >= 20 else 0
 
         # Volatility: 20-day annualized
         df["ret"] = df["close"].pct_change()
@@ -114,11 +110,17 @@ class MarketBrain:
         # Liquidity: average turnover trend
         if "turnover" in df.columns:
             avg_turnover = df["turnover"].tail(20).mean()
-            turnover_ratio = avg_turnover / df["turnover"].tail(120).mean() if len(df) >= 120 else 1.0
+            turnover_ratio = (
+                avg_turnover / df["turnover"].tail(120).mean() if len(df) >= 120 else 1.0
+            )
         else:
             # Use volume as proxy
             avg_vol = df["volume"].tail(20).mean() if "volume" in df.columns else 1
-            avg_vol_120 = df["volume"].tail(120).mean() if "volume" in df.columns and len(df) >= 120 else avg_vol
+            avg_vol_120 = (
+                df["volume"].tail(120).mean()
+                if "volume" in df.columns and len(df) >= 120
+                else avg_vol
+            )
             turnover_ratio = avg_vol / avg_vol_120 if avg_vol_120 > 0 else 1.0
 
         # ── 2. Determine regime ──────────────────────────
@@ -185,7 +187,7 @@ class MarketBrain:
                 "vol_20d": round(vol_20d, 4),
                 "max_dd_60d": round(max_dd, 4) if max_dd else None,
                 "turnover_ratio": round(turnover_ratio, 4),
-            }
+            },
         )
 
     def _normalize(self, value: float, reference: float, scale: float) -> float:

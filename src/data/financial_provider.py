@@ -15,8 +15,8 @@ After running `python scripts/backfill_akshare.py`, flip it on with:
     export STOCK_SIEVE_USE_AKSHARE=1
 """
 
-import os
 import logging
+import os
 
 from src.utils.logger import get_logger
 
@@ -32,31 +32,42 @@ def get_financial_provider():
     FinancialDataProvider on any failure so the pipeline never breaks.
     """
     use_akshare = os.environ.get("STOCK_SIEVE_USE_AKSHARE", "").lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
     if use_akshare:
         try:
             from src.data.akshare_provider import AkshareProvider
+
             logger.info("financial_provider: using AkshareProvider (bulk, multi-period)")
             return AkshareProvider()
         except Exception as e:
             logger.warning(
                 "financial_provider: akshare unavailable (%s); "
-                "falling back to FinancialDataProvider", e
+                "falling back to FinancialDataProvider",
+                e,
             )
 
     use_baostock = os.environ.get("STOCK_SIEVE_USE_BAOSTOCK", "").lower() in (
-        "1", "true", "yes", "on",
+        "1",
+        "true",
+        "yes",
+        "on",
     )
     if use_baostock:
         try:
             from src.data.baostock_provider import BaostockProvider
+
             logger.info("financial_provider: using BaostockProvider (multi-period)")
             return BaostockProvider()
         except Exception as e:
             logger.warning(
                 "financial_provider: baostock unavailable (%s); "
-                "falling back to FinancialDataProvider", e
+                "falling back to FinancialDataProvider",
+                e,
             )
     from src.data.financials import FinancialDataProvider
+
     return FinancialDataProvider()

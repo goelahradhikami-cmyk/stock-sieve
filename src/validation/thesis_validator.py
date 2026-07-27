@@ -112,7 +112,7 @@ class ThesisValidator:
         try:
             from src.memory.retrieval import MemoryRetriever
 
-            self.memory_retriever = MemoryRetriever()
+            self.memory_retriever: MemoryRetriever | None = MemoryRetriever()
         except Exception:
             self.memory_retriever = None
 

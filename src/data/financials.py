@@ -5,15 +5,14 @@ Uses mootdx Quotes.finance() which returns 37-field quarterly snapshot.
 Computes derived financial metrics for FactorEngine consumption.
 """
 
-import sqlite3
-from src.data.db import managed_connect
+import contextlib
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Any
 
 import pandas as pd
-import numpy as np
 
+from src.data.db import managed_connect
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -60,14 +59,12 @@ class FinancialDataProvider:
         for col, col_type in [
             ("pe_ttm", "REAL"),
             ("pb", "REAL"),
-            ("mcap", "REAL"),        # 亿元
+            ("mcap", "REAL"),  # 亿元
             ("float_mcap", "REAL"),  # 亿元
             ("turnover_pct", "REAL"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent - column may already exist
                 self.db.execute(f"ALTER TABLE finance_snapshots ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent - column may already exist
         self.db.commit()
 
     def fetch_latest(self, code: str) -> dict:
@@ -83,14 +80,15 @@ class FinancialDataProvider:
 
         try:
             from mootdx.quotes import Quotes
-            q = Quotes.factory(market='std')
+
+            q = Quotes.factory(market="std")
             data = q.finance(symbol=code)
 
             if data is None or data.empty:
                 return {}
 
             row = data.iloc[0]
-            result = {}
+            result: dict[str, Any] = {}
             for cn_key, en_key in FINANCE_MAP.items():
                 if cn_key in row.index:
                     val = row[cn_key]
@@ -138,6 +136,7 @@ class FinancialDataProvider:
             # Not cached - fetch from Tencent (trust_env=False bypasses proxy)
             try:
                 import requests
+
                 c = str(code).zfill(6)
                 if c.startswith(("60", "68")):
                     prefix = "sh"
@@ -163,7 +162,9 @@ class FinancialDataProvider:
                         turnover_pct = float(fields[38]) if fields[38] else None
                 # Persist to cache so next call doesn't re-fetch
                 if pe_ttm is not None or mcap is not None:
-                    self._save_market_data(code, raw.get("_date", ""), pe_ttm, pb, mcap, float_mcap, turnover_pct)
+                    self._save_market_data(
+                        code, raw.get("_date", ""), pe_ttm, pb, mcap, float_mcap, turnover_pct
+                    )
             except Exception as e:
                 logger.warning("financials: Tencent quote fetch failed for %s: %s", code, e)
 
@@ -205,9 +206,8 @@ class FinancialDataProvider:
             "fcf": net_profit,  # Approximate
             "debt_to_equity": debt_to_equity,
             "interest_coverage": None,
-            "current_ratio": (raw.get("current_liabilities") or 0) and (
-                (raw.get("total_assets") or 0) / (raw.get("current_liabilities") or 1)
-            ),
+            "current_ratio": (raw.get("current_liabilities") or 0)
+            and ((raw.get("total_assets") or 0) / (raw.get("current_liabilities") or 1)),
             "revenue_growth_1y": None,  # Need historical data
             "earnings_growth_1y": None,
             "earnings_growth_3y": None,
@@ -228,29 +228,36 @@ class FinancialDataProvider:
                 "SELECT pe_ttm, pb, mcap, float_mcap, turnover_pct "
                 "FROM finance_snapshots WHERE code=? "
                 "AND pe_ttm IS NOT NULL ORDER BY date DESC LIMIT 1",
-                (code,)
+                (code,),
             )
             row = cur.fetchone()
             if not row:
                 return {}
             return {
-                "pe_ttm": row[0], "pb": row[1], "mcap": row[2],
-                "float_mcap": row[3], "turnover_pct": row[4],
+                "pe_ttm": row[0],
+                "pb": row[1],
+                "mcap": row[2],
+                "float_mcap": row[3],
+                "turnover_pct": row[4],
             }
         except Exception:
             return {}
 
-    def _save_market_data(self, code: str, date_str: str,
-                          pe_ttm, pb, mcap, float_mcap, turnover_pct) -> None:
+    def _save_market_data(
+        self, code: str, date_str: str, pe_ttm, pb, mcap, float_mcap, turnover_pct
+    ) -> None:
         """Persist PE/PB/mcap into the latest finance_snapshots row."""
         try:
-            self.db.execute("""
+            self.db.execute(
+                """
                 UPDATE finance_snapshots
                 SET pe_ttm=?, pb=?, mcap=?, float_mcap=?, turnover_pct=?
                 WHERE code=? AND date=(
                     SELECT date FROM finance_snapshots WHERE code=?
                     ORDER BY date DESC LIMIT 1)
-            """, (pe_ttm, pb, mcap, float_mcap, turnover_pct, code, code))
+            """,
+                (pe_ttm, pb, mcap, float_mcap, turnover_pct, code, code),
+            )
             self.db.commit()
         except Exception as e:
             logger.debug("financials: save_market_data failed for %s: %s", code, e)
@@ -259,15 +266,26 @@ class FinancialDataProvider:
         """Load cached financial snapshot."""
         try:
             cur = self.db.execute(
-                "SELECT * FROM finance_snapshots WHERE code=? ORDER BY date DESC LIMIT 1",
-                (code,)
+                "SELECT * FROM finance_snapshots WHERE code=? ORDER BY date DESC LIMIT 1", (code,)
             )
             row = cur.fetchone()
             if not row:
                 return {}
-            cols = ["code", "date", "net_profit", "revenue", "operating_profit",
-                    "equity", "total_assets", "current_liabilities", "long_term_liabilities",
-                    "bvps", "float_shares", "total_shares", "shareholders"]
+            cols = [
+                "code",
+                "date",
+                "net_profit",
+                "revenue",
+                "operating_profit",
+                "equity",
+                "total_assets",
+                "current_liabilities",
+                "long_term_liabilities",
+                "bvps",
+                "float_shares",
+                "total_shares",
+                "shareholders",
+            ]
             result = {}
             for i, col in enumerate(cols):
                 if i < len(row):
@@ -283,18 +301,28 @@ class FinancialDataProvider:
         6-L.6 market-data columns (pe_ttm/pb/mcap/float_mcap/turnover_pct)
         are left NULL here and filled separately by _save_market_data.
         """
-        self.db.execute("""
+        self.db.execute(
+            """
             INSERT OR REPLACE INTO finance_snapshots
             (code, date, net_profit, revenue, operating_profit,
              equity, total_assets, current_liabilities, long_term_liabilities,
              bvps, float_shares, total_shares, shareholders)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            code, data.get("_date", ""),
-            data.get("net_profit"), data.get("revenue"), data.get("operating_profit"),
-            data.get("equity"), data.get("total_assets"),
-            data.get("current_liabilities"), data.get("long_term_liabilities"),
-            data.get("bvps"), data.get("float_shares"), data.get("total_shares"),
-            data.get("shareholders"),
-        ))
+        """,
+            (
+                code,
+                data.get("_date", ""),
+                data.get("net_profit"),
+                data.get("revenue"),
+                data.get("operating_profit"),
+                data.get("equity"),
+                data.get("total_assets"),
+                data.get("current_liabilities"),
+                data.get("long_term_liabilities"),
+                data.get("bvps"),
+                data.get("float_shares"),
+                data.get("total_shares"),
+                data.get("shareholders"),
+            ),
+        )
         self.db.commit()

@@ -6,14 +6,16 @@ class with all ``migrate_*`` methods. The mixin uses ``@with_conn`` from
 ``evaluation_crud`` and ``DDL_V21`` from ``evaluation_schema``.
 """
 
-from .evaluation_crud import with_conn
-from .evaluation_schema import DDL_V21
 # reconciliation.py imports ONLY the standard library at module load, so this
 # cross-package import does not form a cycle (evaluation_db -> evaluation_migration
 # -> reconciliation, with reconciliation importing EvaluationDB lazily).
-from src.audit.reconciliation import DDL_RECONCILIATION
+import contextlib
 
+from src.audit.reconciliation import DDL_RECONCILIATION
 from src.utils.logger import get_logger
+
+from .evaluation_crud import with_conn
+from .evaluation_schema import DDL_V21
 
 logger = get_logger(__name__)
 
@@ -35,10 +37,8 @@ class EvaluationMigrationMixin:
             ("rule_trigger", "TEXT"),
             ("mutation_candidates", "TEXT"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
                 conn.execute(f"ALTER TABLE post_mortems ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent migration — column may already exist
 
         # Add missing columns to committee_decisions (v1.0 -> v1.0.1)
         for col, col_type in [
@@ -53,10 +53,8 @@ class EvaluationMigrationMixin:
             ("member_statements_json", "TEXT DEFAULT '{}'"),
             ("devil_advocate_attack_points_json", "TEXT DEFAULT '[]'"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
                 conn.execute(f"ALTER TABLE committee_decisions ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent migration — column may already exist
 
         # v2.2: evaluation engine boundary fixes
         for col, col_type in [
@@ -64,18 +62,14 @@ class EvaluationMigrationMixin:
             ("holding_opportunity_cost", "REAL"),
             ("evaluation_confidence", "REAL DEFAULT 1.0"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
                 conn.execute(f"ALTER TABLE evaluation_results ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent migration — column may already exist
         for col, col_type in [
             ("gross_selection_alpha", "REAL"),
             ("net_selection_alpha", "REAL"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
                 conn.execute(f"ALTER TABLE evaluation_attribution ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent migration — column may already exist
 
         conn.executescript(DDL_V21)
         conn.commit()
@@ -130,10 +124,8 @@ class EvaluationMigrationMixin:
             ("severity", "REAL DEFAULT 0.0"),
             ("evidence_json", "TEXT"),
         ]:
-            try:
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
                 conn.execute(f"ALTER TABLE failure_patterns ADD COLUMN {col} {col_type}")
-            except Exception:
-                pass  # idempotent migration — column may already exist
         conn.commit()
 
     @with_conn
@@ -160,7 +152,9 @@ class EvaluationMigrationMixin:
         Idempotent: all CREATE TABLE IF NOT EXISTS, ALTER wrapped in try/except.
         """
         from src.agents.doctrine_engine import (
-            DDL_DOCTRINE_GENOME, DDL_CONFIDENCE_CALIBRATION, DDL_THESIS_GENOME,
+            DDL_CONFIDENCE_CALIBRATION,
+            DDL_DOCTRINE_GENOME,
+            DDL_THESIS_GENOME,
         )
         from src.factors.snapshot_schema import DDL_STOCK_FACTOR_SNAPSHOT
 
@@ -175,12 +169,12 @@ class EvaluationMigrationMixin:
             ("doctrine_id", "TEXT"),
         ]:
             for table in ("signal_snapshot", "research_decisions"):
-                try:
+                with contextlib.suppress(Exception):  # idempotent - column may already exist
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
-                except Exception:
-                    pass  # idempotent - column may already exist
         try:
-            conn.execute("ALTER TABLE agent_genome_snapshots ADD COLUMN doctrine_version TEXT DEFAULT 'v1'")
+            conn.execute(
+                "ALTER TABLE agent_genome_snapshots ADD COLUMN doctrine_version TEXT DEFAULT 'v1'"
+            )
         except Exception as exc:
             logger.debug("operation failed (was silently ignored): %s", exc)
 
@@ -415,10 +409,6 @@ class EvaluationMigrationMixin:
             ("devil_advocate_attack", "TEXT"),
         ]
         for col, col_type in columns:
-            try:
-                conn.execute(
-                    f"ALTER TABLE committee_decisions ADD COLUMN {col} {col_type}"
-                )
-            except Exception:
-                pass  # idempotent migration — column may already exist
+            with contextlib.suppress(Exception):  # idempotent migration — column may already exist
+                conn.execute(f"ALTER TABLE committee_decisions ADD COLUMN {col} {col_type}")
         conn.commit()

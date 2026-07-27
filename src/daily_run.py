@@ -101,7 +101,7 @@ def load_active_agents(db, max_agents: int = MAX_ACTIVE_AGENTS):
 
     evaluated = [r for r in rows if perf[r[0]][1] > 0]
     unevaluated = [r for r in rows if perf[r[0]][1] == 0]
-    evaluated.sort(key=lambda r: perf[r[0]][0], reverse=True)  # best alpha first
+    evaluated.sort(key=lambda r: perf[r[0]][0] or 0.0, reverse=True)  # best alpha first
     unevaluated.sort(key=lambda r: r[2] or "", reverse=True)  # newest children first
 
     explore_slots = max(1, max_agents // 4)  # reserve ~25% for exploration
@@ -496,7 +496,9 @@ def daily_run(sample_size: int = 0):
                     try:
                         _rec_conn = db.connect()
                         _rb = ReconciliationBuilder(_rec_conn)
-                        _rb.upsert(_rb.build_for_decision(rid))
+                        _rec_row = _rb.build_for_decision(rid)
+                        if _rec_row is not None:
+                            _rb.upsert(_rec_row)
                     except Exception as _e:
                         logger.warning(
                             "daily_run: reconciliation upsert failed for rid=%s: %s", rid, _e
@@ -524,7 +526,9 @@ def daily_run(sample_size: int = 0):
         _rb = ReconciliationBuilder(_rec_conn)
         for (_rid,) in _rids:
             try:
-                _rb.upsert(_rb.build_for_decision(_rid))
+                _rec_row = _rb.build_for_decision(_rid)
+                if _rec_row is not None:
+                    _rb.upsert(_rec_row)
             except Exception as _e:
                 logger.warning(
                     "daily_run: reconciliation eval upsert failed for rid=%s: %s", _rid, _e

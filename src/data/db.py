@@ -15,6 +15,7 @@ That leaks handles in long-running pipelines and leaves WAL/shared locks behind.
 
 This does NOT change connection semantics — it only guarantees closure.
 """
+
 import sqlite3
 import weakref
 
@@ -46,7 +47,7 @@ def managed_connect(owner, db_path: str, timeout: float = 5.0):
     _REGISTRY.add(conn)
     finalizer = weakref.finalize(owner, _safe_close, conn)
     try:
-        conn._managed_finalizer = finalizer  # keep finalizer alive for conn's life
+        conn._managed_finalizer = finalizer  # type: ignore[attr-defined]  # keep finalizer alive for conn's life
     except Exception as exc:
         logger.debug("operation failed (was silently ignored): %s", exc)
     return conn

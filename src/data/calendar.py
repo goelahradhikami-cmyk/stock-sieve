@@ -5,15 +5,15 @@ Strict DB-only: unknown dates default to non-trading days.
 No weekend fallback heuristic.
 """
 
-import sqlite3
-from src.data.db import managed_connect
 from datetime import date, timedelta
-from typing import Optional
+
 import pandas as pd
 
+from src.data.db import managed_connect
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 class TradingCalendar:
     """A-share trading calendar backed by trading_calendar table.
@@ -42,60 +42,67 @@ class TradingCalendar:
     def is_trade_day(self, d: date) -> bool:
         """Check if a date is a trading day. Unknown → False."""
         row = self.db.execute(
-            "SELECT is_trading FROM trading_calendar WHERE trade_date=?",
-            (d.isoformat(),)
+            "SELECT is_trading FROM trading_calendar WHERE trade_date=?", (d.isoformat(),)
         ).fetchone()
         return bool(row[0]) if row else False
 
-    def previous_trade_day(self, reference_date: date, n: int = 1) -> Optional[date]:
+    def previous_trade_day(self, reference_date: date, n: int = 1) -> date | None:
         """Get the nth trading day before reference_date (n=1 = most recent)."""
-        row = self.db.execute("""
+        row = self.db.execute(
+            """
             SELECT trade_date FROM trading_calendar
             WHERE trade_date < ? AND is_trading = 1
             ORDER BY trade_date DESC
             LIMIT 1 OFFSET ?
-        """, (reference_date.isoformat(), n - 1)).fetchone()
+        """,
+            (reference_date.isoformat(), n - 1),
+        ).fetchone()
         return date.fromisoformat(row[0]) if row else None
 
-    def next_trade_day(self, reference_date: date, n: int = 1) -> Optional[date]:
+    def next_trade_day(self, reference_date: date, n: int = 1) -> date | None:
         """Get the nth trading day after reference_date (n=1 = next)."""
-        row = self.db.execute("""
+        row = self.db.execute(
+            """
             SELECT trade_date FROM trading_calendar
             WHERE trade_date > ? AND is_trading = 1
             ORDER BY trade_date ASC
             LIMIT 1 OFFSET ?
-        """, (reference_date.isoformat(), n - 1)).fetchone()
+        """,
+            (reference_date.isoformat(), n - 1),
+        ).fetchone()
         return date.fromisoformat(row[0]) if row else None
 
     def trade_days_between(self, start: date, end: date) -> list[date]:
         """Get all trading days in a date range (inclusive)."""
-        rows = self.db.execute("""
+        rows = self.db.execute(
+            """
             SELECT trade_date FROM trading_calendar
             WHERE trade_date BETWEEN ? AND ? AND is_trading = 1
             ORDER BY trade_date
-        """, (start.isoformat(), end.isoformat())).fetchall()
+        """,
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
         return [date.fromisoformat(r[0]) for r in rows]
 
     def sync_from_akshare(self, start_year: int = 2010):
         """Sync trading calendar from akshare (requires: pip install akshare)."""
         try:
             import akshare as ak
+
             df = ak.tool_trade_date_hist_sina()
             if df is not None and not df.empty:
-                df['trade_date'] = pd.to_datetime(df['trade_date'])
+                df["trade_date"] = pd.to_datetime(df["trade_date"])
                 records = []
                 for _, row in df.iterrows():
-                    d = row['trade_date'].date()
-                    records.append((
-                        d.isoformat(), 1,
-                        int(d.strftime('%U')), d.month,
-                        (d.month - 1) // 3 + 1
-                    ))
+                    d = row["trade_date"].date()
+                    records.append(
+                        (d.isoformat(), 1, int(d.strftime("%U")), d.month, (d.month - 1) // 3 + 1)
+                    )
                 self.db.executemany(
                     """INSERT OR IGNORE INTO trading_calendar
                        (trade_date, is_trading, week_of_year, month, quarter)
                        VALUES (?,?,?,?,?)""",
-                    records
+                    records,
                 )
                 self.db.commit()
                 logger.info(f"✅ Trading calendar synced: {len(records)} days")
@@ -110,7 +117,8 @@ class TradingCalendar:
         This is a fallback — only use when akshare is unavailable.
         Covers 2020-2027.
         """
-        from datetime import date, timedelta
+        from datetime import date
+
         start = date(2020, 1, 1)
         end = date(2027, 12, 31)
         d = start
@@ -127,18 +135,16 @@ class TradingCalendar:
                 if m == 2 and 1 <= day <= 7:
                     skip = True
                 if not skip:
-                    records.append((
-                        d.isoformat(), 1,
-                        int(d.strftime('%U')), d.month,
-                        (d.month - 1) // 3 + 1
-                    ))
+                    records.append(
+                        (d.isoformat(), 1, int(d.strftime("%U")), d.month, (d.month - 1) // 3 + 1)
+                    )
             d += timedelta(days=1)
 
         self.db.executemany(
             """INSERT OR IGNORE INTO trading_calendar
                (trade_date, is_trading, week_of_year, month, quarter)
                VALUES (?,?,?,?,?)""",
-            records
+            records,
         )
         self.db.commit()
         logger.info(f"✅ Seeded {len(records)} trading days (2020-2027, weekdays only)")

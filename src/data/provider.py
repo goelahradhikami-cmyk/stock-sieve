@@ -11,71 +11,71 @@ Data source priority:
   4. Eastmoney — HTTP, rate-limited, exclusive data only
 """
 
+import hashlib
+import importlib.util
+import json
 import sqlite3
 import time
-import json
-import hashlib
-from datetime import datetime, date, timedelta
-from dataclasses import dataclass, field
-from typing import Optional
 import warnings
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Any
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import requests
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
-# ── Try importing mootdx (may not be installed) ──
-try:
-    from mootdx.quotes import Quotes
-    _HAS_MOOTDX = True
-except ImportError:
-    _HAS_MOOTDX = False
+# ── Check mootdx availability (may not be installed) ──
+_HAS_MOOTDX = importlib.util.find_spec("mootdx") is not None
 
 
 # ═══════════════════════════════════════════════════════════
 # Data Structures
 # ═══════════════════════════════════════════════════════════
 
+
 @dataclass
 class MarketSnapshot:
     """Market-wide state at a point in time."""
+
     date: str
-    regime_type: str = "unknown"           # bull / bear / crisis / rotation
-    risk_score: float = 50.0               # 0-100
-    growth_env_score: float = 50.0         # 0-100
-    value_env_score: float = 50.0          # 0-100
-    momentum_env_score: float = 50.0       # 0-100
-    defensive_env_score: float = 50.0      # 0-100
-    liquidity_score: float = 50.0          # 0-100
-    market_pe_percentile: Optional[float] = None
-    market_pb_percentile: Optional[float] = None
-    sh_index: Optional[float] = None
-    sz_index: Optional[float] = None
-    hs300_index: Optional[float] = None
+    regime_type: str = "unknown"  # bull / bear / crisis / rotation
+    risk_score: float = 50.0  # 0-100
+    growth_env_score: float = 50.0  # 0-100
+    value_env_score: float = 50.0  # 0-100
+    momentum_env_score: float = 50.0  # 0-100
+    defensive_env_score: float = 50.0  # 0-100
+    liquidity_score: float = 50.0  # 0-100
+    market_pe_percentile: float | None = None
+    market_pb_percentile: float | None = None
+    sh_index: float | None = None
+    sz_index: float | None = None
+    hs300_index: float | None = None
     indicators: dict = field(default_factory=dict)
 
 
 @dataclass
 class StockSnapshot:
     """Single stock basic info + current price."""
+
     code: str
     name: str = ""
-    price: Optional[float] = None
-    open: Optional[float] = None
-    high: Optional[float] = None
-    low: Optional[float] = None
-    last_close: Optional[float] = None
-    change_pct: Optional[float] = None
-    volume: Optional[float] = None
-    amount: Optional[float] = None
-    pe_ttm: Optional[float] = None
-    pb: Optional[float] = None
-    mcap: Optional[float] = None           # 总市值（亿）
-    float_mcap: Optional[float] = None     # 流通市值（亿）
-    turnover_pct: Optional[float] = None   # 换手率
+    price: float | None = None
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    last_close: float | None = None
+    change_pct: float | None = None
+    volume: float | None = None
+    amount: float | None = None
+    pe_ttm: float | None = None
+    pb: float | None = None
+    mcap: float | None = None  # 总市值（亿）
+    float_mcap: float | None = None  # 流通市值（亿）
+    turnover_pct: float | None = None  # 换手率
     industry: str = ""
     list_date: str = ""
 
@@ -83,44 +83,45 @@ class StockSnapshot:
 @dataclass
 class FactorSnapshot:
     """Computed factor values for a single stock."""
+
     code: str
     date: str
     # Quality factors
-    roe: Optional[float] = None
-    roe_5y_avg: Optional[float] = None
-    roic: Optional[float] = None
-    gross_margin: Optional[float] = None
-    net_margin: Optional[float] = None
-    fcf_yield: Optional[float] = None
-    accruals_ratio: Optional[float] = None
+    roe: float | None = None
+    roe_5y_avg: float | None = None
+    roic: float | None = None
+    gross_margin: float | None = None
+    net_margin: float | None = None
+    fcf_yield: float | None = None
+    accruals_ratio: float | None = None
     # Value factors
-    pe_ttm: Optional[float] = None
-    pb: Optional[float] = None
-    ps: Optional[float] = None
-    ev_ebitda: Optional[float] = None
-    dividend_yield: Optional[float] = None
+    pe_ttm: float | None = None
+    pb: float | None = None
+    ps: float | None = None
+    ev_ebitda: float | None = None
+    dividend_yield: float | None = None
     # Growth factors
-    revenue_growth_1y: Optional[float] = None
-    revenue_growth_3y: Optional[float] = None
-    earnings_growth_1y: Optional[float] = None
-    earnings_growth_3y: Optional[float] = None
-    margin_trend: Optional[float] = None  # gross margin change over 3yr
+    revenue_growth_1y: float | None = None
+    revenue_growth_3y: float | None = None
+    earnings_growth_1y: float | None = None
+    earnings_growth_3y: float | None = None
+    margin_trend: float | None = None  # gross margin change over 3yr
     # Momentum factors
-    momentum_1m: Optional[float] = None
-    momentum_3m: Optional[float] = None
-    momentum_6m: Optional[float] = None
-    momentum_12m: Optional[float] = None
-    rsi_14: Optional[float] = None
-    volume_ratio: Optional[float] = None
+    momentum_1m: float | None = None
+    momentum_3m: float | None = None
+    momentum_6m: float | None = None
+    momentum_12m: float | None = None
+    rsi_14: float | None = None
+    volume_ratio: float | None = None
     # Risk factors
-    beta: Optional[float] = None
-    volatility_1m: Optional[float] = None
-    max_drawdown_1y: Optional[float] = None
-    debt_to_equity: Optional[float] = None
-    interest_coverage: Optional[float] = None
+    beta: float | None = None
+    volatility_1m: float | None = None
+    max_drawdown_1y: float | None = None
+    debt_to_equity: float | None = None
+    interest_coverage: float | None = None
     # Sentiment / Alternative
-    holder_change_pct: Optional[float] = None
-    north_flow_ratio: Optional[float] = None
+    holder_change_pct: float | None = None
+    north_flow_ratio: float | None = None
     # Raw values for further computation
     _raw: dict = field(default_factory=dict)
 
@@ -128,6 +129,7 @@ class FactorSnapshot:
 # ═══════════════════════════════════════════════════════════
 # Data Provider
 # ═══════════════════════════════════════════════════════════
+
 
 class DataProvider:
     """Unified interface to A-share market data sources."""
@@ -142,15 +144,18 @@ class DataProvider:
         # the daily_run loop skipped *every* stock via `if not snap.name`. With
         # trust_env=False requests talks to Tencent directly, which is reachable.
         self._session.trust_env = False
-        self._session.headers.update({
-            "User-Agent": "Mozilla/5.0 (compatible; StockSieve/0.1)",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (compatible; StockSieve/0.1)",
+            }
+        )
         self._last_em_call = 0.0  # eastmoney rate limiting
 
     # ── Cache ──────────────────────────────────────────
 
     def _init_cache(self):
         import os
+
         os.makedirs(os.path.dirname(self._cache_db_path), exist_ok=True)
         conn = sqlite3.connect(self._cache_db_path)
         conn.execute("""
@@ -165,7 +170,7 @@ class DataProvider:
         conn.commit()
         conn.close()
 
-    def _cache_get(self, key: str) -> Optional[dict]:
+    def _cache_get(self, key: str) -> dict | None:
         conn = sqlite3.connect(self._cache_db_path)
         row = conn.execute(
             "SELECT data, created_at, ttl_seconds FROM cache WHERE cache_key = ?", (key,)
@@ -182,7 +187,7 @@ class DataProvider:
         conn = sqlite3.connect(self._cache_db_path)
         conn.execute(
             "INSERT OR REPLACE INTO cache (cache_key, data, ttl_seconds) VALUES (?, ?, ?)",
-            (key, json.dumps(data, default=str), ttl)
+            (key, json.dumps(data, default=str), ttl),
         )
         conn.commit()
         conn.close()
@@ -229,12 +234,12 @@ class DataProvider:
             self._cache_set(cache_key, result, ttl=300)  # 5 min TTL
             return result
         except Exception as e:
-            warnings.warn(f"Tencent quote failed: {e}")
+            warnings.warn(f"Tencent quote failed: {e}", stacklevel=2)
             return {}
 
     def _parse_tencent_response(self, text: str) -> dict:
         """Parse Tencent's semicolon-delimited response."""
-        result = {}
+        result: dict[str, dict[str, Any]] = {}
         for line in text.strip().split("\n"):
             if not line.strip() or "=" not in line:
                 continue
@@ -336,23 +341,25 @@ class DataProvider:
         results = []
         for code in codes:
             info = data.get(code, {})
-            results.append(StockSnapshot(
-                code=code,
-                name=info.get("name", ""),
-                price=info.get("price"),
-                open=info.get("open"),
-                high=info.get("high"),
-                low=info.get("low"),
-                last_close=info.get("last_close"),
-                change_pct=info.get("change_pct"),
-                volume=info.get("volume"),
-                amount=info.get("amount"),
-                pe_ttm=info.get("pe_ttm"),
-                pb=info.get("pb"),
-                mcap=info.get("mcap"),
-                float_mcap=info.get("float_mcap"),
-                turnover_pct=info.get("turnover_pct"),
-            ))
+            results.append(
+                StockSnapshot(
+                    code=code,
+                    name=info.get("name", ""),
+                    price=info.get("price"),
+                    open=info.get("open"),
+                    high=info.get("high"),
+                    low=info.get("low"),
+                    last_close=info.get("last_close"),
+                    change_pct=info.get("change_pct"),
+                    volume=info.get("volume"),
+                    amount=info.get("amount"),
+                    pe_ttm=info.get("pe_ttm"),
+                    pb=info.get("pb"),
+                    mcap=info.get("mcap"),
+                    float_mcap=info.get("float_mcap"),
+                    turnover_pct=info.get("turnover_pct"),
+                )
+            )
         return results
 
     def get_market_snapshot(self) -> MarketSnapshot:
@@ -412,13 +419,16 @@ class DataProvider:
         if cached:
             return cached
 
-        result = {}
-        prefix = "sh" if code.startswith("6") else ("sz" if code.startswith(("0", "3")) else "bj")
+        result: dict[str, Any] = {}
 
-        for report_type, field in [("lrb", "income"), ("fzb", "balance"), ("llb", "cashflow")]:
+        for report_type, _stmt_field in [
+            ("lrb", "income"),
+            ("fzb", "balance"),
+            ("llb", "cashflow"),
+        ]:
             try:
-                url = f"https://vip.stock.finance.sina.com.cn/corp/go.php/vFinanceSummary/{field}.phtml"
                 # Note: Sina changed their API; simplified stub
+                # (endpoint: https://vip.stock.finance.sina.com.cn/corp/go.php/vFinanceSummary/{stmt_field}.phtml)
                 result[report_type] = []
             except Exception:
                 result[report_type] = []
@@ -430,6 +440,7 @@ class DataProvider:
 # ═══════════════════════════════════════════════════════════
 # Market Data Provider — mootdx-based K-line & snapshot
 # ═══════════════════════════════════════════════════════════
+
 
 class MarketDataProvider:
     """Market data provider using mootdx for daily K-line and snapshots.
@@ -448,19 +459,26 @@ class MarketDataProvider:
         if self._quotes is None:
             try:
                 from mootdx.quotes import Quotes
-                self._quotes = Quotes.factory(market='std')
+
+                self._quotes = Quotes.factory(market="std")
             except ImportError:
                 raise ImportError("mootdx required. Install: pip install mootdx")
         return self._quotes
 
-    def get_daily_kline(self, code: str, start_date: str = None,
-                         end_date: str = None, adj: str = 'qfq') -> "pd.DataFrame":
+    def get_daily_kline(
+        self,
+        code: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        adj: str = "qfq",
+    ) -> "pd.DataFrame":
         """Return standardized daily K-line via mootdx bars with date filtering.
 
         Columns: date, open, high, low, close, adj_close, volume, amount, turnover
         """
-        import pandas as pd
         from datetime import date
+
+        import pandas as pd
 
         # Determine offset from date range
         if start_date and end_date:
@@ -484,39 +502,39 @@ class MarketDataProvider:
                 return pd.DataFrame()
 
             # Standardize: mootdx returns vol, datetime (may also have volume as duplicate)
-            if 'vol' in df.columns and 'volume' not in df.columns:
-                df = df.rename(columns={'vol': 'volume'})
-            elif 'vol' in df.columns:
-                df = df.drop(columns=['vol'])  # Already have volume, drop duplicate
-            if 'datetime' in df.columns and 'date' not in df.columns:
-                df = df.rename(columns={'datetime': 'date'})
-            elif 'datetime' in df.columns:
-                df = df.drop(columns=['datetime'])
+            if "vol" in df.columns and "volume" not in df.columns:
+                df = df.rename(columns={"vol": "volume"})
+            elif "vol" in df.columns:
+                df = df.drop(columns=["vol"])  # Already have volume, drop duplicate
+            if "datetime" in df.columns and "date" not in df.columns:
+                df = df.rename(columns={"datetime": "date"})
+            elif "datetime" in df.columns:
+                df = df.drop(columns=["datetime"])
 
             # Ensure date column is datetime
-            if 'date' not in df.columns:
-                if 'datetime' in df.columns:
-                    df['date'] = pd.to_datetime(df['datetime'])
-                    df = df.drop(columns=['datetime'])
+            if "date" not in df.columns:
+                if "datetime" in df.columns:
+                    df["date"] = pd.to_datetime(df["datetime"])
+                    df = df.drop(columns=["datetime"])
                 else:
-                    df['date'] = pd.to_datetime(df.index)
+                    df["date"] = pd.to_datetime(df.index)
             else:
-                df['date'] = pd.to_datetime(df['date'])
+                df["date"] = pd.to_datetime(df["date"])
 
             # Adjusted close
-            if 'close' in df.columns:
-                df['adj_close'] = df['close']
+            if "close" in df.columns:
+                df["adj_close"] = df["close"]
 
             # Fill missing
-            for col in ['turnover', 'amount']:
+            for col in ["turnover", "amount"]:
                 if col not in df.columns or df[col].isna().all():
-                    df[col] = float('nan')
+                    df[col] = float("nan")
 
             # Client-side date filtering (offset is approximate)
             if start_date:
-                df = df[df['date'] >= pd.Timestamp(start_date)]
+                df = df[df["date"] >= pd.Timestamp(start_date)]
             if end_date:
-                df = df[df['date'] <= pd.Timestamp(end_date)]
+                df = df[df["date"] <= pd.Timestamp(end_date)]
 
             if df.empty:
                 return pd.DataFrame()
@@ -530,20 +548,19 @@ class MarketDataProvider:
 
     def get_stock_snapshot(self, code: str) -> dict:
         """Get real-time snapshot via mootdx."""
-        market = 1 if code.startswith('6') else 0
         try:
             quote = self.quotes.quotes(symbol=[code])
             if quote is not None and not quote.empty:
                 row = quote.iloc[0]
                 return {
-                    'code': code,
-                    'name': row.get('name', ''),
-                    'price': float(row.get('price', 0) or 0),
-                    'open': float(row.get('open', 0) or 0),
-                    'high': float(row.get('high', 0) or 0),
-                    'low': float(row.get('low', 0) or 0),
-                    'volume': int(row.get('vol', 0) or 0),
-                    'amount': float(row.get('amount', 0) or 0),
+                    "code": code,
+                    "name": row.get("name", ""),
+                    "price": float(row.get("price", 0) or 0),
+                    "open": float(row.get("open", 0) or 0),
+                    "high": float(row.get("high", 0) or 0),
+                    "low": float(row.get("low", 0) or 0),
+                    "volume": int(row.get("vol", 0) or 0),
+                    "amount": float(row.get("amount", 0) or 0),
                 }
         except Exception as e:
             logger.warning("provider: get_stock_snapshot failed for %s: %s", code, e)

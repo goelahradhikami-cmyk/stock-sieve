@@ -225,7 +225,7 @@ class EventReactionCalculator:
     # Earnings loading (vintage-aware, 3 periods)
     # ------------------------------------------------------------------
 
-    def _load_earnings(self, result: EventReactionResult, code: str, as_of_date: str):
+    def _load_earnings(self, result: EventReactionResult, code: str, as_of_date: str) -> None:
         """Load vintage-aware 3 periods of earnings_yoy."""
         conn = sqlite3.connect(self.cache_db)
         try:

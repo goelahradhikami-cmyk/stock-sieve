@@ -117,7 +117,7 @@
 | thesis/ 零调用模块归档 | `adaptive_router.py`（6-Q.5b softmax 路由器）、`market_state_machine.py`（6-S.5.3 四态分类器，已被冻结的 state_transition.py 取代）→ `src/thesis/archive/`；先补 30 个特征化测试随行，`archive/__init__.py` 记录原因与复活程序 |
 | scripts/ 归档 | 46 → 20 保留 + 25 归档：保留全部 `backfill_*`（数据重建路径）、`shadow_*`/`monthly_belief_audit`（日常运营）、`run_bootstrap_validation`（冻结门槛复现，被冻结配置引用 5 次）、`run_evolution_observation`（Phase 4 观察）；25 个一次性研究脚本（实验/解剖/消融/replay）移入 `scripts/archive/` 并附 README 路径映射（冻结文档中的旧路径引用 → 新位置）。已核实脚本间零交叉导入、测试与 CI 零引用 |
 | print→logger | 业务模块 **54 处** `print()` 全部改走 `src.utils.logger`（14 文件，按 ⚠️/❌/🚨/💀 分级 warning，其余 info）；CLI 入口（`cli.py`/`runner.py`/`daily_run.py`/`paper_trading/runner.py` 共 166 处）**有意保留**——logger 输出走 stderr 带时间戳，转换会改变面向用户的 stdout 协议，属 UX 行为变更 |
-| ruff 全面清零 | 修复 19 处残余（SIM115 上下文管理器 ×7、B007 循环变量 ×7、SIM105 suppress ×3、F401/SIM300 自动修复 ×3，其中 6 处为本轮新写测试引入，已自查自修）；19 个测试文件补齐 `ruff format`；`scripts/archive/` 加入 `extend-exclude`（归档历史脚本不再 lint）。**`ruff check src tests scripts` 与 `ruff format --check` 全绿** |
+| ruff 全面清零 | 修复 19 处残余（SIM115 上下文管理器 ×7、B007 循环变量 ×7、SIM105 suppress ×3、F401/SIM300 自动修复 ×3，其中 6 处为本轮新写测试引入，已自查自修）；19 个测试文件补齐 `ruff format`；`scripts/archive/` 加入 `extend-exclude`（归档历史脚本不再 lint）。**`ruff check src tests scripts` 与 `ruff format --check` 全绿**（修正注：此结论当时对 `src/data/` 不成立——`ruff.toml` 的 `extend-exclude` 里裸 `"data"` 无斜杠 glob 匹配任意层级，导致整个 `src/data/` 包从未被 lint/format，CI 同样盲区；第十轮已修正为 `"data/**"` 并清掉暴露的 155 处） |
 | mypy 首轮收紧 | `check_untyped_defs = True` 启用（此前无注解函数体完全不检查）。收紧只暴露 25 个增量错误，其中 23 个源于 `candidate_generator._funnel_log_buffer` 一处注解错误（`list[tuple]` 实为 `list[dict]`），另 2 个为 `ra`/`out` 缺变量注解——3 处注解 bug 已修复（纯注解，零行为变更，被 26 个特征化测试保护）。基线保持 **186 错误 / 50 文件**；包分布：data 56、thesis 25、factors 22、agents 21、evolution 18、validation 15，simulation 等零错误。下一步按包清零后再开 `disallow_untyped_defs` |
 
 **本轮钉住的行为 QUIRK**（测试内有 `QUIRK (pinned)` 注释，供解冻窗口评估）：
@@ -129,6 +129,34 @@
 - `adaptive_router`（已归档）：docstring 示例数值有误（0.45×-0.02+0.15×-0.03=-0.0135，非 -0.013）
 - 既有清单延续：EGE/counterfactual 浮点残差、timing_layer `+1` blend、factor_momentum `or 50` 吞 0.0（见各测试文件注释）
 
+### 第十轮（2026-07-27）：mypy 全库清零 + strict 层扩编
+
+> 原则不变：注解随实修、行为零变更；先测试后重构；冻结层零改动。
+> 全量验证：mypy **0 errors / 145 files**；ruff check + format 全绿；**582 passed / 1 skipped / 2 failed**（基线不变）。
+
+第九轮 `check_untyped_defs = True` 后基线 **186 错误 / 50 文件**，本轮按包分五步清零（每步 pytest + ruff 双门禁后提交）：
+
+| 步 | 范围 | 基线变化 |
+|---|---|---|
+| 1 | strict 层首批：api/market/memory/simulation/paper_trading/execution 六包开 `disallow_untyped_defs` | 186（不变，六包本已零错误） |
+| 2 | 6 个小包清零 17 错（audit/execution 等），2 包进 strict | 186 → 169 |
+| 3 | utils + validation 清零 22 错 | 169 → 147 |
+| 4 | factors / evolution / agents / thesis 清零（`evolution/archive` 与 `thesis/archive` 用 mypy.ini **模块级** `ignore_errors` 排除——路径正则 exclude 在 Windows 反斜杠下失效，已踩过） | 147 → 63 |
+| 5 | data 包 + daily_run + 下游连锁清零 | 63 → **0** |
+
+关键修复（均为注解/防御性守卫，零行为变更）：
+
+- **ruff.toml 排除 bug**：`extend-exclude` 裸 `"data"` 无斜杠匹配任意层级，整个 `src/data/` 从未被 lint/format（CI 同盲区）→ 改为 `"data/**"` 锚定仓库根，暴露 155 处：`--fix` 吃掉 119（UP045 ×60、I001 ×18 等），手修 36（index_provider 10 处 `logger` 漏 import——print→logger 转换遗漏、SIM105→`contextlib.suppress`、E731 lambda→def、F841 死变量、B905 `strict=False`）
+- `evaluation_crud` 18 处 Optional 默认值（`str = None` → `str | None = None`）
+- `db.py` 动态属性 `conn._managed_finalizer` 加 `# type: ignore[attr-defined]`（惯用法，setattr 写法被 ruff B010 拦回）
+- `daily_run.py`：排序键 `perf[r[0]][0] or 0.0` 防 None 混入崩溃；ReconciliationBuilder `build_for_decision` 返回 `dict | None`，两个调用点补 None 守卫（原路径 upsert(None) 必抛 AttributeError 被外层 except 吞成 warning，守卫后静默跳过——少一条误导性 warning）
+- `MispricingObject` 五字段诚实扩宽为 `float | None`（运行时本就可能 None），`to_dict` 的 `margin_change` 补 None 守卫（潜在崩溃路径 bug fix）
+- mypy.ini：误放在 `[mypy-src.execution.*]` 段下的全局 `exclude`（mypy 静默忽略 + 警告）移回 `[mypy]` 全局段
+
+**strict 层扩编**：清零后逐包测量 `disallow_untyped_defs` 增量——utils 1、factors 2、thesis 7，修完 10 处缺失注解后三包晋升 strict 层（现共 **9 包**：api/market/memory/simulation/paper_trading/execution/utils/factors/thesis）。剩余待晋升：validation 11、evolution 25、agents 28、data 88、audit 10 个 untyped def。
+
+**CI mypy 门禁**：暂保持 `continue-on-error: true`（informational）——虽然全库已归零，但 mypy 不在项目 dev 依赖中、CI 自行安装，版本漂移可能引入新诊断；待 mypy 版本钉入依赖后再转硬门禁（见 backlog）。
+
 ---
 
 ## 二、待办 backlog（按优先级）
@@ -136,7 +164,7 @@
 ### P1 — 测试与质量门禁
 
 1. ~~**测试覆盖不足**~~：**已完成**（2026-07-27，见上方第九轮）——`thesis/` 全部 20 个模块 332 个特征化测试补齐；全量 582 passed。剩余已知空白：`test_real_data.py` 2 个失败为 mootdx 环境依赖（需本机安装 mootdx 才能转绿）。
-2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。mypy 首轮收紧已完成（第九轮，`check_untyped_defs = True`），剩余路线：186 个基线错误按包清零（data 56 为最大头）→ 再评估 `disallow_untyped_defs`。
+2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。mypy 首轮收紧（第九轮 `check_untyped_defs = True`）与 **186 错误全库清零均已完成**（第十轮，0 errors / 145 files）。剩余路线：① validation/evolution/agents/data/audit 五包补齐 untyped def 注解后晋升 strict 层（增量 11/25/28/88/10）；② mypy 版本钉入 dev 依赖后，CI mypy 步骤从 `continue-on-error` 转硬门禁。
 3. ~~**tests/ 与 scripts/ 残余风格项**~~：**已完成**（2026-07-27，见上方第九轮）——19 处全部修复，`ruff check src tests scripts` 与 format 检查全绿；归档脚本排除出 lint 范围。
 
 ### P1 — 模块冗余/演进残留

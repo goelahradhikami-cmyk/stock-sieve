@@ -187,7 +187,7 @@ class FactorSnapshotBuilder:
         logger.info("snapshot_builder: wrote %d rows for %s", written, trade_date)
         return written
 
-    def _family_percentiles(self, composite) -> dict[str, float]:
+    def _family_percentiles(self, composite: CompositeResult) -> dict[str, float]:
         """Extract per-family average percentile from a CompositeResult.
 
         After compute_cross_sectional, each FactorResult has a `percentile`

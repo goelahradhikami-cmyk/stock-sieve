@@ -144,7 +144,7 @@ class FactorEngine:
         ],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._all_factors = []
         for family, factors in self.FACTOR_FAMILIES.items():
             for f in factors:

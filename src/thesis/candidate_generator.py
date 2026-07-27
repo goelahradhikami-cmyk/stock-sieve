@@ -245,7 +245,7 @@ class CandidateGenerator:
 
         return passed
 
-    def _compute_recovery_score(self, frm_result) -> float:
+    def _compute_recovery_score(self, frm_result: Any) -> float:
         """Recovery score composite (6-S.13.1 Design Freeze formula).
 
         recovery_score = 0.35 * earnings_acceleration
@@ -321,7 +321,7 @@ class CandidateGenerator:
 
         return passed
 
-    def _enrich_recovery_score(self, features: V3CandidateFeatures, rs_result) -> float:
+    def _enrich_recovery_score(self, features: V3CandidateFeatures, rs_result: Any) -> float:
         """Fill in Stage 2 components of recovery_score.
 
         Full formula (6-S.13.1):
@@ -441,7 +441,9 @@ class CandidateGenerator:
     # Funnel log (batched writes to shadow_funnel_log)
     # ------------------------------------------------------------------
 
-    def _buffer_funnel_log(self, episode_id, trade_date, code, **fields):
+    def _buffer_funnel_log(
+        self, episode_id: str | None, trade_date: str, code: str, **fields: Any
+    ) -> None:
         """Buffer a funnel log entry for batch insert."""
         if not episode_id:
             return
@@ -454,7 +456,9 @@ class CandidateGenerator:
             }
         )
 
-    def _update_funnel_log(self, episode_id, trade_date, code, **fields):
+    def _update_funnel_log(
+        self, episode_id: str | None, trade_date: str, code: str, **fields: Any
+    ) -> None:
         """Update an existing funnel log entry (matched by episode+code).
 
         Stage 2/3 add fields to entries created in Stage 1.
@@ -468,7 +472,7 @@ class CandidateGenerator:
         # If not found (shouldn't happen), create new
         self._buffer_funnel_log(episode_id, trade_date, code, **fields)
 
-    def _flush_funnel_log(self):
+    def _flush_funnel_log(self) -> None:
         """Batch-insert funnel log entries to shadow_funnel_log."""
         if not self._funnel_log_buffer:
             return

@@ -11,12 +11,16 @@ Supports:
 import json
 import os
 from datetime import date, datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.data.evaluation_db import EvaluationDB
 
 
 class ReportExporter:
     """Export Stock Sieve data to Markdown or Excel reports."""
 
-    def __init__(self, db):
+    def __init__(self, db: "EvaluationDB") -> None:
         self.db = db
 
     # ═══════════════════════════════════════════════════════

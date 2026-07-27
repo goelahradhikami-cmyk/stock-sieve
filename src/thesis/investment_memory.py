@@ -115,7 +115,7 @@ class InvestmentMemory:
         self.eval_db = eval_db
         self._ensure_table()
 
-    def _ensure_table(self):
+    def _ensure_table(self) -> None:
         conn = sqlite3.connect(self.eval_db)
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS investment_memory (

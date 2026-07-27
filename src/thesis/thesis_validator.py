@@ -72,9 +72,9 @@ class ThesisValidator:
         code: str,
         thesis_date: str,
         eval_date: str,
-        predicted_acceleration: bool = None,
-        predicted_mispricing: bool = None,
-        actual_price_change: float = None,
+        predicted_acceleration: bool | None = None,
+        predicted_mispricing: bool | None = None,
+        actual_price_change: float | None = None,
     ) -> ThesisValidation:
         """Validate a thesis prediction against actual outcomes.
 

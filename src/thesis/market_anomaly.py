@@ -79,15 +79,15 @@ class MispricingObject:
 
     # Layer 1: Market Belief (what the price implies)
     price_drawdown_12m: float = 0.0  # -0.35 = -35% in 12 months
-    pe_compression: float = 0.0  # PE_now / PE_1y_ago (0.4 = 60% compression)
-    momentum_rank: float = 0.5  # 0 = bottom, 1 = top
+    pe_compression: float | None = 0.0  # PE_now / PE_1y_ago (0.4 = 60% compression)
+    momentum_rank: float | None = 0.5  # 0 = bottom, 1 = top
     market_pessimism: float = 0.0  # composite 0-1 (1 = max pessimism)
 
     # Layer 2: Business Reality (what fundamentals show)
     roe: float = 0.0
-    roe_stability: float = 0.0  # 1 = stable, 0 = volatile
-    margin_change: float = 0.0  # Δ(gross_margin) positive = improving
-    cashflow_trend: float = 0.0  # cashflow growth direction
+    roe_stability: float | None = 0.0  # 1 = stable, 0 = volatile
+    margin_change: float | None = 0.0  # Δ(gross_margin) positive = improving
+    cashflow_trend: float | None = 0.0  # cashflow growth direction
     debt_ratio: float = 0.0  # debt_to_equity
     business_strength: float = 0.0  # composite 0-1 (1 = max strength)
 
@@ -186,7 +186,9 @@ class MispricingObject:
             "divergence_type": self.divergence_type,
             "price_drawdown_12m": round(self.price_drawdown_12m, 3),
             "roe": round(self.roe, 4),
-            "margin_change": round(self.margin_change, 4),
+            "margin_change": round(self.margin_change, 4)
+            if self.margin_change is not None
+            else None,
             "thesis": self.thesis,
             "confidence": round(self.confidence, 3),
         }

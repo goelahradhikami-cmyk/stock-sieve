@@ -297,7 +297,9 @@ class ThesisTimingLayer:
 
         # Build regime label
         regime_parts = [market_regime or "unknown"]
-        top_factor = max(factor_momentum, key=factor_momentum.get) if factor_momentum else "?"
+        top_factor = (
+            max(factor_momentum, key=lambda f: factor_momentum[f]) if factor_momentum else "?"
+        )
         if factor_momentum and factor_momentum[top_factor] > 0.02:
             regime_parts.append(f"{top_factor}_momentum_up")
         if crowding > 0.7:

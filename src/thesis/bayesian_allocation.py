@@ -81,7 +81,9 @@ class BayesianAllocationEngine:
     def __init__(self, eval_db: str = "data/evaluation.db"):
         self.eval_db = eval_db
 
-    def compute_allocation(self, market_state: str, as_of_date: str = None) -> dict[str, float]:
+    def compute_allocation(
+        self, market_state: str, as_of_date: str | None = None
+    ) -> dict[str, float]:
         """Compute doctrine allocation for a market state.
 
         Args:
@@ -224,7 +226,7 @@ class BayesianAllocationEngine:
             allocation_weight=0.0,  # filled by softmax
         )
 
-    def get_full_allocation_table(self, as_of_date: str = None) -> dict[str, dict]:
+    def get_full_allocation_table(self, as_of_date: str | None = None) -> dict[str, dict]:
         """Get allocation for all market states.
 
         Returns: {market_state: {doctrine: weight, ...}}

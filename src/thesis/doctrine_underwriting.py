@@ -33,6 +33,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from src.thesis.market_anomaly import MispricingObject
 from src.utils.logger import get_logger
@@ -132,7 +133,7 @@ class DoctrineUnderwriter:
           - Debt spiraling (debt_to_equity > 3.0)
           - ROE very low (< 0.03) - business may be broken
         """
-        questions = {}
+        questions: dict[str, dict[str, Any]] = {}
         reasons = []
         red_flags = []
         pass_count = 0
@@ -210,7 +211,7 @@ class DoctrineUnderwriter:
           - Drawdown > -15% (not extreme enough)
           - Business strength < 0.4 (company actually deteriorating)
         """
-        questions = {}
+        questions: dict[str, dict[str, Any]] = {}
         reasons = []
         red_flags = []
         pass_count = 0
@@ -287,7 +288,7 @@ class DoctrineUnderwriter:
           - PE compression > 0.9 (barely cheaper)
           - ROE < 0.02 (value trap - cheap for a reason)
         """
-        questions = {}
+        questions: dict[str, dict[str, Any]] = {}
         reasons = []
         red_flags = []
         pass_count = 0

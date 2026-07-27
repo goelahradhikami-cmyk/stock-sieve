@@ -145,7 +145,7 @@ class ThesisLedger:
         underwriting: dict[str, UnderwritingResult],
         kill_result: KillCriteriaResult,
         action: str,
-        eval_date: str = None,
+        eval_date: str | None = None,
     ) -> str:
         """Record a thesis decision to the ledger.
 
@@ -219,8 +219,8 @@ class ThesisLedger:
         self,
         thesis_id: str,
         actual_return: float,
-        failure_type: str = None,
-        failure_reason: str = None,
+        failure_type: str | None = None,
+        failure_reason: str | None = None,
     ) -> None:
         """Update a thesis with T+N outcome.
 

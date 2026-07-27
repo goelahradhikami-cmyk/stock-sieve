@@ -159,7 +159,7 @@ class InvestmentMemory:
         regime_score: float,
         causal_score: float,
         decay_score: float,
-        missing_audits: list[str] = None,
+        missing_audits: list[str] | None = None,
     ) -> BeliefRecord:
         """Store or update a belief in memory.
 
@@ -262,7 +262,7 @@ class InvestmentMemory:
             posterior_beta=posterior_beta,
         )
 
-    def get_beliefs(self, market_state: str = None) -> list[BeliefRecord]:
+    def get_beliefs(self, market_state: str | None = None) -> list[BeliefRecord]:
         """Get beliefs, optionally filtered by market state."""
         conn = sqlite3.connect(self.eval_db)
         conn.row_factory = sqlite3.Row
@@ -293,7 +293,7 @@ class InvestmentMemory:
             conn.close()
         return [self._row_to_belief(r) for r in rows]
 
-    def apply_decay(self, as_of_date: str = None) -> int:
+    def apply_decay(self, as_of_date: str | None = None) -> int:
         """Apply time decay to all beliefs.
 
         Beliefs not updated recently have their decay_factor reduced.

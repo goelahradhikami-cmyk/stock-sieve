@@ -98,7 +98,7 @@ class EventReactionCalculator:
     def __init__(self, cache_db: str = "data/cache.db"):
         self.cache_db = cache_db
         self.local = LocalDataProvider()
-        self._sector_cache: dict[str, str] = {}
+        self._sector_cache: dict[str, str | None] = {}
         self._calendar_cache: list[str] | None = None
 
     def compute(self, security_id: str, available_date: str) -> EventReactionResult:

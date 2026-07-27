@@ -175,7 +175,7 @@ class FactorMomentumEngine:
         if not eval_date:
             return {f: None for f in self.FACTOR_FAMILIES}
 
-        results = {}
+        results: dict[str, float | None] = {}
         for i, factor in enumerate(self.FACTOR_FAMILIES):
             # Sort by this factor's score
             scored = [(row, row[i + 1] or 50) for row in rows]

@@ -82,7 +82,7 @@ class ExpectationGapEngine:
         self.cache_db = cache_db
         # Z-score normalization requires cross-sectional context.
         # We cache the distribution per trade_date (or nearest available).
-        self._distribution_cache: dict[str, dict] = {}
+        self._distribution_cache: dict[str, dict | None] = {}
 
     def compute(self, security_id: str, trade_date: str) -> ExpectationGapScore:
         """Compute expectation gap for a stock at a decision date.

@@ -69,7 +69,7 @@ def _dataclass_to_dict(obj) -> dict:
     try:
         import dataclasses
 
-        if dataclasses.is_dataclass(obj):
+        if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
             return dataclasses.asdict(obj)
     except Exception as exc:
         logger.warning("operation failed (was silently ignored): %s", exc)

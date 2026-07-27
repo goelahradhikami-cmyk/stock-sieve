@@ -16,6 +16,7 @@ Also implements personality_genome_schema_v3.2:
 import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, ClassVar
 
 import yaml
 
@@ -60,7 +61,7 @@ class ResearchAgent:
     Loads a genome, analyzes stocks, produces SecurityAnalysis.
     """
 
-    THESIS_PATTERNS = {
+    THESIS_PATTERNS: ClassVar[dict[str, dict[str, Any]]] = {
         "quality_compound": {
             "family": "value",
             "required_factors": {"roe": (0.15, None), "gross_margin": (0.30, None)},
@@ -223,7 +224,7 @@ class ResearchAgent:
         Uses genome's thesis_scoring weights to rank patterns.
         """
         best_thesis = None
-        best_score = -1
+        best_score: float = -1
 
         for pattern_name, pattern_def in self.THESIS_PATTERNS.items():
             # Check all required factors

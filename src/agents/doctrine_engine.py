@@ -262,7 +262,7 @@ class DoctrineEngine:
       3. mutate(d, rate)        - Exploration: weighted mutation
     """
 
-    def __init__(self, archetypes_path: str = None):
+    def __init__(self, archetypes_path: str | None = None):
         if archetypes_path is None:
             archetypes_path = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
@@ -507,7 +507,7 @@ class DoctrineEngine:
     # ── Weighted identity mutation distance (补丁3) ───────
 
     def identity_mutation_distance(
-        self, parent_identity: dict, child_identity: dict, cost_weights: dict = None
+        self, parent_identity: dict, child_identity: dict, cost_weights: dict | None = None
     ) -> float:
         """Compute weighted mutation distance between two identity vectors.
 
@@ -527,7 +527,7 @@ class DoctrineEngine:
         self,
         parent_identity: dict,
         child_identity: dict,
-        cost_weights: dict = None,
+        cost_weights: dict | None = None,
         threshold: float = MAX_MUTATION_DISTANCE,
     ) -> bool:
         """Check if an identity mutation is within allowed distance (补丁3)."""

@@ -83,7 +83,7 @@ class CommitteeDecision:
 # ═══════════════════════════════════════════════════════════
 
 
-def chairman_decision(scores: dict, revision_count: int = 0, config: dict = None) -> tuple:
+def chairman_decision(scores: dict, revision_count: int = 0, config: dict | None = None) -> tuple:
     """Aggregate five role scores into final verdict.
 
     Args:
@@ -185,7 +185,7 @@ class CommitteeAgent:
     issues binding verdict with position constraints.
     """
 
-    def __init__(self, db=None, llm_client=None, config_path: str = None):
+    def __init__(self, db=None, llm_client=None, config_path: str | None = None):
         self.db = db
         self.llm = llm_client
 
@@ -206,11 +206,11 @@ class CommitteeAgent:
         self,
         security_analysis,
         validation_result,
-        market_snapshot: dict = None,
-        portfolio_state: dict = None,
+        market_snapshot: dict | None = None,
+        portfolio_state: dict | None = None,
         revision_count: int = 0,
-        factor_snapshot: dict = None,
-        sector: str = None,
+        factor_snapshot: dict | None = None,
+        sector: str | None = None,
     ) -> CommitteeDecision:
         """Review a SecurityAnalysis through the committee.
 

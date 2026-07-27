@@ -148,7 +148,9 @@ class PortfolioAgent:
         },
     }
 
-    def __init__(self, policy_id: str = "conservative_value_fund", risk_policy: RiskPolicy = None):
+    def __init__(
+        self, policy_id: str = "conservative_value_fund", risk_policy: RiskPolicy | None = None
+    ):
         self.policy_id = policy_id
         self.risk_policy = risk_policy or RiskPolicy()
         self.memory: dict = {
@@ -159,7 +161,7 @@ class PortfolioAgent:
         }
 
     def construct_portfolio(
-        self, analyses: list, state: PortfolioState, market: dict, market_intel: dict = None
+        self, analyses: list, state: PortfolioState, market: dict, market_intel: dict | None = None
     ) -> PortfolioDecision:
         """Core construct_portfolio() method (contract §4.2).
 
@@ -249,7 +251,7 @@ class PortfolioAgent:
         regime_cfg: dict,
         risk_score: float,
         market: dict,
-        market_intel: dict = None,
+        market_intel: dict | None = None,
     ) -> PositionDecision:
         """8-step final_weight calculation (§3.3 position_engine) + Market Intel (Commit 6-F.2)."""
 
@@ -340,7 +342,7 @@ class PortfolioAgent:
             position_engine_trace=trace,
         )
 
-    def _conviction_to_base(self, confidence: float, alpha_score: float = None) -> float:
+    def _conviction_to_base(self, confidence: float, alpha_score: float | None = None) -> float:
         """Map confidence to base position weight (§3.2).
 
         Uses an *effective conviction* = max(confidence, alpha_score) so that

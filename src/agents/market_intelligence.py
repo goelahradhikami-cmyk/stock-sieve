@@ -40,7 +40,7 @@ class MarketIntelligenceAgent:
         """)
         self.db.commit()
 
-    def assess(self, kline_data: dict = None) -> dict:
+    def assess(self, kline_data: dict | None = None) -> dict:
         """Assess current market state with Softmax probabilities.
 
         Args:
@@ -72,7 +72,7 @@ class MarketIntelligenceAgent:
 
         # ── Entropy confidence ─────────────────────────────
         confidence = self._entropy_confidence(probabilities)
-        primary = max(probabilities, key=probabilities.get)
+        primary = max(probabilities, key=lambda s: probabilities[s])
 
         # ── Risk decomposition ─────────────────────────────
         risk_components = {

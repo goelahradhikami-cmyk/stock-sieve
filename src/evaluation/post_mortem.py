@@ -25,6 +25,10 @@ from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 # ═══════════════════════════════════════════════════════════
 # Error Classification Enums
 # ═══════════════════════════════════════════════════════════
@@ -726,7 +730,7 @@ Alpha评分: {research.get("alpha_score", "N/A")}
                 result = self.run(eid)
                 results.append(result)
             except Exception as e:
-                print(f"Post-mortem failed for eval_id={eid}: {e}")
+                logger.info(f"Post-mortem failed for eval_id={eid}: {e}")
         return results
 
 

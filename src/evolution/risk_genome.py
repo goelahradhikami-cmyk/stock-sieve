@@ -12,6 +12,9 @@ from copy import deepcopy
 import numpy as np
 
 from src.data.db import managed_connect
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ═══════════════════════════════════════════════════════════
 # Default Risk Genome
@@ -166,7 +169,7 @@ class KillSwitch:
             (1 if allow_evolution else 0, reason),
         )
         self.db.commit()
-        print(f"🚨 EMERGENCY: {reason}")
+        logger.warning(f"🚨 EMERGENCY: {reason}")
 
     def resume_normal(self):
         self.db.execute("""
@@ -174,7 +177,7 @@ class KillSwitch:
             VALUES ('NORMAL', 0.95, 1, 1)
         """)
         self.db.commit()
-        print("✅ System resumed NORMAL")
+        logger.info("✅ System resumed NORMAL")
 
     def can_evolve(self) -> bool:
         """Gate for automatic evolution cycles (used by daily_run / cli evolve)."""

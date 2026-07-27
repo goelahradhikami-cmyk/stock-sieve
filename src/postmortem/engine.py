@@ -102,7 +102,7 @@ class PostMortemEngine:
         """Scan unprocessed evaluation results, classify, and generate patterns."""
         evaluations = self._load_unprocessed()
         if evaluations.empty:
-            print("   No new evaluations to post-mortem")
+            logger.info("   No new evaluations to post-mortem")
             return 0
 
         count = 0
@@ -134,7 +134,7 @@ class PostMortemEngine:
             self._run_analyzer(eval_dict)
 
         self.db.commit()
-        print(f"   Post-Mortem: {count} failure patterns generated")
+        logger.info(f"   Post-Mortem: {count} failure patterns generated")
         return count
 
     def _load_unprocessed(self) -> pd.DataFrame:
@@ -281,7 +281,7 @@ class PostMortemEngine:
             result = analyzer.run(int(eval_dict["id"]))
             self._save_post_mortem(int(eval_dict["id"]), result)
         except Exception as e:
-            print(f"   [post-mortem analyzer skipped] eval_id={eval_dict.get('id')}: {e}")
+            logger.info(f"   [post-mortem analyzer skipped] eval_id={eval_dict.get('id')}: {e}")
 
     def _save_post_mortem(self, evaluation_id: int, result) -> int:
         """Persist a PostMortemResult to the ``post_mortems`` table.

@@ -10,6 +10,9 @@ and synthetic black swans. Only survivors reproduce.
 import numpy as np
 
 from src.data.db import managed_connect
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # ═══════════════════════════════════════════════════════════
 # Preset crisis scenarios
@@ -222,5 +225,5 @@ class CrisisSimulationEngine:
                 org["crisis_survival"] = crisis_result
                 survivors.append(org)
             else:
-                print(f"  💀 Extinct: survival_rate={crisis_result['survival_rate']:.0%}")
+                logger.warning(f"  💀 Extinct: survival_rate={crisis_result['survival_rate']:.0%}")
         return survivors

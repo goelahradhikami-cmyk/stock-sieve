@@ -453,9 +453,9 @@ class AkshareProvider:
             n = self.fetch_period(period)
             total += n
             iso = f"{period[:4]}-{period[4:6]}-{period[6:8]}"
-            print(f"  [{i+1}/{len(periods)}] {iso}: {n} rows")
+            logger.info(f"  [{i+1}/{len(periods)}] {iso}: {n} rows")
         if enrich_market and total > 0:
-            print("  Enriching PE/PB/mcap via Tencent...")
+            logger.info("  Enriching PE/PB/mcap via Tencent...")
             n = self.enrich_market_data()
-            print(f"  Enriched {n} stocks")
+            logger.info(f"  Enriched {n} stocks")
         return total

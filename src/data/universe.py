@@ -141,11 +141,11 @@ def _sample_universe() -> pd.DataFrame:
 
 def sync_security_master(db_path: str = "data/cache.db"):
     """Full sync of Eastmoney stock list → security_master table."""
-    print("📡 Fetching A-share stock list from Eastmoney...")
+    logger.info("📡 Fetching A-share stock list from Eastmoney...")
     df = fetch_eastmoney_stock_list()
 
     if df.empty:
-        print("❌ No stocks fetched — check network or API status")
+        logger.warning("❌ No stocks fetched — check network or API status")
         return 0
 
     # Supplement missing fields
@@ -159,14 +159,14 @@ def sync_security_master(db_path: str = "data/cache.db"):
     master.upsert(df.to_dict(orient='records'))
 
     count = master.count()
-    print(f"✅ Synced {count} stocks to security_master")
+    logger.info(f"✅ Synced {count} stocks to security_master")
 
     # Breakdown
     sh = df[df['exchange'] == 'SH'].shape[0]
     sz = df[df['exchange'] == 'SZ'].shape[0]
     bj = df[df['exchange'] == 'BJ'].shape[0]
     st = df[df['is_st'] == 1].shape[0]
-    print(f"   SH: {sh}, SZ: {sz}, BJ: {bj}, ST: {st}")
+    logger.info(f"   SH: {sh}, SZ: {sz}, BJ: {bj}, ST: {st}")
 
     return count
 
@@ -301,10 +301,10 @@ def sync_security_master_from_local(vipdoc_root: str = None,
     """
     rows = scan_local_universe(vipdoc_root)
     if not rows:
-        print("❌ No local .day files found — check TDX vipdoc path "
+        logger.warning("❌ No local .day files found — check TDX vipdoc path "
               "(STOCK_SIEVE_TDX_VIPDOC / STOCK_SIEVE_TDX_ROOT).")
         return 0
-    print(f"📁 Scanned local universe: {len(rows)} stocks")
+    logger.info(f"📁 Scanned local universe: {len(rows)} stocks")
 
     master = SecurityMaster(db_path)
 
@@ -317,9 +317,9 @@ def sync_security_master_from_local(vipdoc_root: str = None,
 
     quotes = {}
     if enrich:
-        print("📡 Enriching name/PE/PB/mcap via Tencent (proxy-bypassed)...")
+        logger.info("📡 Enriching name/PE/PB/mcap via Tencent (proxy-bypassed)...")
         quotes = tencent_batch_quotes([r["code"] for r in rows])
-        print(f"   got {len(quotes)} quotes")
+        logger.info(f"   got {len(quotes)} quotes")
 
     records = []
     for r in rows:
@@ -351,7 +351,7 @@ def sync_security_master_from_local(vipdoc_root: str = None,
             "DELETE FROM security_master WHERE security_id=?",
             [(sid,) for sid in stale])
         master.db.commit()
-        print(f"🧹 Purged {len(stale)} stale rows (indices/ETF/bonds/delisted)")
+        logger.info(f"🧹 Purged {len(stale)} stale rows (indices/ETF/bonds/delisted)")
 
     master.upsert(records)
 
@@ -360,5 +360,5 @@ def sync_security_master_from_local(vipdoc_root: str = None,
     sz = sum(1 for r in rows if r["exchange"] == "SZ")
     bj = sum(1 for r in rows if r["exchange"] == "BJ")
     st = sum(1 for rec in records if rec["is_st"])
-    print(f"✅ security_master now {count} stocks  (SH {sh}, SZ {sz}, BJ {bj}, ST {st})")
+    logger.info(f"✅ security_master now {count} stocks  (SH {sh}, SZ {sz}, BJ {bj}, ST {st})")
     return count

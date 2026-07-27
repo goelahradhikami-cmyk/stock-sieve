@@ -279,13 +279,13 @@ class SandboxValidator:
         # Try real backtest first
         count = self._real_backtest(child_id, child_id, start_date, end_date, cycle_id)
         if count > 0:
-            print(f"    Sandbox: generated {count} REAL evaluations for {child_id}")
+            logger.info(f"    Sandbox: generated {count} REAL evaluations for {child_id}")
             return
 
         # Fallback: synthetic (old behavior) when no snapshot data exists yet
         count = self._synthetic_backtest(child_id, parent_id, start_date, end_date, cycle_id)
         if count > 0:
-            print(
+            logger.info(
                 f"    Sandbox: generated {count} synthetic evaluations for {child_id} (no snapshot data)"
             )
 

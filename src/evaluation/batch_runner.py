@@ -99,11 +99,11 @@ class BatchEvaluationRunner:
         )
 
         if decisions.empty:
-            print(f"  No decisions found in {start_date} ~ {end_date}")
+            logger.info(f"  No decisions found in {start_date} ~ {end_date}")
             return 0
 
         total = len(decisions)
-        print(f"  Backfilling {total} decisions × {len(horizons)} horizons...")
+        logger.info(f"  Backfilling {total} decisions × {len(horizons)} horizons...")
         count = 0
 
         for _, row in decisions.iterrows():
@@ -131,7 +131,7 @@ class BatchEvaluationRunner:
                 count += 1
 
         self.db.commit()
-        print(f"  Done: {count} evaluation records added")
+        logger.info(f"  Done: {count} evaluation records added")
         return count
 
     def _evaluate_single(self, row: pd.Series, horizon: int, eval_date: date, entry_date: date):
@@ -287,7 +287,7 @@ class BatchEvaluationRunner:
         ).fetchall()
 
         if not rows:
-            print("  No pending evaluations")
+            logger.info("  No pending evaluations")
             return 0
 
         count = 0
@@ -310,7 +310,7 @@ class BatchEvaluationRunner:
                 continue
 
         self.db.commit()
-        print(f"  Pending evaluations: {count} records added")
+        logger.info(f"  Pending evaluations: {count} records added")
         return count
 
 
@@ -359,7 +359,7 @@ def save_signal_snapshot(
             ),
         )
     except Exception as e:
-        print(f"  ⚠️ signal_snapshot save failed: {e}")
+        logger.warning(f"  ⚠️ signal_snapshot save failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════

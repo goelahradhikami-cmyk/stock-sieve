@@ -405,7 +405,7 @@ class EvaluationEngine:
                     self.save_to_db(result)
                     results.append(result)
             except Exception as e:
-                print(f"  ⚠️ Evaluation failed for decision {rid}: {e}")
+                logger.warning(f"  ⚠️ Evaluation failed for decision {rid}: {e}")
         return results
 
     def run_pending(self):

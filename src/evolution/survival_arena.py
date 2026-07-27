@@ -73,20 +73,20 @@ class DoctrineSurvivalArena:
         if doctrines is None:
             doctrines = [self.engine.classify(iv) for iv in self._base_identities()]
 
-        print("=== Doctrine Survival Arena ===")
-        print(f"Dates: {len(dates)}, Doctrines: {len(doctrines)}, Horizon: T+{self.HORIZON}")
-        print()
+        logger.info("=== Doctrine Survival Arena ===")
+        logger.info(f"Dates: {len(dates)}, Doctrines: {len(doctrines)}, Horizon: T+{self.HORIZON}")
+        logger.info("")
 
         for trade_date in dates:
             self._run_single_date(trade_date, doctrines)
 
         # After all dates: update regime statistics + compute fitness
-        print("\n=== Computing fitness ===")
+        logger.info("\n=== Computing fitness ===")
         for d in doctrines:
             n = self.fitness_calc.update_regime_statistics(d.doctrine_id)
             result = self.fitness_calc.calculate_doctrine_fitness(d.doctrine_id)
             if result:
-                print(
+                logger.info(
                     f"  {d.doctrine_id:35s}: fitness={result.fitness:.3f} "
                     f"residual={result.residual_alpha_normalized:.2f} "
                     f"regime={result.regime_adaptation:.2f} "
@@ -108,7 +108,9 @@ class DoctrineSurvivalArena:
         # 3. Benchmark return
         bench_ret = self.idx.get_return("000300", trade_date, eval_date)
 
-        print(f"--- {trade_date} -> {eval_date} (regime={regime}, 沪深300={bench_ret:+.2%}) ---")
+        logger.info(
+            f"--- {trade_date} -> {eval_date} (regime={regime}, 沪深300={bench_ret:+.2%}) ---"
+        )
 
         for doctrine in doctrines:
             self._backtest_doctrine(doctrine, trade_date, eval_date, regime, bench_ret)
@@ -229,7 +231,7 @@ class DoctrineSurvivalArena:
         finally:
             conn.close()
 
-        print(
+        logger.info(
             f"  {doctrine.doctrine_id:35s}: total={portfolio_return:+.2%} "
             f"beta={attr.market_beta:+.2%} sector={attr.sector_return:+.2%} "
             f"residual={attr.residual_alpha:+.2%} quality={alpha_quality:+.4f}"

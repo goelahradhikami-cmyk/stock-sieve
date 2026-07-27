@@ -64,7 +64,7 @@ class IndexDataProvider:
                 n = self._sync_eastmoney_history(index_code, start_date, end_date)
             if n == 0:
                 # Last resort: today's Tencent snapshot only
-                print(f"  {name}({index_code}): all history sources failed, using Tencent snapshot")
+                logger.info(f"  {name}({index_code}): all history sources failed, using Tencent snapshot")
                 self._sync_tencent_snapshot(index_code)
             return n
 
@@ -85,7 +85,7 @@ class IndexDataProvider:
             VALUES (?,?,?,?,?,?,?,?,?)
         """, records)
         self.db.commit()
-        print(f"  {name}({index_code}): {len(records)} bars synced")
+        logger.info(f"  {name}({index_code}): {len(records)} bars synced")
         return len(records)
 
     def _sync_tencent_history(self, index_code: str, start_date: str,
@@ -115,7 +115,7 @@ class IndexDataProvider:
             )
             data = r.json()
         except Exception as e:
-            print(f"  {name}({index_code}): Tencent history request failed: {e}")
+            logger.info(f"  {name}({index_code}): Tencent history request failed: {e}")
             return 0
 
         stock_data = data.get("data", {}).get(sym, {})
@@ -123,7 +123,7 @@ class IndexDataProvider:
         # adjustment, so prefer 'day'.
         klines = stock_data.get("day") or stock_data.get("qfqday") or []
         if not klines:
-            print(f"  {name}({index_code}): Tencent returned no bars")
+            logger.info(f"  {name}({index_code}): Tencent returned no bars")
             return 0
 
         # Each kline: [date, open, close, high, low, volume, ...]
@@ -149,7 +149,7 @@ class IndexDataProvider:
             VALUES (?,?,?,?,?,?,?,?,?)
         """, records)
         self.db.commit()
-        print(f"  {name}({index_code}): {len(records)} bars synced (Tencent)")
+        logger.info(f"  {name}({index_code}): {len(records)} bars synced (Tencent)")
         return len(records)
 
     def _sync_eastmoney_history(self, index_code: str, start_date: str,
@@ -191,11 +191,11 @@ class IndexDataProvider:
             data = r.json()
             klines = data.get("data", {}).get("klines", []) if data.get("data") else []
         except Exception as e:
-            print(f"  {name}({index_code}): Eastmoney request failed: {e}")
+            logger.info(f"  {name}({index_code}): Eastmoney request failed: {e}")
             return 0
 
         if not klines:
-            print(f"  {name}({index_code}): Eastmoney returned no bars")
+            logger.info(f"  {name}({index_code}): Eastmoney returned no bars")
             return 0
 
         # Each kline: "date,open,close,high,low,vol,amount" (fqt=0 -> no adj field
@@ -223,7 +223,7 @@ class IndexDataProvider:
             VALUES (?,?,?,?,?,?,?,?,?)
         """, records)
         self.db.commit()
-        print(f"  {name}({index_code}): {len(records)} bars synced (Eastmoney)")
+        logger.info(f"  {name}({index_code}): {len(records)} bars synced (Eastmoney)")
         return len(records)
 
     def _sync_tencent_snapshot(self, index_code: str):
@@ -243,9 +243,9 @@ class IndexDataProvider:
                     VALUES (?, ?, ?, ?)
                 """, (index_code, today, price, price))
                 self.db.commit()
-                print(f"    Snapshot: {price:.2f} @ {today}")
+                logger.info(f"    Snapshot: {price:.2f} @ {today}")
         except Exception as e:
-            print(f"    ⚠️ Tencent snapshot failed: {e}")
+            logger.warning(f"    ⚠️ Tencent snapshot failed: {e}")
 
     def sync_all(self, start_date: str = '2020-01-01', end_date: str = None):
         """Sync all preset indices."""

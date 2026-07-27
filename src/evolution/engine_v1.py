@@ -257,7 +257,7 @@ class EvolutionEngineV1:
     # ═══════════════════════════════════════════════════════
 
     def run_cycle(self, pending_mutations=None) -> dict:
-        print(f"=== Evolution Cycle {self.cycle_id} (Dry-Run: {self.dry_run}) ===")
+        logger.info(f"=== Evolution Cycle {self.cycle_id} (Dry-Run: {self.dry_run}) ===")
 
         # 3.1 Compute fitness for all active agents
         # Cold-start handling: newly evolved/founded agents with insufficient
@@ -295,7 +295,7 @@ class EvolutionEngineV1:
 
         total_active = len(fitness_list) + len(cold_start)
         if total_active < 3:
-            print(f"  Insufficient agents ({total_active}), skipping cycle")
+            logger.info(f"  Insufficient agents ({total_active}), skipping cycle")
             self._log_event("CYCLE_SKIPPED", description=f"Only {total_active} active agents total")
             return {"cycle_id": self.cycle_id, "status": "skipped", "reason": "insufficient_agents"}
 
@@ -327,7 +327,7 @@ class EvolutionEngineV1:
                     f"{len(cold_start)} in cold-start grace"
                 ),
             )
-            print(
+            logger.info(
                 f"  Warmup: {len(fitness_list)} scored | {len(cold_start)} cold-start grace | no elimination"
             )
 
@@ -345,7 +345,7 @@ class EvolutionEngineV1:
         eliminated = [a for a in bottom if a not in survivors]
         elites.extend(survivors)
 
-        print(
+        logger.info(
             f"  Elites: {len(elites)} | Eliminated: {len(eliminated)} | Diversity-saved: {len(survivors)}"
         )
 
@@ -399,7 +399,7 @@ class EvolutionEngineV1:
                 )
 
         self.db.commit()
-        print(f"  New agents: {len(activated)} activated")
+        logger.info(f"  New agents: {len(activated)} activated")
 
         return {
             "cycle_id": self.cycle_id,

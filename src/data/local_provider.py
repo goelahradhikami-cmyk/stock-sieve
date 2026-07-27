@@ -33,7 +33,7 @@ class LocalDataProvider:
         self._cache = {}
         self.tdx_root = self._resolve_tdx_root()
         if self.tdx_root is None:
-            print("  ⚠️ No TDX vipdoc directory found. Set STOCK_SIEVE_TDX_ROOT "
+            logger.warning("  ⚠️ No TDX vipdoc directory found. Set STOCK_SIEVE_TDX_ROOT "
                   "or STOCK_SIEVE_TDX_VIPDOC, or ensure one of the default paths exists.")
 
     def _resolve_tdx_root(self) -> Optional[str]:

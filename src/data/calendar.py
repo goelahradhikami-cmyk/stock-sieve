@@ -98,7 +98,7 @@ class TradingCalendar:
                     records
                 )
                 self.db.commit()
-                print(f"✅ Trading calendar synced: {len(records)} days")
+                logger.info(f"✅ Trading calendar synced: {len(records)} days")
         except ImportError:
             logger.warning("calendar: akshare not installed. Run: pip install akshare")
         except Exception as e:
@@ -141,4 +141,4 @@ class TradingCalendar:
             records
         )
         self.db.commit()
-        print(f"✅ Seeded {len(records)} trading days (2020-2027, weekdays only)")
+        logger.info(f"✅ Seeded {len(records)} trading days (2020-2027, weekdays only)")

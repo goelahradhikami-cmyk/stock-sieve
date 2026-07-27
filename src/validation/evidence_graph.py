@@ -85,7 +85,7 @@ class EvidenceGraph:
 
             # Parse condition string like ">0.20" → direction="gt", expected=0.20
             direction = "gt"
-            expected = 0
+            expected: str | float = 0
             if condition.startswith(">="):
                 direction, expected = "gte", condition[2:]
             elif condition.startswith("<="):

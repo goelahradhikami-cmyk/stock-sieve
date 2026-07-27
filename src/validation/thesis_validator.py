@@ -101,7 +101,7 @@ class ThesisValidator:
     REDUCED_WEIGHT_THRESHOLD = 70
     COUNTER_RISK_HIGH = 50
 
-    def __init__(self, db, rule_registry: RuleRegistry = None):
+    def __init__(self, db, rule_registry: RuleRegistry | None = None):
         self.db = db
         self.rule_registry = rule_registry or RuleRegistry(db)
         self.evidence_checker = EvidenceChecker()

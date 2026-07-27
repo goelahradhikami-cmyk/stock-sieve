@@ -25,10 +25,10 @@ class ReportExporter:
 
     def export_committee_report(
         self,
-        start_date: str = None,
-        end_date: str = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         format: str = "md",
-        output_path: str = None,
+        output_path: str | None = None,
     ) -> str:
         """Export committee decisions as Markdown report.
 
@@ -72,7 +72,7 @@ class ReportExporter:
         return self._export_committee_md(decisions, start_date, end_date, output_path)
 
     def _export_committee_md(
-        self, decisions: list[dict], start_date: str, end_date: str, output_path: str = None
+        self, decisions: list[dict], start_date: str, end_date: str, output_path: str | None = None
     ) -> str:
         """Generate Markdown committee report."""
         lines = [
@@ -177,7 +177,7 @@ class ReportExporter:
         return path
 
     def _export_committee_xlsx(
-        self, decisions: list[dict], start_date: str, end_date: str, output_path: str = None
+        self, decisions: list[dict], start_date: str, end_date: str, output_path: str | None = None
     ) -> str:
         """Export committee report as Excel."""
         try:
@@ -226,7 +226,7 @@ class ReportExporter:
     # ═══════════════════════════════════════════════════════
 
     def export_performance_report(
-        self, period: str = "quarterly", format: str = "xlsx", output_path: str = None
+        self, period: str = "quarterly", format: str = "xlsx", output_path: str | None = None
     ) -> str:
         """Export agent performance report."""
         try:
@@ -278,7 +278,7 @@ class ReportExporter:
     # ═══════════════════════════════════════════════════════
 
     def export_thesis_trace(
-        self, stock_code: str, format: str = "md", output_path: str = None
+        self, stock_code: str, format: str = "md", output_path: str | None = None
     ) -> str:
         """Export full decision chain for a stock as Markdown."""
         conn = self.db.connect()
@@ -357,7 +357,7 @@ class ReportExporter:
     # Evolution Log
     # ═══════════════════════════════════════════════════════
 
-    def export_evolution_log(self, format: str = "xlsx", output_path: str = None) -> str:
+    def export_evolution_log(self, format: str = "xlsx", output_path: str | None = None) -> str:
         """Export evolution history as Excel."""
         try:
             import pandas as pd

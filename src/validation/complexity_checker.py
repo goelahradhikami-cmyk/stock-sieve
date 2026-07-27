@@ -13,6 +13,8 @@ Penalty 0-10. When >7, additional penalties applied in overall score
 and confidence adjustment.
 """
 
+from typing import Any
+
 
 class ComplexityChecker:
     """Evaluates thesis structural complexity to prevent narrative overfitting."""
@@ -28,7 +30,7 @@ class ComplexityChecker:
         Returns:
             (penalty 0-10, detail dict)
         """
-        details = {}
+        details: dict[str, Any] = {}
 
         # ── 1. Count claims ──────────────────────────────
         claims_score = self._count_claims(thesis_claim)

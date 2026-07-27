@@ -100,17 +100,17 @@ class EvidenceChecker:
 
             # Spaced comparisons with metric prefix (e.g., "roe > 0.20")
             if " >= " in condition:
-                _, threshold = condition.split(" >= ")
-                return float(actual) >= float(threshold.strip())
+                _, threshold_s = condition.split(" >= ")
+                return float(actual) >= float(threshold_s.strip())
             if " <= " in condition:
-                _, threshold = condition.split(" <= ")
-                return float(actual) <= float(threshold.strip())
+                _, threshold_s = condition.split(" <= ")
+                return float(actual) <= float(threshold_s.strip())
             if " > " in condition:
-                _, threshold = condition.split(" > ")
-                return float(actual) > float(threshold.strip())
+                _, threshold_s = condition.split(" > ")
+                return float(actual) > float(threshold_s.strip())
             if " < " in condition:
-                _, threshold = condition.split(" < ")
-                return float(actual) < float(threshold.strip())
+                _, threshold_s = condition.split(" < ")
+                return float(actual) < float(threshold_s.strip())
 
             # Handle AND
             if " AND " in condition:

@@ -18,7 +18,7 @@ class CounterEvidenceChecker:
         self.registry = rule_registry
 
     def assess(
-        self, factor_snapshot: dict, thesis_pattern: str, agent_id: str = None
+        self, factor_snapshot: dict, thesis_pattern: str, agent_id: str | None = None
     ) -> tuple[float, list[dict]]:
         """Assess counter-evidence risk.
 

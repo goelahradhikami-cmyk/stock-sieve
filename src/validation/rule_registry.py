@@ -64,7 +64,7 @@ class RuleRegistry:
     def __init__(self, db):
         self.db = db
 
-    def get_validated_rules(self, agent_id: str = None) -> list[dict]:
+    def get_validated_rules(self, agent_id: str | None = None) -> list[dict]:
         """Return all active rules (static + validated dynamic).
 
         Static rules are always included.

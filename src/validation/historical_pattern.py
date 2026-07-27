@@ -22,7 +22,7 @@ class HistoricalPatternAnalyzer:
     def __init__(self, db):
         self.db = db
 
-    def analyze(self, thesis_pattern: str, agent_id: str = None) -> tuple[float, dict]:
+    def analyze(self, thesis_pattern: str, agent_id: str | None = None) -> tuple[float, dict]:
         """Analyze historical performance of a thesis pattern.
 
         Returns:

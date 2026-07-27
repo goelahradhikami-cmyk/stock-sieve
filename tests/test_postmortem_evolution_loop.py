@@ -35,10 +35,9 @@ class TestPostMortemPersistence(unittest.TestCase):
         with contextlib.suppress(Exception):
             self.pm.db.close()
         if os.path.exists(self.db_path):
-            try:
+            with contextlib.suppress(PermissionError):
                 os.remove(self.db_path)
-            except PermissionError:
-                pass  # connection/AV may still hold the file on Windows
+            # connection/AV may still hold the file on Windows
 
     def _make_result(self, category, subtype, mutations):
         return PostMortemResult(

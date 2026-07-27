@@ -37,10 +37,7 @@ def residualizer(tmp_path):
 def seed_factors(db, date, qualities):
     """Seed stocks q0..qN with varying quality; other factors fixed at 50."""
     conn = sqlite3.connect(db)
-    rows = [
-        (f"q{i:02d}", date, q, 50.0, 50.0, 50.0, 50.0, 50.0)
-        for i, q in enumerate(qualities)
-    ]
+    rows = [(f"q{i:02d}", date, q, 50.0, 50.0, 50.0, 50.0, 50.0) for i, q in enumerate(qualities)]
     conn.executemany("INSERT INTO stock_factor_snapshot VALUES (?,?,?,?,?,?,?,?)", rows)
     conn.commit()
     conn.close()
@@ -49,7 +46,12 @@ def seed_factors(db, date, qualities):
 class TestConstants:
     def test_factor_families(self):
         assert ThesisResidualizer.FACTOR_FAMILIES == [
-            "quality", "value", "growth", "momentum", "risk", "sentiment",
+            "quality",
+            "value",
+            "growth",
+            "momentum",
+            "risk",
+            "sentiment",
         ]
 
 
@@ -71,10 +73,7 @@ class TestOrthogonalizeUniverse:
         qualities = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
         seed_factors(db, "2023-01-31", qualities)
         # thesis exactly = 2 * (quality/100) -> OLS explains everything
-        signals = {
-            f"q{i:02d}": {"thesis_score": 2 * q / 100.0}
-            for i, q in enumerate(qualities)
-        }
+        signals = {f"q{i:02d}": {"thesis_score": 2 * q / 100.0} for i, q in enumerate(qualities)}
         out = rz.orthogonalize_universe("2023-01-31", signals)
         assert len(out) == 10
         for v in out.values():

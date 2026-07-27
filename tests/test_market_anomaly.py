@@ -276,11 +276,19 @@ class TestDetectAnomalyComposite:
     def test_full_composite_math(self, detector):
         # drawdown: (8-10)/10 = -0.2 ; closes length >= 10
         closes = [10.0] * 9 + [8.0]
-        fin_now = {"roe": 0.20, "debt_to_equity": 1.5, "pe_ttm": 10.0, "net_margin": 0.12, "fcf": 110.0}
+        fin_now = {
+            "roe": 0.20,
+            "debt_to_equity": 1.5,
+            "pe_ttm": 10.0,
+            "net_margin": 0.12,
+            "fcf": 110.0,
+        }
         fin_past = {"pe_ttm": 20.0, "net_margin": 0.10, "fcf": 100.0}
         det = detector
         det.local = FakeLocal(closes)
-        det.akshare = FakeAkshare({"2023-01-31": fin_now, "2022-02-01": fin_past, "2022-01-31": fin_past})
+        det.akshare = FakeAkshare(
+            {"2023-01-31": fin_now, "2022-02-01": fin_past, "2022-01-31": fin_past}
+        )
 
         obj = det._detect_anomaly("600000", "2023-01-31")
         assert obj is not None
@@ -357,9 +365,7 @@ def seeded_detector(tmp_path):
 class TestRoeStability:
     def insert(self, cache_db, rows):
         conn = sqlite3.connect(cache_db)
-        conn.executemany(
-            "INSERT INTO akshare_financials VALUES (?,?,?,?)", rows
-        )
+        conn.executemany("INSERT INTO akshare_financials VALUES (?,?,?,?)", rows)
         conn.commit()
         conn.close()
 

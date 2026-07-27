@@ -81,8 +81,8 @@ def _seed_agents(db, n_eval=10, n_fresh=10):
 
 # ── 1. load_active_agents budget ────────────────────────
 def test_load_active_agents_budget_reserves_exploration():
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         db = FakeEvalDB(tmp.name)
         _seed_agents(db)
@@ -105,8 +105,8 @@ def test_load_active_agents_budget_reserves_exploration():
 
 
 def test_load_active_agents_falls_back_to_yaml_when_empty():
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         db = FakeEvalDB(tmp.name)  # no rows seeded
         result = load_active_agents(db)
@@ -118,8 +118,8 @@ def test_load_active_agents_falls_back_to_yaml_when_empty():
 
 # ── 2. KillSwitch gate ──────────────────────────────────
 def test_killswitch_can_evolve_normal_and_emergency():
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         ks = KillSwitch(db_path=tmp.name)
         assert ks.current_state() == "NORMAL"

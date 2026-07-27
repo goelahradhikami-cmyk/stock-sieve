@@ -3,7 +3,14 @@
 
 target-version = "py310"
 line-length = 100
-extend-exclude = ["data", ".playwright-cli", ".workbuddy"]
+extend-exclude = [
+    "data",
+    ".playwright-cli",
+    ".workbuddy",
+    # Archived one-off research scripts (2026-07-27) — historical artifacts,
+    # not maintained code; see scripts/archive/README.md
+    "scripts/archive",
+]
 
 [lint]
 # E/W pycodestyle, F pyflakes, I isort, UP pyupgrade,

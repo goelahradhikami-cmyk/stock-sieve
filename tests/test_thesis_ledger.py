@@ -63,55 +63,66 @@ class TestKillCriteria:
         assert r.killed and r.kill_doctrine == "quality_compounder"
         assert "quality_deterioration" in r.kill_reason
         # boundaries: roe < 0.05, margin < -0.05, debt > 2.0 (all strict)
-        assert KillCriteria.check(
-            make_anomaly(roe=0.05, margin_change=-0.06, debt_ratio=2.1)
-        ).killed is False
-        assert KillCriteria.check(
-            make_anomaly(roe=0.04, margin_change=-0.05, debt_ratio=2.1)
-        ).killed is False
-        assert KillCriteria.check(
-            make_anomaly(roe=0.04, margin_change=-0.06, debt_ratio=2.0)
-        ).killed is False
+        assert (
+            KillCriteria.check(make_anomaly(roe=0.05, margin_change=-0.06, debt_ratio=2.1)).killed
+            is False
+        )
+        assert (
+            KillCriteria.check(make_anomaly(roe=0.04, margin_change=-0.05, debt_ratio=2.1)).killed
+            is False
+        )
+        assert (
+            KillCriteria.check(make_anomaly(roe=0.04, margin_change=-0.06, debt_ratio=2.0)).killed
+            is False
+        )
 
     def test_kill2_value_trap(self):
         a = make_anomaly(pe_compression=0.95, margin_change=-0.04)
         r = KillCriteria.check(a)
         assert r.killed and r.kill_doctrine == "value_purist"
-        assert KillCriteria.check(
-            make_anomaly(pe_compression=0.9, margin_change=-0.04)
-        ).killed is False  # > 0.9 strict
+        assert (
+            KillCriteria.check(make_anomaly(pe_compression=0.9, margin_change=-0.04)).killed
+            is False
+        )  # > 0.9 strict
 
     def test_kill3_falling_knife(self):
         # roe=0.10 keeps kill1 (roe<0.05) and kill4 (roe>0.10 strict) out of play
         a = make_anomaly(price_drawdown_12m=-0.31, margin_change=-0.11, debt_ratio=2.6, roe=0.10)
         r = KillCriteria.check(a)
         assert r.killed and r.kill_doctrine == "contrarian"
-        assert KillCriteria.check(
-            make_anomaly(price_drawdown_12m=-0.30, margin_change=-0.11, debt_ratio=2.6, roe=0.10)
-        ).killed is False  # < -0.30 strict
+        assert (
+            KillCriteria.check(
+                make_anomaly(
+                    price_drawdown_12m=-0.30, margin_change=-0.11, debt_ratio=2.6, roe=0.10
+                )
+            ).killed
+            is False
+        )  # < -0.30 strict
 
     def test_kill4_cashflow_divergence(self):
         a = make_anomaly(roe=0.15, cashflow_trend=-0.35)
         r = KillCriteria.check(a)
         assert r.killed and r.kill_doctrine == "quality_compounder"
         assert "cashflow_divergence" in r.kill_reason
-        assert KillCriteria.check(
-            make_anomaly(roe=0.10, cashflow_trend=-0.35)
-        ).killed is False  # roe > 0.10 strict
+        assert (
+            KillCriteria.check(make_anomaly(roe=0.10, cashflow_trend=-0.35)).killed is False
+        )  # roe > 0.10 strict
 
     def test_none_fields_skip_kills(self):
         # margin/debt/pe/cashflow None -> kills 1-4 all guarded off
         a = make_anomaly(
-            roe=0.01, margin_change=None, debt_ratio=None,
-            pe_compression=None, cashflow_trend=None, price_drawdown_12m=-0.9,
+            roe=0.01,
+            margin_change=None,
+            debt_ratio=None,
+            pe_compression=None,
+            cashflow_trend=None,
+            price_drawdown_12m=-0.9,
         )
         assert KillCriteria.check(a).killed is False
 
     def test_order_priority(self):
         # matches kill1 AND kill3 -> kill1 wins (checked first)
-        a = make_anomaly(
-            roe=0.04, margin_change=-0.11, debt_ratio=2.6, price_drawdown_12m=-0.31
-        )
+        a = make_anomaly(roe=0.04, margin_change=-0.11, debt_ratio=2.6, price_drawdown_12m=-0.31)
         r = KillCriteria.check(a)
         assert "quality_deterioration" in r.kill_reason
 
@@ -122,13 +133,19 @@ class TestRecordThesis:
         from src.thesis.doctrine_underwriting import UnderwritingResult
 
         anomaly = make_anomaly(
-            price_drawdown_12m=-0.3, roe=0.12, margin_change=0.02,
-            market_pessimism=0.7, business_strength=0.6, divergence_score=0.3,
+            price_drawdown_12m=-0.3,
+            roe=0.12,
+            margin_change=0.02,
+            market_pessimism=0.7,
+            business_strength=0.6,
+            divergence_score=0.3,
             divergence_type="cyclical_misjudgment",
         )
         state = MarketState(date="2023-01-31", recovery_probability=0.65, state_label="recovering")
         uw = {
-            "quality_compounder": UnderwritingResult("quality_compounder", "PASS", 0.75, [], [], {}),
+            "quality_compounder": UnderwritingResult(
+                "quality_compounder", "PASS", 0.75, [], [], {}
+            ),
         }
         kill = KillCriteria.check(anomaly)
         tid = lg.record_thesis(anomaly, state, uw, kill, "BUY", eval_date="2023-02-28")
@@ -224,15 +241,18 @@ class TestGetStats:
         from src.thesis.doctrine_underwriting import UnderwritingResult
 
         state = MarketState(date="2023-01-31")
-        uw = {"quality_compounder": UnderwritingResult("quality_compounder", "PASS", 1.0, [], [], {})}
+        uw = {
+            "quality_compounder": UnderwritingResult("quality_compounder", "PASS", 1.0, [], [], {})
+        }
         # two BUY theses: one validated, one failed with type
         for i, ret in [(0, 0.10), (1, -0.05)]:
             a = make_anomaly(code=f"60000{i}", trade_date="2023-01-31")
             tid = lg.record_thesis(a, state, uw, KillCriteria.check(a), "BUY")
             lg.record_outcome(tid, ret, failure_type="value_trap" if ret < 0 else None)
         # one killed REJECT
-        a3 = make_anomaly(code="600002", trade_date="2023-01-31",
-                          roe=0.04, margin_change=-0.06, debt_ratio=2.1)
+        a3 = make_anomaly(
+            code="600002", trade_date="2023-01-31", roe=0.04, margin_change=-0.06, debt_ratio=2.1
+        )
         lg.record_thesis(a3, state, {}, KillCriteria.check(a3), "REJECT")
         s = lg.get_stats()
         assert s["total"] == 3

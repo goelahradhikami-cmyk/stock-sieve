@@ -85,22 +85,28 @@ class TestConstants:
 class TestLoadVintagePeriods:
     def test_vintage_gate_excludes_future(self, calc):
         c, db = calc
-        insert_fin(db, [
-            fin("600519", "2024-06-30", "2024-08-30", 20.0, 10.0),  # after as_of
-            fin("600519", "2024-03-31", "2024-04-30", 15.0, 8.0),
-        ])
+        insert_fin(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-30", 20.0, 10.0),  # after as_of
+                fin("600519", "2024-03-31", "2024-04-30", 15.0, 8.0),
+            ],
+        )
         periods = c._load_vintage_periods("600519", "2024-08-29")
         assert len(periods) == 1
         assert periods[0]["report_date"] == "2024-03-31"
 
     def test_90d_fallback_when_available_date_null(self, calc):
         c, db = calc
-        insert_fin(db, [
-            # report_date + 90d = 2024-09-28 > as_of -> excluded
-            fin("600519", "2024-06-30", None, 20.0, 10.0),
-            # report_date + 90d = 2024-06-29 <= as_of -> included
-            fin("600519", "2024-03-31", None, 15.0, 8.0),
-        ])
+        insert_fin(
+            db,
+            [
+                # report_date + 90d = 2024-09-28 > as_of -> excluded
+                fin("600519", "2024-06-30", None, 20.0, 10.0),
+                # report_date + 90d = 2024-06-29 <= as_of -> included
+                fin("600519", "2024-03-31", None, 15.0, 8.0),
+            ],
+        )
         periods = c._load_vintage_periods("600519", "2024-08-29")
         assert len(periods) == 1
         assert periods[0]["report_date"] == "2024-03-31"
@@ -114,11 +120,14 @@ class TestLoadVintagePeriods:
 
     def test_operating_margin_computation(self, calc):
         c, db = calc
-        insert_fin(db, [
-            fin("600519", "2024-06-30", "2024-08-01", 20.0, 10.0, rev=100.0, op=10.0),
-            fin("600519", "2024-03-31", "2024-04-30", 20.0, 10.0, rev=0.0, op=10.0),
-            fin("600519", "2023-12-31", "2024-01-30", 20.0, 10.0, rev=None, op=10.0),
-        ])
+        insert_fin(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-01", 20.0, 10.0, rev=100.0, op=10.0),
+                fin("600519", "2024-03-31", "2024-04-30", 20.0, 10.0, rev=0.0, op=10.0),
+                fin("600519", "2023-12-31", "2024-01-30", 20.0, 10.0, rev=None, op=10.0),
+            ],
+        )
         periods = c._load_vintage_periods("600519", "2024-08-29")
         assert periods[0]["operating_margin"] == pytest.approx(0.1)
         assert periods[1]["operating_margin"] is None  # rev == 0
@@ -126,15 +135,20 @@ class TestLoadVintagePeriods:
 
     def test_order_desc_limit(self, calc):
         c, db = calc
-        insert_fin(db, [
-            fin("600519", "2024-06-30", "2024-08-01", 1.0, 1.0),
-            fin("600519", "2024-03-31", "2024-04-30", 2.0, 2.0),
-            fin("600519", "2023-12-31", "2024-01-30", 3.0, 3.0),
-            fin("600519", "2023-09-30", "2023-10-30", 4.0, 4.0),
-        ])
+        insert_fin(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-01", 1.0, 1.0),
+                fin("600519", "2024-03-31", "2024-04-30", 2.0, 2.0),
+                fin("600519", "2023-12-31", "2024-01-30", 3.0, 3.0),
+                fin("600519", "2023-09-30", "2023-10-30", 4.0, 4.0),
+            ],
+        )
         periods = c._load_vintage_periods("600519", "2024-08-29", limit=3)
         assert [p["report_date"] for p in periods] == [
-            "2024-06-30", "2024-03-31", "2023-12-31",
+            "2024-06-30",
+            "2024-03-31",
+            "2023-12-31",
         ]
 
 
@@ -341,8 +355,7 @@ class TestMarginNormalization:
         for i in range(4):
             code = f"60000{i}"
             insert_sm(db, [(code, code, "白酒", None, None)])
-            insert_fin(db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0,
-                                rev=100.0, op=10.0)])
+            insert_fin(db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0, rev=100.0, op=10.0)])
         z = c._industry_margin_zscore("600519", "白酒", "2024-06-30", 0.30)
         assert z is None
 
@@ -353,8 +366,9 @@ class TestMarginNormalization:
         for i, m in enumerate(peer_margins):
             code = f"60000{i}"
             insert_sm(db, [(code, code, "白酒", None, None)])
-            insert_fin(db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0,
-                                rev=100.0, op=m * 100.0)])
+            insert_fin(
+                db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0, rev=100.0, op=m * 100.0)]
+            )
         z = c._industry_margin_zscore("600519", "白酒", "2024-06-30", 0.30)
         peer_std = max(float(np.std(peer_margins, ddof=0)), MARGIN_STD_FLOOR)
         assert z == pytest.approx((0.30 - 0.10) / peer_std)
@@ -372,8 +386,7 @@ class TestMarginNormalization:
         for i in range(5):
             code = f"60000{i}"
             insert_sm(db, [(code, code, "白酒", None, None)])
-            insert_fin(db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0,
-                                rev=100.0, op=10.0)])
+            insert_fin(db, [fin(code, "2024-06-30", "2024-08-01", 1.0, 1.0, rev=100.0, op=10.0)])
         r = res()
         r.industry = "白酒"
         r.report_date = "2024-06-30"
@@ -443,11 +456,14 @@ class TestComputeEndToEnd:
     def test_full_pass(self, calc):
         c, db = calc
         # 3 periods: earnings accelerating gently, aligned revenue, flat margins
-        insert_fin(db, [
-            fin("600519", "2024-06-30", "2024-08-01", 25.0, 20.0, rev=100.0, op=10.0),
-            fin("600519", "2024-03-31", "2024-04-30", 20.0, 15.0, rev=100.0, op=10.0),
-            fin("600519", "2023-12-31", "2024-01-30", 18.0, 14.0, rev=100.0, op=10.0),
-        ])
+        insert_fin(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-01", 25.0, 20.0, rev=100.0, op=10.0),
+                fin("600519", "2024-03-31", "2024-04-30", 20.0, 15.0, rev=100.0, op=10.0),
+                fin("600519", "2023-12-31", "2024-01-30", 18.0, 14.0, rev=100.0, op=10.0),
+            ],
+        )
         insert_sm(db, [("600519", "600519", "白酒", None, None)])
         r = c.compute("600519", "2024-08-29")
         assert r.industry == "白酒"
@@ -460,11 +476,14 @@ class TestComputeEndToEnd:
 
     def test_code_zfilled(self, calc):
         c, db = calc
-        insert_fin(db, [
-            fin("000001", "2024-06-30", "2024-08-01", 25.0, 20.0),
-            fin("000001", "2024-03-31", "2024-04-30", 20.0, 15.0),
-            fin("000001", "2023-12-31", "2024-01-30", 18.0, 14.0),
-        ])
+        insert_fin(
+            db,
+            [
+                fin("000001", "2024-06-30", "2024-08-01", 25.0, 20.0),
+                fin("000001", "2024-03-31", "2024-04-30", 20.0, 15.0),
+                fin("000001", "2023-12-31", "2024-01-30", 18.0, 14.0),
+            ],
+        )
         r = c.compute("1", "2024-08-29")  # zfill("1") -> "000001"
         assert r.security_id == "000001"
         assert r.sustainability_pass is not None or r.failure_reason == "INSUFFICIENT_DATA"

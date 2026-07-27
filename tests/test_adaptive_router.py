@@ -88,10 +88,13 @@ class TestAllocate:
 
     def test_centered_softmax_exact(self, tmp_path):
         r = make_router(tmp_path)
-        r.fme = FakeFME(climate({"value": 0.06, "quality": 0.02,
-                                 "growth": -0.02, "momentum": -0.03}))
-        ds = [doctrine("value_purist", {"value": 0.35, "quality": 0.35}),
-              doctrine("growth_hunter", {"growth": 0.45, "momentum": 0.15})]
+        r.fme = FakeFME(
+            climate({"value": 0.06, "quality": 0.02, "growth": -0.02, "momentum": -0.03})
+        )
+        ds = [
+            doctrine("value_purist", {"value": 0.35, "quality": 0.35}),
+            doctrine("growth_hunter", {"growth": 0.45, "momentum": 0.15}),
+        ]
         decision = r.allocate(ds, "2026-05-27")
         confs = np.array([0.028, -0.0135])
         centered = confs - confs.mean()
@@ -135,19 +138,16 @@ class TestBuildPortfolio:
     def _setup(self, tmp_path, monkeypatch, picks_by_bias, allocations):
         import src.thesis.archive.adaptive_router as mod
 
-        monkeypatch.setattr(
-            mod, "FactorSnapshotBuilder", lambda: FakeBuilder(picks_by_bias)
-        )
+        monkeypatch.setattr(mod, "FactorSnapshotBuilder", lambda: FakeBuilder(picks_by_bias))
         r = make_router(tmp_path)
-        decision = SimpleNamespace(
-            trade_date="2026-05-27", doctrine_allocations=allocations
-        )
+        decision = SimpleNamespace(trade_date="2026-05-27", doctrine_allocations=allocations)
         return r, decision
 
     def test_skip_alloc_below_1pct(self, tmp_path, monkeypatch):
         bias = {"value": 0.5}
         r, decision = self._setup(
-            tmp_path, monkeypatch,
+            tmp_path,
+            monkeypatch,
             {tuple(sorted(bias.items())): [{"security_id": "AAA"}]},
             {"d1": 0.009},
         )
@@ -157,9 +157,9 @@ class TestBuildPortfolio:
     def test_equal_weight_within_doctrine(self, tmp_path, monkeypatch):
         bias = {"value": 0.5}
         r, decision = self._setup(
-            tmp_path, monkeypatch,
-            {tuple(sorted(bias.items())): [{"security_id": "AAA"},
-                                           {"security_id": "BBB"}]},
+            tmp_path,
+            monkeypatch,
+            {tuple(sorted(bias.items())): [{"security_id": "AAA"}, {"security_id": "BBB"}]},
             {"d1": 1.0},
         )
         out = r.build_portfolio([doctrine("d1", bias)], decision)
@@ -169,17 +169,15 @@ class TestBuildPortfolio:
         bias_v = {"value": 0.5}
         bias_g = {"growth": 0.5}
         r, decision = self._setup(
-            tmp_path, monkeypatch,
+            tmp_path,
+            monkeypatch,
             {
                 tuple(sorted(bias_v.items())): [{"security_id": "AAA"}],
-                tuple(sorted(bias_g.items())): [{"security_id": "AAA"},
-                                                {"security_id": "BBB"}],
+                tuple(sorted(bias_g.items())): [{"security_id": "AAA"}, {"security_id": "BBB"}],
             },
             {"dv": 0.6, "dg": 0.4},
         )
-        out = r.build_portfolio(
-            [doctrine("dv", bias_v), doctrine("dg", bias_g)], decision
-        )
+        out = r.build_portfolio([doctrine("dv", bias_v), doctrine("dg", bias_g)], decision)
         # raw: AAA = 0.6 + 0.4/2 = 0.8, BBB = 0.2; total 1.0 already
         assert out["AAA"] == pytest.approx(0.8)
         assert out["BBB"] == pytest.approx(0.2)

@@ -106,9 +106,7 @@ def gen(tmp_path):
     conn.close()
     cache_db.touch()
 
-    g = CandidateGenerator(
-        cache_db=str(cache_db), eval_db=str(eval_db), shadow_db=str(shadow_db)
-    )
+    g = CandidateGenerator(cache_db=str(cache_db), eval_db=str(eval_db), shadow_db=str(shadow_db))
     g.frm_scorer = FakeFRM()
     g.rs_scorer = FakeRS()
     g.ege_engine = FakeEGE()
@@ -152,13 +150,16 @@ class TestConstants:
 class TestSnapshotUniverse:
     def test_distinct_and_nonnull(self, gen):
         g, eval_db, _ = gen
-        insert_snapshot(eval_db, [
-            ("AAA", DATE, None),
-            ("AAA", DATE, None),  # duplicate
-            ("BBB", DATE, None),
-            (None, DATE, None),  # falsy filtered
-            ("CCC", "2024-08-28", None),  # other date
-        ])
+        insert_snapshot(
+            eval_db,
+            [
+                ("AAA", DATE, None),
+                ("AAA", DATE, None),  # duplicate
+                ("BBB", DATE, None),
+                (None, DATE, None),  # falsy filtered
+                ("CCC", "2024-08-28", None),  # other date
+            ],
+        )
         assert sorted(g._get_snapshot_universe(DATE)) == ["AAA", "BBB"]
 
     def test_empty(self, gen):
@@ -174,15 +175,16 @@ class TestBatchVolumeRatio:
 
     def test_skips_invalid_and_missing(self, gen):
         g, eval_db, _ = gen
-        insert_snapshot(eval_db, [
-            ("AAA", DATE, "{not json"),
-            ("BBB", DATE, json.dumps({"other": 1})),
-            ("CCC", DATE, None),
-            snap_row("DDD", 0.5),
-        ])
-        assert g._batch_get_volume_ratio(["AAA", "BBB", "CCC", "DDD"], DATE) == {
-            "DDD": 0.5
-        }
+        insert_snapshot(
+            eval_db,
+            [
+                ("AAA", DATE, "{not json"),
+                ("BBB", DATE, json.dumps({"other": 1})),
+                ("CCC", DATE, None),
+                snap_row("DDD", 0.5),
+            ],
+        )
+        assert g._batch_get_volume_ratio(["AAA", "BBB", "CCC", "DDD"], DATE) == {"DDD": 0.5}
 
     def test_empty_universe(self, gen):
         g, _, _ = gen
@@ -248,13 +250,18 @@ class TestStage1:
     def test_deteriorating_hard_reject(self, gen):
         g, eval_db, _ = gen
         insert_snapshot(eval_db, [snap_row("AAA", 0.5)])
-        g.frm_scorer = FakeFRM(results={
-            "AAA": SimpleNamespace(
-                revision_direction="deteriorating", score=20.0,
-                earnings_yoy_current=-0.10, earnings_yoy_previous=0.05,
-                earnings_acceleration=10.0, margin_stabilization=30.0,
-            )
-        })
+        g.frm_scorer = FakeFRM(
+            results={
+                "AAA": SimpleNamespace(
+                    revision_direction="deteriorating",
+                    score=20.0,
+                    earnings_yoy_current=-0.10,
+                    earnings_yoy_previous=0.05,
+                    earnings_acceleration=10.0,
+                    margin_stabilization=30.0,
+                )
+            }
+        )
         passed = g._stage1_recovery_eligibility(["AAA"], DATE, "x", "EP1")
         assert passed == []
         entry = g._funnel_log_buffer[0]
@@ -279,11 +286,16 @@ class TestStage1:
     def test_earnings_acceleration_none_when_yoy_none(self, gen):
         g, eval_db, _ = gen
         insert_snapshot(eval_db, [snap_row("AAA", 0.5)])
-        g.frm_scorer = FakeFRM(default=SimpleNamespace(
-            revision_direction="stable", score=50.0,
-            earnings_yoy_current=None, earnings_yoy_previous=0.05,
-            earnings_acceleration=50.0, margin_stabilization=50.0,
-        ))
+        g.frm_scorer = FakeFRM(
+            default=SimpleNamespace(
+                revision_direction="stable",
+                score=50.0,
+                earnings_yoy_current=None,
+                earnings_yoy_previous=0.05,
+                earnings_acceleration=50.0,
+                margin_stabilization=50.0,
+            )
+        )
         _, f = g._stage1_recovery_eligibility(["AAA"], DATE, "x", None)[0]
         assert f.earnings_acceleration is None
 
@@ -403,8 +415,13 @@ class TestFunnelLog:
     def test_flush_inserts_and_clears(self, gen):
         g, _, shadow_db = gen
         g._buffer_funnel_log(
-            "EP1", DATE, "AAA", stage1_pass=1, stage1_liquidity_pass=1,
-            stage1_volume_ratio=0.5, rejection_stage=None,
+            "EP1",
+            DATE,
+            "AAA",
+            stage1_pass=1,
+            stage1_liquidity_pass=1,
+            stage1_volume_ratio=0.5,
+            rejection_stage=None,
         )
         g._flush_funnel_log()
         assert g._funnel_log_buffer == []
@@ -429,30 +446,37 @@ class TestGenerate:
     def test_universe_none_uses_snapshot(self, gen):
         g, eval_db, _ = gen
         insert_snapshot(eval_db, [snap_row("AAA", 0.5)])
-        g.anomaly_detector = FakeAnomaly({
-            "AAA": MispricingObject(code="AAA", trade_date=DATE, divergence_score=0.3)
-        })
+        g.anomaly_detector = FakeAnomaly(
+            {"AAA": MispricingObject(code="AAA", trade_date=DATE, divergence_score=0.3)}
+        )
         out = g.generate(DATE, "EARLY_RECOVERY")
         assert [a.code for a in out] == ["AAA"]
 
     def test_full_funnel_integration(self, gen):
         g, eval_db, shadow_db = gen
-        insert_snapshot(eval_db, [
-            snap_row("ILLIQUID", 0.1),
-            snap_row("DETERIORATING_CO", 0.5),
-            snap_row("WINNER", 0.5),
-        ])
-        g.frm_scorer = FakeFRM(results={
-            "DETERIORATING_CO": SimpleNamespace(
-                revision_direction="deteriorating", score=20.0,
-                earnings_yoy_current=-0.1, earnings_yoy_previous=0.0,
-                earnings_acceleration=10.0, margin_stabilization=30.0,
-            )
-        })
-        g.anomaly_detector = FakeAnomaly({
-            "WINNER": MispricingObject(code="WINNER", trade_date=DATE,
-                                       divergence_score=0.7)
-        })
+        insert_snapshot(
+            eval_db,
+            [
+                snap_row("ILLIQUID", 0.1),
+                snap_row("DETERIORATING_CO", 0.5),
+                snap_row("WINNER", 0.5),
+            ],
+        )
+        g.frm_scorer = FakeFRM(
+            results={
+                "DETERIORATING_CO": SimpleNamespace(
+                    revision_direction="deteriorating",
+                    score=20.0,
+                    earnings_yoy_current=-0.1,
+                    earnings_yoy_previous=0.0,
+                    earnings_acceleration=10.0,
+                    margin_stabilization=30.0,
+                )
+            }
+        )
+        g.anomaly_detector = FakeAnomaly(
+            {"WINNER": MispricingObject(code="WINNER", trade_date=DATE, divergence_score=0.7)}
+        )
         out = g.generate(DATE, "EARLY_RECOVERY", episode_id="EP9")
         assert [a.code for a in out] == ["WINNER"]
         assert out[0].v3_features.candidate_stage == "stage3_pass"
@@ -467,8 +491,8 @@ class TestGenerate:
     def test_no_episode_no_log_writes(self, gen):
         g, eval_db, shadow_db = gen
         insert_snapshot(eval_db, [snap_row("AAA", 0.5)])
-        g.anomaly_detector = FakeAnomaly({
-            "AAA": MispricingObject(code="AAA", trade_date=DATE, divergence_score=0.3)
-        })
+        g.anomaly_detector = FakeAnomaly(
+            {"AAA": MispricingObject(code="AAA", trade_date=DATE, divergence_score=0.3)}
+        )
         g.generate(DATE, "x")
         assert funnel_rows(shadow_db) == []

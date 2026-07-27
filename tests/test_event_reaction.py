@@ -75,11 +75,15 @@ class TestConstants:
 class TestLoadEarnings:
     def test_scaling_and_derivatives(self, calc):
         c, db = calc
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 30.0, "2024-06-30", "2024-08-30"),
-            ("600519", 20.0, "2024-03-31", "2024-04-30"),
-            ("600519", 25.0, "2023-12-31", "2024-01-31"),
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 30.0, "2024-06-30", "2024-08-30"),
+                ("600519", 20.0, "2024-03-31", "2024-04-30"),
+                ("600519", 25.0, "2023-12-31", "2024-01-31"),
+            ],
+        )
         r = EventReactionResult(security_id="600519", available_date="2024-08-30")
         c._load_earnings(r, "600519", "2024-08-30")
         assert r.earnings_yoy_current == pytest.approx(0.30)
@@ -92,10 +96,14 @@ class TestLoadEarnings:
 
     def test_frm_thresholds(self, calc):
         c, db = calc
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 21.0, "2024-06-30", "2024-08-30"),
-            ("600519", 20.0, "2024-03-31", "2024-04-30"),
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 21.0, "2024-06-30", "2024-08-30"),
+                ("600519", 20.0, "2024-03-31", "2024-04-30"),
+            ],
+        )
         r = EventReactionResult(security_id="600519", available_date="2024-08-30")
         c._load_earnings(r, "600519", "2024-08-30")
         assert r.earnings_acceleration == pytest.approx(0.01)
@@ -105,9 +113,13 @@ class TestLoadEarnings:
     def test_vintage_cutoff(self, calc):
         c, db = calc
         # available AFTER as_of -> invisible
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 99.0, "2024-06-30", "2024-09-15"),
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 99.0, "2024-06-30", "2024-09-15"),
+            ],
+        )
         r = EventReactionResult(security_id="600519", available_date="2024-08-30")
         c._load_earnings(r, "600519", "2024-08-30")
         assert r.earnings_yoy_current is None
@@ -115,9 +127,13 @@ class TestLoadEarnings:
     def test_report_date_90d_fallback(self, calc):
         c, db = calc
         # available_date NULL -> fallback date(report_date, '+90 days') <= as_of
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 12.0, "2024-03-31", None),  # +90d = 2024-06-29 <= as_of
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 12.0, "2024-03-31", None),  # +90d = 2024-06-29 <= as_of
+            ],
+        )
         r = EventReactionResult(security_id="600519", available_date="2024-08-30")
         c._load_earnings(r, "600519", "2024-08-30")
         assert r.earnings_yoy_current == pytest.approx(0.12)
@@ -145,10 +161,14 @@ class TestCalendar:
 class TestIndexClose:
     def test_exact_then_prior_fallback(self, calc):
         c, db = calc
-        sql(db, "INSERT INTO market_index_daily VALUES (?,?,?)", [
-            ("000300", "2024-09-01", 4000.0),
-            ("000300", "2024-09-05", 4100.0),
-        ])
+        sql(
+            db,
+            "INSERT INTO market_index_daily VALUES (?,?,?)",
+            [
+                ("000300", "2024-09-01", 4000.0),
+                ("000300", "2024-09-05", 4100.0),
+            ],
+        )
         assert c._index_close("000300", "2024-09-05") == 4100.0
         # no exact row -> nearest prior
         assert c._index_close("000300", "2024-09-03") == 4000.0
@@ -157,10 +177,14 @@ class TestIndexClose:
 
     def test_market_return_zero_guard(self, calc):
         c, db = calc
-        sql(db, "INSERT INTO market_index_daily VALUES (?,?,?)", [
-            ("000300", "2024-09-01", 0.0),
-            ("000300", "2024-09-05", 4100.0),
-        ])
+        sql(
+            db,
+            "INSERT INTO market_index_daily VALUES (?,?,?)",
+            [
+                ("000300", "2024-09-01", 0.0),
+                ("000300", "2024-09-05", 4100.0),
+            ],
+        )
         assert c._get_market_return("2024-09-01", "2024-09-05") is None  # p0 == 0
         sql(db, "UPDATE market_index_daily SET adj_close=4000.0 WHERE trade_date='2024-09-01'")
         assert c._get_market_return("2024-09-01", "2024-09-05") == pytest.approx(0.025)
@@ -176,12 +200,16 @@ class TestSector:
 
     def test_cumulative_return_compounding(self, calc):
         c, db = calc
-        sql(db, "INSERT INTO industry_daily_returns VALUES (?,?,?)", [
-            ("白酒", "2024-09-01", 0.01),
-            ("白酒", "2024-09-02", 0.02),
-            ("白酒", "2024-09-03", None),   # skipped
-            ("白酒", "2024-09-04", -0.01),
-        ])
+        sql(
+            db,
+            "INSERT INTO industry_daily_returns VALUES (?,?,?)",
+            [
+                ("白酒", "2024-09-01", 0.01),
+                ("白酒", "2024-09-02", 0.02),
+                ("白酒", "2024-09-03", None),  # skipped
+                ("白酒", "2024-09-04", -0.01),
+            ],
+        )
         # window (start, end]: excludes 09-01
         got = c._get_sector_cumulative_return("白酒", "2024-09-01", "2024-09-04")
         assert got == pytest.approx((1.02) * (0.99) - 1.0)
@@ -193,19 +221,29 @@ class TestComputeIntegration:
     def test_full_wiring(self, calc):
         c, db = calc
         seed_calendar(db, DAYS)
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 30.0, "2024-06-30", "2024-08-30"),
-            ("600519", 20.0, "2024-03-31", "2024-04-30"),
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 30.0, "2024-06-30", "2024-08-30"),
+                ("600519", 20.0, "2024-03-31", "2024-04-30"),
+            ],
+        )
         sql(db, "INSERT INTO security_master VALUES (?,?)", [("600519", "白酒")])
         # event_start = 2024-09-01 (first day after 2024-08-30... but 08-30 not in cal;
         # next_trading_day finds first cal day > 2024-08-30 = 2024-09-01)
         idx_days = ["2024-09-01", "2024-09-06", "2024-09-11", "2024-09-21"]
         for i, d in enumerate(idx_days):
-            sql(db, "INSERT INTO market_index_daily VALUES (?,?,?)",
-                [("000300", d, 4000.0 * (1.01 ** i))])
-        sql(db, "INSERT INTO industry_daily_returns VALUES (?,?,?)",
-            [("白酒", d, 0.005) for d in DAYS[1:22]])
+            sql(
+                db,
+                "INSERT INTO market_index_daily VALUES (?,?,?)",
+                [("000300", d, 4000.0 * (1.01**i))],
+            )
+        sql(
+            db,
+            "INSERT INTO industry_daily_returns VALUES (?,?,?)",
+            [("白酒", d, 0.005) for d in DAYS[1:22]],
+        )
 
         class FakeKline:
             empty = False
@@ -235,16 +273,18 @@ class TestComputeIntegration:
         assert r.return_t5 == pytest.approx(0.03)
         assert r.market_adjusted_t5 == pytest.approx(0.03 - 0.01)
         # residual_t5 = stock - market - sector
-        assert r.residual_t5 == pytest.approx(
-            r.return_t5 - r.market_return_t5 - r.sector_return_t5
-        )
+        assert r.residual_t5 == pytest.approx(r.return_t5 - r.market_return_t5 - r.sector_return_t5)
 
     def test_no_trading_after_announcement(self, calc):
         c, db = calc
         seed_calendar(db, DAYS)
-        sql(db, "INSERT INTO akshare_financials VALUES (?,?,?,?)", [
-            ("600519", 30.0, "2024-06-30", "2024-08-30"),
-        ])
+        sql(
+            db,
+            "INSERT INTO akshare_financials VALUES (?,?,?,?)",
+            [
+                ("600519", 30.0, "2024-06-30", "2024-08-30"),
+            ],
+        )
         r = c.compute("600519", "2024-10-01")  # after all calendar days
         assert r.return_t1 is None
         assert r.earnings_yoy_current == pytest.approx(0.30)  # earnings still loaded

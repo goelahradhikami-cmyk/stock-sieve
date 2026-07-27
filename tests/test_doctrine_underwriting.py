@@ -70,14 +70,30 @@ class TestQuality:
         assert r2.confidence == 0.25
 
     def test_thresholds(self, uw):
-        assert uw.underwrite(make_anomaly(roe=0.08), "quality_compounder").key_questions[
-            "roe_healthy"]["answer"] is False  # strict >
-        assert uw.underwrite(make_anomaly(margin_change=-0.03), "quality_compounder").key_questions[
-            "margin_stable"]["answer"] is False  # strict > -0.03
-        assert uw.underwrite(make_anomaly(debt_ratio=2.0), "quality_compounder").key_questions[
-            "debt_manageable"]["answer"] is False  # strict <
-        assert uw.underwrite(make_anomaly(roe_stability=0.4), "quality_compounder").key_questions[
-            "roe_stable"]["answer"] is False  # strict >
+        assert (
+            uw.underwrite(make_anomaly(roe=0.08), "quality_compounder").key_questions[
+                "roe_healthy"
+            ]["answer"]
+            is False
+        )  # strict >
+        assert (
+            uw.underwrite(make_anomaly(margin_change=-0.03), "quality_compounder").key_questions[
+                "margin_stable"
+            ]["answer"]
+            is False
+        )  # strict > -0.03
+        assert (
+            uw.underwrite(make_anomaly(debt_ratio=2.0), "quality_compounder").key_questions[
+                "debt_manageable"
+            ]["answer"]
+            is False
+        )  # strict <
+        assert (
+            uw.underwrite(make_anomaly(roe_stability=0.4), "quality_compounder").key_questions[
+                "roe_stable"
+            ]["answer"]
+            is False
+        )  # strict >
 
     def test_none_fields_fail_checks(self, uw):
         # margin_change None: check fails correctly via `is not None` guard...
@@ -107,19 +123,39 @@ class TestContrarian:
 
     def test_thresholds_code_not_docstring(self, uw):
         # code: drawdown < -0.25
-        assert uw.underwrite(make_anomaly(price_drawdown_12m=-0.25), "contrarian").key_questions[
-            "extreme_selloff"]["answer"] is False
+        assert (
+            uw.underwrite(make_anomaly(price_drawdown_12m=-0.25), "contrarian").key_questions[
+                "extreme_selloff"
+            ]["answer"]
+            is False
+        )
         # code: pessimism > 0.5 (docstring says 0.6 — code wins)
-        assert uw.underwrite(make_anomaly(market_pessimism=0.55), "contrarian").key_questions[
-            "market_fear"]["answer"] is True
-        assert uw.underwrite(make_anomaly(market_pessimism=0.5), "contrarian").key_questions[
-            "market_fear"]["answer"] is False
+        assert (
+            uw.underwrite(make_anomaly(market_pessimism=0.55), "contrarian").key_questions[
+                "market_fear"
+            ]["answer"]
+            is True
+        )
+        assert (
+            uw.underwrite(make_anomaly(market_pessimism=0.5), "contrarian").key_questions[
+                "market_fear"
+            ]["answer"]
+            is False
+        )
         # code: strength > 0.5
-        assert uw.underwrite(make_anomaly(business_strength=0.5), "contrarian").key_questions[
-            "fundamentals_intact"]["answer"] is False
+        assert (
+            uw.underwrite(make_anomaly(business_strength=0.5), "contrarian").key_questions[
+                "fundamentals_intact"
+            ]["answer"]
+            is False
+        )
         # code: divergence > 0.2
-        assert uw.underwrite(make_anomaly(divergence_score=0.2), "contrarian").key_questions[
-            "clear_divergence"]["answer"] is False
+        assert (
+            uw.underwrite(make_anomaly(divergence_score=0.2), "contrarian").key_questions[
+                "clear_divergence"
+            ]["answer"]
+            is False
+        )
 
 
 class TestValue:
@@ -134,12 +170,24 @@ class TestValue:
         assert "PE compression unknown (no historical PE data)" in r.red_flags
 
     def test_thresholds(self, uw):
-        assert uw.underwrite(make_anomaly(pe_compression=0.7), "value_purist").key_questions[
-            "pe_compressed"]["answer"] is False  # strict <
-        assert uw.underwrite(make_anomaly(roe=0.05), "value_purist").key_questions[
-            "still_profitable"]["answer"] is False  # strict >
-        assert uw.underwrite(make_anomaly(margin_change=-0.10), "value_purist").key_questions[
-            "margin_ok"]["answer"] is False  # strict >
+        assert (
+            uw.underwrite(make_anomaly(pe_compression=0.7), "value_purist").key_questions[
+                "pe_compressed"
+            ]["answer"]
+            is False
+        )  # strict <
+        assert (
+            uw.underwrite(make_anomaly(roe=0.05), "value_purist").key_questions["still_profitable"][
+                "answer"
+            ]
+            is False
+        )  # strict >
+        assert (
+            uw.underwrite(make_anomaly(margin_change=-0.10), "value_purist").key_questions[
+                "margin_ok"
+            ]["answer"]
+            is False
+        )  # strict >
 
 
 class TestCommittee:
@@ -157,9 +205,17 @@ class TestCommittee:
         assert c["conditional_count"] == 0
 
     def test_consensus_reject(self, uw):
-        bad = make_anomaly(roe=0.0, margin_change=-0.9, debt_ratio=9.0, roe_stability=0.0,
-                           price_drawdown_12m=0.0, market_pessimism=0.0, business_strength=0.0,
-                           divergence_score=0.0, pe_compression=1.5)
+        bad = make_anomaly(
+            roe=0.0,
+            margin_change=-0.9,
+            debt_ratio=9.0,
+            roe_stability=0.0,
+            price_drawdown_12m=0.0,
+            market_pessimism=0.0,
+            business_strength=0.0,
+            divergence_score=0.0,
+            pe_compression=1.5,
+        )
         results = uw.underwrite_all(bad)
         c = uw.consensus(results)
         assert c["consensus"] == "REJECT"

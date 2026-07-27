@@ -44,8 +44,8 @@ def test_factory_optin_falls_back():
 def test_baostock_provider_degrades_gracefully(monkeypatch):
     # Force _login to fail -> get_financial_dict must return {} (never fake data)
     monkeypatch.setattr(BaostockProvider, "_login", _forced_import_error)
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         prov = BaostockProvider(db_path=tmp.name)
         assert prov.get_financial_dict("600519") == {}
@@ -55,8 +55,8 @@ def test_baostock_provider_degrades_gracefully(monkeypatch):
 
 def test_baostock_provider_contract():
     pytest.importorskip("baostock")  # skip if baostock not installed
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         p = BaostockProvider(db_path=tmp.name, n_years=5)
         d = p.get_financial_dict("600519")

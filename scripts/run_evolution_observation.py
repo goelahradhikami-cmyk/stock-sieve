@@ -300,7 +300,7 @@ class EvolutionObservationArena:
             if not parent:
                 continue
 
-            for i in range(plan.num_children):
+            for _i in range(plan.num_children):
                 # Pick a partner (different doctrine for crossover, or mutate)
                 partners = [d for d in survivors if d.doctrine_id != parent.doctrine_id]
                 if partners:

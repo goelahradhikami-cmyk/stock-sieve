@@ -16,7 +16,7 @@ import sqlite3
 import numpy as np
 import pytest
 
-from src.thesis.expectation_gap import ExpectationGapEngine, ExpectationGapScore
+from src.thesis.expectation_gap import ExpectationGapEngine
 
 SCHEMA = (
     "CREATE TABLE earnings_event_reaction (security_id TEXT, available_date TEXT, "
@@ -33,9 +33,7 @@ def engine(tmp_path):
     conn.execute(SCHEMA)
     # _load_event_reaction falls back to akshare_financials when no eer row;
     # a missing table raises OperationalError (uncaught) — so create it.
-    conn.execute(
-        "CREATE TABLE akshare_financials (code TEXT, available_date TEXT)"
-    )
+    conn.execute("CREATE TABLE akshare_financials (code TEXT, available_date TEXT)")
     conn.commit()
     conn.close()
     return ExpectationGapEngine(cache_db=str(db)), str(db)
@@ -161,10 +159,12 @@ class TestFrozenFormula:
         # recompute all gaps and count <= ours
         dist = eng._get_distribution("2024-09-15")
         rows = [(0.02 * i, 0.005 * i) for i in range(1, 7)] + [(0.20, -0.01)]
-        gaps = np.array([
-            (ea - dist["ea_mean"]) / dist["ea_std"] - (pr - dist["pr_mean"]) / dist["pr_std"]
-            for ea, pr in rows
-        ])
+        gaps = np.array(
+            [
+                (ea - dist["ea_mean"]) / dist["ea_std"] - (pr - dist["pr_mean"]) / dist["pr_std"]
+                for ea, pr in rows
+            ]
+        )
         expected = float(np.mean(gaps <= r.gap_score))
         assert r.gap_percentile == pytest.approx(expected)
         # our stock has the highest EA and lowest PR -> top percentile

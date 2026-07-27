@@ -51,17 +51,27 @@ def seed_snapshots(ev, date, scores):
 class TestConstants:
     def test_values(self, engine):
         eng, _, _ = engine
-        assert eng.FACTOR_FAMILIES == ["quality", "value", "growth", "momentum", "risk", "sentiment"]
+        assert eng.FACTOR_FAMILIES == [
+            "quality",
+            "value",
+            "growth",
+            "momentum",
+            "risk",
+            "sentiment",
+        ]
         assert eng.LS_PERCENTILE == 0.20
         assert eng.HORIZON == 20
 
 
 class TestFactorClimate:
     def test_strongest_weakest(self):
-        fc = FactorClimate(date="d", factors={
-            "value": {"momentum_60d": 0.08},
-            "growth": {"momentum_60d": -0.03},
-        })
+        fc = FactorClimate(
+            date="d",
+            factors={
+                "value": {"momentum_60d": 0.08},
+                "growth": {"momentum_60d": -0.03},
+            },
+        )
         assert fc.get_strongest_factor() == "value"
         assert fc.get_weakest_factor() == "growth"
         assert fc.get_strongest_factor("missing_window") == "value"  # .get default 0 tie
@@ -117,7 +127,7 @@ class TestClimateComputation:
     def seed_full(self, engine, ev, cache):
         eng = engine
         # 4 past dates, 25 stocks each (>= 20), plus calendar
-        for di, d in enumerate(["2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22"]):
+        for _di, d in enumerate(["2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22"]):
             scores = [(f"s{i:02d}", float(i * 4)) for i in range(25)]
             seed_snapshots(ev, d, scores)
         conn = sqlite3.connect(cache)
@@ -128,6 +138,7 @@ class TestClimateComputation:
         )
         conn.commit()
         conn.close()
+
         # fake kline: return depends on code index -> top scores positive, bottom negative
         def fake_kline(code, start, end):
             idx = int(code[1:])

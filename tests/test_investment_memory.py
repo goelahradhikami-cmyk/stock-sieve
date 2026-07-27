@@ -86,7 +86,7 @@ class TestMath:
         assert b.belief_id == "EARLY_RECOVERY+value"
 
     def test_decay_lambda(self):
-        assert DECAY_LAMBDA == pytest.approx(math.log(2) / 365)
+        assert pytest.approx(math.log(2) / 365) == DECAY_LAMBDA
 
 
 class TestPersistence:

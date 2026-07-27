@@ -353,7 +353,7 @@ def _seed_db(db):
     rid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     # 4 次正 alpha + 1 次负 alpha → persistence = 0.8
     # 日期分布在近 5 个月（均在 12 个月与 6 个月窗口内）
-    for i, (a, m) in enumerate([(0.05, 2), (0.03, 3), (0.04, 4), (0.02, 5), (-0.01, 6)]):
+    for _i, (a, m) in enumerate([(0.05, 2), (0.03, 3), (0.04, 4), (0.02, 5), (-0.01, 6)]):
         conn.execute(
             "INSERT INTO evaluation_results "
             "(research_decision_id, horizon_days, eval_date, evaluated_at, stock_return, "
@@ -449,7 +449,7 @@ def test_rule_only_bridge_prefix_and_anchors():
         "devil_advocate": {"genome": {"voice": "逆向"}},
     }
     stmts = bridge.generate_statements(scores, genomes, {}, "APPROVE_WITH_CONDITIONS")
-    for k, v in stmts.items():
+    for _k, v in stmts.items():
         assert v.startswith("[LLM-v1.0]")
     attack = bridge.generate_devil_attack([], {})
     assert attack.startswith("[LLM-v1.0]")

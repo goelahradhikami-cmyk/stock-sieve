@@ -15,9 +15,7 @@ import pytest
 
 from src.thesis.thesis_validator import ThesisValidator
 
-SCHEMA = (
-    "CREATE TABLE akshare_financials (code TEXT, report_date TEXT, earnings_yoy REAL)"
-)
+SCHEMA = "CREATE TABLE akshare_financials (code TEXT, report_date TEXT, earnings_yoy REAL)"
 
 
 @pytest.fixture()
@@ -40,10 +38,13 @@ def insert(db, rows):
 class TestValidate:
     def test_earnings_change_math(self, validator):
         tv, db = validator
-        insert(db, [
-            ("600519", "2026-03-31", 10.0),
-            ("600519", "2026-06-30", 15.0),
-        ])
+        insert(
+            db,
+            [
+                ("600519", "2026-03-31", 10.0),
+                ("600519", "2026-06-30", 15.0),
+            ],
+        )
         v = tv.validate("600519", "2026-05-27", "2026-08-01", actual_price_change=0.1)
         assert v.actual_earnings_change == pytest.approx((15.0 - 10.0) / 100.0)
 
@@ -62,14 +63,20 @@ class TestValidate:
         insert(db, [("600519", "2026-03-31", 10.0), ("600519", "2026-06-30", 15.0)])
         # actual acceleration happened (delta > 0)
         v_true = tv.validate(
-            "600519", "2026-05-27", "2026-08-01",
-            predicted_acceleration=True, actual_price_change=0.0,
+            "600519",
+            "2026-05-27",
+            "2026-08-01",
+            predicted_acceleration=True,
+            actual_price_change=0.0,
         )
         assert v_true.thesis_correct is True
         assert v_true.accuracy_score == 1.0
         v_false = tv.validate(
-            "600519", "2026-05-27", "2026-08-01",
-            predicted_acceleration=False, actual_price_change=0.0,
+            "600519",
+            "2026-05-27",
+            "2026-08-01",
+            predicted_acceleration=False,
+            actual_price_change=0.0,
         )
         assert v_false.thesis_correct is False
         assert v_false.accuracy_score == 0.0
@@ -79,15 +86,21 @@ class TestValidate:
         insert(db, [("600519", "2026-03-31", 10.0), ("600519", "2026-06-30", 15.0)])
         # correct + predicted_mispricing + earnings>0 + price>0 -> +0.2 capped at 1.0
         v = tv.validate(
-            "600519", "2026-05-27", "2026-08-01",
-            predicted_acceleration=True, predicted_mispricing=True,
+            "600519",
+            "2026-05-27",
+            "2026-08-01",
+            predicted_acceleration=True,
+            predicted_mispricing=True,
             actual_price_change=0.1,
         )
         assert v.accuracy_score == 1.0  # min(1.0, 1.0+0.2)
         # boost does NOT apply when price <= 0
         v2 = tv.validate(
-            "600519", "2026-05-27", "2026-08-01",
-            predicted_acceleration=False, predicted_mispricing=True,
+            "600519",
+            "2026-05-27",
+            "2026-08-01",
+            predicted_acceleration=False,
+            predicted_mispricing=True,
             actual_price_change=-0.1,
         )
         assert v2.accuracy_score == 0.0
@@ -164,10 +177,13 @@ class TestThesisAccuracy:
 class TestGetFinancialsAt:
     def test_nearest_prior_report(self, validator):
         tv, db = validator
-        insert(db, [
-            ("600519", "2026-03-31", 10.0),
-            ("600519", "2026-06-30", 15.0),
-        ])
+        insert(
+            db,
+            [
+                ("600519", "2026-03-31", 10.0),
+                ("600519", "2026-06-30", 15.0),
+            ],
+        )
         # eval date between reports -> picks 03-31
         fin = tv._get_financials_at("600519", "2026-05-27")
         assert fin["earnings_yoy"] == 10.0

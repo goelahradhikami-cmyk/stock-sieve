@@ -25,8 +25,12 @@ def scorer(tmp_path):
     conn = sqlite3.connect(db)
     conn.execute("CREATE TABLE trading_calendar (trade_date TEXT, is_trading INTEGER)")
     conn.execute("CREATE TABLE security_master (code TEXT, industry TEXT)")
-    conn.execute("CREATE TABLE industry_daily_returns (industry TEXT, trade_date TEXT, return REAL)")
-    conn.execute("CREATE TABLE market_index_daily (index_code TEXT, trade_date TEXT, adj_close REAL)")
+    conn.execute(
+        "CREATE TABLE industry_daily_returns (industry TEXT, trade_date TEXT, return REAL)"
+    )
+    conn.execute(
+        "CREATE TABLE market_index_daily (index_code TEXT, trade_date TEXT, adj_close REAL)"
+    )
     conn.executemany("INSERT INTO trading_calendar VALUES (?,1)", [(d,) for d in DAYS])
     conn.commit()
     conn.close()
@@ -107,9 +111,11 @@ class TestConsistency:
 
     def test_rate_mapping(self, scorer):
         s, db = scorer
-        sql(db, "INSERT INTO industry_daily_returns VALUES (?,?,?)", [
-            ("白酒", d, 0.005) for d in DAYS
-        ])
+        sql(
+            db,
+            "INSERT INTO industry_daily_returns VALUES (?,?,?)",
+            [("白酒", d, 0.005) for d in DAYS],
+        )
 
         # fake stock: daily return +2% (always beats sector 0.5%)
         import pandas as pd
@@ -140,12 +146,16 @@ class TestDataHelpers:
 
     def test_sector_cumulative_window(self, scorer):
         s, db = scorer
-        sql(db, "INSERT INTO industry_daily_returns VALUES (?,?,?)", [
-            ("白酒", "2024-08-05", 0.01),
-            ("白酒", "2024-08-06", 0.02),
-            ("白酒", "2024-08-07", None),
-            ("白酒", "2024-08-08", 0.03),
-        ])
+        sql(
+            db,
+            "INSERT INTO industry_daily_returns VALUES (?,?,?)",
+            [
+                ("白酒", "2024-08-05", 0.01),
+                ("白酒", "2024-08-06", 0.02),
+                ("白酒", "2024-08-07", None),
+                ("白酒", "2024-08-08", 0.03),
+            ],
+        )
         # (start, end]: excludes 08-05
         got = s._get_sector_cumulative("白酒", "2024-08-05", "2024-08-08")
         assert got == pytest.approx(1.02 * 1.03 - 1.0)
@@ -153,9 +163,13 @@ class TestDataHelpers:
 
     def test_index_close_fallback(self, scorer):
         s, db = scorer
-        sql(db, "INSERT INTO market_index_daily VALUES (?,?,?)", [
-            ("000300", "2024-08-05", 4000.0),
-        ])
+        sql(
+            db,
+            "INSERT INTO market_index_daily VALUES (?,?,?)",
+            [
+                ("000300", "2024-08-05", 4000.0),
+            ],
+        )
         assert s._index_close("000300", "2024-08-05") == 4000.0
         assert s._index_close("000300", "2024-08-10") == 4000.0  # prior
         assert s._index_close("000300", "2024-08-01") is None
@@ -167,13 +181,19 @@ class TestCompute:
         import pandas as pd
 
         sql(db, "INSERT INTO security_master VALUES (?,?)", [("600519", "白酒")])
-        sql(db, "INSERT INTO industry_daily_returns VALUES (?,?,?)", [
-            ("白酒", d, 0.002) for d in DAYS
-        ])
-        sql(db, "INSERT INTO market_index_daily VALUES (?,?,?)", [
-            ("000300", "2024-08-09", 4000.0),
-            ("000300", "2024-08-29", 4040.0),
-        ])
+        sql(
+            db,
+            "INSERT INTO industry_daily_returns VALUES (?,?,?)",
+            [("白酒", d, 0.002) for d in DAYS],
+        )
+        sql(
+            db,
+            "INSERT INTO market_index_daily VALUES (?,?,?)",
+            [
+                ("000300", "2024-08-09", 4000.0),
+                ("000300", "2024-08-29", 4040.0),
+            ],
+        )
 
         def fake_kline(code, start, end):
             if start < end and (end == "2024-08-29"):
@@ -216,7 +236,5 @@ class TestCompute:
         assert r.market_return_20d == pytest.approx(0.01)
         assert r.sector_vs_market == pytest.approx(exp_sector - 0.01)
         # composite
-        exp_score = (
-            0.50 * r.relative_strength + 0.30 * r.sector_strength + 0.20 * r.consistency
-        )
+        exp_score = 0.50 * r.relative_strength + 0.30 * r.sector_strength + 0.20 * r.consistency
         assert r.score == pytest.approx(min(100.0, max(0.0, exp_score)))

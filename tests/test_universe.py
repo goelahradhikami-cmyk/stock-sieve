@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 import tempfile
 import os
+import contextlib
 
 from src.data.universe import fetch_eastmoney_stock_list
 from src.data.universe_filter import UniverseFilter
@@ -140,10 +141,9 @@ def test_security_master():
     finally:
         # Close connection before cleanup
         master.db.close()
-        try:
+        with contextlib.suppress(PermissionError):
             os.remove(db_path)
-        except PermissionError:
-            pass  # Windows file lock
+        # Windows file lock
 
 
 def test_universe_filter_stats():

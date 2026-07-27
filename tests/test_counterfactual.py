@@ -42,17 +42,29 @@ DUMMY_DOCTRINE = type("D", (), {"factor_bias": {}})()
 
 def wire(eng, pool, residuals, ret_map):
     """Stub out builder/signal/residualizer/local with deterministic fakes."""
-    eng.builder = type("B", (), {
-        "score_universe": lambda self, date, bias, top_n: pool[:top_n],
-    })()
-    eng.signal_engine = type("S", (), {
-        "compute_signals_batch": lambda self, codes, date: {
-            c: type("Sig", (), {"thesis_score": 0.0})() for c in codes
+    eng.builder = type(
+        "B",
+        (),
+        {
+            "score_universe": lambda self, date, bias, top_n: pool[:top_n],
         },
-    })()
-    eng.residualizer = type("R", (), {
-        "orthogonalize_universe": lambda self, date, ts: dict(residuals),
-    })()
+    )()
+    eng.signal_engine = type(
+        "S",
+        (),
+        {
+            "compute_signals_batch": lambda self, codes, date: {
+                c: type("Sig", (), {"thesis_score": 0.0})() for c in codes
+            },
+        },
+    )()
+    eng.residualizer = type(
+        "R",
+        (),
+        {
+            "orthogonalize_universe": lambda self, date, ts: dict(residuals),
+        },
+    )()
 
     import pandas as pd
 
@@ -159,8 +171,10 @@ class TestBatch:
         t = avg / (std / np.sqrt(10))
         assert out["t_stat"] == pytest.approx(t)
         expected_verdict = (
-            "THESIS_ADDS_VALUE" if avg > 0.005 and t > 1.5
-            else "THESIS_NEUTRAL" if abs(avg) < 0.005
+            "THESIS_ADDS_VALUE"
+            if avg > 0.005 and t > 1.5
+            else "THESIS_NEUTRAL"
+            if abs(avg) < 0.005
             else "THESIS_HURTS"
         )
         assert out["verdict"] == expected_verdict

@@ -284,7 +284,7 @@ def _print_summary(cache: sqlite3.Connection):
 
     # Sector adjusted t5 distribution
     print("\n  sector_adjusted_t5 distribution:", flush=True)
-    for r in cache.execute(
+    for _r in cache.execute(
         "SELECT COUNT(*) c, AVG(sector_adjusted_t5) avg, "
         "MIN(sector_adjusted_t5) mn, MAX(sector_adjusted_t5) mx "
         "FROM earnings_event_reaction WHERE sector_adjusted_t5 IS NOT NULL"

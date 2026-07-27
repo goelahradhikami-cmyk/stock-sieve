@@ -84,11 +84,14 @@ class TestRiskVeto:
     def test_veto_conditions(self, layer):
         tl, _, _ = layer
         # veto needs risk<20 AND quality<30
-        picks = make_picks(4, **{
-            "600000": {"risk_score": 10, "quality_score": 20},   # veto
-            "600001": {"risk_score": 10, "quality_score": 50},   # no (quality ok)
-            "600002": {"risk_score": 30, "quality_score": 20},   # no (risk ok)
-        })
+        picks = make_picks(
+            4,
+            **{
+                "600000": {"risk_score": 10, "quality_score": 20},  # veto
+                "600001": {"risk_score": 10, "quality_score": 50},  # no (quality ok)
+                "600002": {"risk_score": 30, "quality_score": 20},  # no (risk ok)
+            },
+        )
         r = tl.apply_timing_overlay(picks, None, "2026-01-15")
         vetoed = [a for a in r.adjustments if a.vetoed]
         assert len(vetoed) == 1
@@ -112,12 +115,18 @@ class TestConviction:
         conn = sqlite3.connect(cache)
         rows = []
         # 600000: earnings accelerating: latest 30, oldest 10 -> delta 0.20
-        for i, (rd, ey) in enumerate([("2025-12-31", 30.0), ("2025-09-30", 20.0), ("2025-06-30", 10.0)]):
+        for _i, (rd, ey) in enumerate(
+            [("2025-12-31", 30.0), ("2025-09-30", 20.0), ("2025-06-30", 10.0)]
+        ):
             rows.append(("600000", rd, 0.0, ey, 0.1, None, None))
         # 600001: decelerating hard: earn delta -0.25, rev delta -0.20
         # -> accel = -0.15 -> sigmoid(-1.5) ≈ 0.18 < 0.3
         # (mild decel like accel=-0.067 -> sigmoid ≈ 0.34 does NOT trigger 0.7x)
-        for rd, ey, ry in [("2025-12-31", 5.0, 5.0), ("2025-09-30", 15.0, 15.0), ("2025-06-30", 30.0, 25.0)]:
+        for rd, ey, ry in [
+            ("2025-12-31", 5.0, 5.0),
+            ("2025-09-30", 15.0, 15.0),
+            ("2025-06-30", 30.0, 25.0),
+        ]:
             rows.append(("600001", rd, ry, ey, 0.1, None, None))
         conn.executemany("INSERT INTO akshare_financials VALUES (?,?,?,?,?,?,?)", rows)
         conn.commit()
@@ -160,7 +169,10 @@ class TestMarketTiming:
         scores = [10 + i * 3.3 for i in range(25)]
         conn.executemany(
             "INSERT INTO stock_factor_snapshot VALUES (?,?,?,?,?,?,?,?)",
-            [(f"s{i}", "2026-01-15", q, 50.0, 50.0, 50.0, 50.0, 50.0) for i, q in enumerate(scores)],
+            [
+                (f"s{i}", "2026-01-15", q, 50.0, 50.0, 50.0, 50.0, 50.0)
+                for i, q in enumerate(scores)
+            ],
         )
         conn.commit()
         conn.close()

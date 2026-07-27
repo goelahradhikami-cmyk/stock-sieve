@@ -14,7 +14,6 @@ Covered surface:
 """
 
 import sqlite3
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -29,9 +28,7 @@ def msm(tmp_path):
     cache_db = tmp_path / "cache.db"
     eval_db = tmp_path / "evaluation.db"
     conn = sqlite3.connect(cache_db)
-    conn.execute(
-        "CREATE TABLE market_index_daily (index_code TEXT, trade_date TEXT, close REAL)"
-    )
+    conn.execute("CREATE TABLE market_index_daily (index_code TEXT, trade_date TEXT, close REAL)")
     conn.commit()
     conn.close()
     conn = sqlite3.connect(eval_db)
@@ -185,12 +182,15 @@ class TestVolScore:
 class TestBreadthScore:
     def test_fraction_above_50(self, msm):
         m, _, eval_db = msm
-        insert_snapshot(eval_db, [
-            ("AAA", DATE, 60.0),
-            ("BBB", DATE, 50.0),  # not > 50
-            ("CCC", DATE, 40.0),
-            ("DDD", DATE, 55.0),
-        ])
+        insert_snapshot(
+            eval_db,
+            [
+                ("AAA", DATE, 60.0),
+                ("BBB", DATE, 50.0),  # not > 50
+                ("CCC", DATE, 40.0),
+                ("DDD", DATE, 55.0),
+            ],
+        )
         assert m._compute_breadth_score(DATE) == pytest.approx(0.5)
 
     def test_empty_snapshot_half(self, msm):
@@ -226,8 +226,7 @@ class TestTrendScore:
 class TestToDict:
     def test_rounding(self, msm):
         m, _, _ = msm
-        stub_scorers(m, vol=(0.678, -0.04), breadth=0.456, trend=(0.567, 0.1),
-                     recovery=0.6234)
+        stub_scorers(m, vol=(0.678, -0.04), breadth=0.456, trend=(0.567, 0.1), recovery=0.6234)
         r = m.classify(DATE)
         d = r.to_dict()
         assert d["vol_score"] == 0.68

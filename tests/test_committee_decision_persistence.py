@@ -91,8 +91,8 @@ def _base_decision(**overrides):
 
 
 def test_chairman_score_mirrors_weighted_when_absent():
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         db = _make_db(tmp.name)
         db.insert_committee_decision(_base_decision())
@@ -111,8 +111,8 @@ def test_chairman_score_mirrors_weighted_when_absent():
 
 
 def test_chairman_score_uses_distinct_value_when_present():
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp.close()
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        pass
     try:
         db = _make_db(tmp.name)
         db.insert_committee_decision(

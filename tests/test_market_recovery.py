@@ -190,7 +190,7 @@ class TestCacheIndicators:
     def seed_index(self, cache, closes_amounts, index_code="000300"):
         conn = sqlite3.connect(cache)
         rows = [
-            (index_code, f"2022-12-{d:02d}" if d <= 31 else f"2023-01-{d-31:02d}", c, a)
+            (index_code, f"2022-12-{d:02d}" if d <= 31 else f"2023-01-{d - 31:02d}", c, a)
             for d, (c, a) in enumerate(closes_amounts, start=1)
         ]
         conn.executemany("INSERT INTO market_index_daily VALUES (?,?,?,?)", rows)
@@ -204,9 +204,7 @@ class TestCacheIndicators:
     def test_liquidity_math(self, engine):
         eng, _, cache = engine
         # 25 rows all inside the 40-day window ending at trade_date
-        rows = [
-            ("000300", f"2023-01-{d:02d}", 100.0, 100.0) for d in range(1, 21)
-        ] + [
+        rows = [("000300", f"2023-01-{d:02d}", 100.0, 100.0) for d in range(1, 21)] + [
             ("000300", f"2023-01-{d:02d}", 100.0, 120.0) for d in range(21, 26)
         ]
         conn = sqlite3.connect(cache)

@@ -158,11 +158,14 @@ class TestClassifyRevision:
 class TestVintageLoading:
     def test_vintage_cutoff_and_scaling(self, scorer):
         s, db = scorer
-        insert(db, [
-            fin("600519", "2024-06-30", "2024-08-30", 30.0, 15.0, 5.0, 100.0),
-            fin("600519", "2024-03-31", "2024-04-30", 20.0, 10.0, 4.0, 100.0),
-            fin("600519", "2024-09-30", "2024-11-15", 99.0, 99.0),  # future
-        ])
+        insert(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-30", 30.0, 15.0, 5.0, 100.0),
+                fin("600519", "2024-03-31", "2024-04-30", 20.0, 10.0, 4.0, 100.0),
+                fin("600519", "2024-09-30", "2024-11-15", 99.0, 99.0),  # future
+            ],
+        )
         periods = s._load_vintage_periods("600519", "2024-09-01")
         assert len(periods) == 2
         assert periods[0]["earnings_yoy"] == pytest.approx(0.30)  # /100
@@ -172,9 +175,12 @@ class TestVintageLoading:
 
     def test_90d_fallback(self, scorer):
         s, db = scorer
-        insert(db, [
-            fin("600519", "2024-06-30", None, 30.0, 15.0),  # +90d = 2024-09-28
-        ])
+        insert(
+            db,
+            [
+                fin("600519", "2024-06-30", None, 30.0, 15.0),  # +90d = 2024-09-28
+            ],
+        )
         assert len(s._load_vintage_periods("600519", "2024-09-01")) == 0
         assert len(s._load_vintage_periods("600519", "2024-10-01")) == 1
 
@@ -189,10 +195,13 @@ class TestCompute:
     def seed2(self, db):
         # earnings: 0.30-0.20 -> band 70 ; margin: 0.10-0.05=0.05 -> 85 ;
         # revenue: 0.25-0.15=0.10 -> 85
-        insert(db, [
-            fin("600519", "2024-06-30", "2024-08-30", 30.0, 25.0, 10.0, 100.0),
-            fin("600519", "2024-03-31", "2024-04-30", 20.0, 15.0, 5.0, 100.0),
-        ])
+        insert(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-30", 30.0, 25.0, 10.0, 100.0),
+                fin("600519", "2024-03-31", "2024-04-30", 20.0, 15.0, 5.0, 100.0),
+            ],
+        )
 
     def test_insufficient_periods_neutral(self, scorer):
         s, _ = scorer
@@ -224,10 +233,13 @@ class TestCompute:
     def test_clamp(self, scorer):
         s, db = scorer
         # extreme improvement -> amplified beyond 100 -> clamped
-        insert(db, [
-            fin("600519", "2024-06-30", "2024-08-30", 80.0, 60.0, 30.0, 100.0),
-            fin("600519", "2024-03-31", "2024-04-30", 0.0, 0.0, 5.0, 100.0),
-        ])
+        insert(
+            db,
+            [
+                fin("600519", "2024-06-30", "2024-08-30", 80.0, 60.0, 30.0, 100.0),
+                fin("600519", "2024-03-31", "2024-04-30", 0.0, 0.0, 5.0, 100.0),
+            ],
+        )
         r = s.compute("600519", "2024-09-01", "EARLY_RECOVERY")
         assert r.score == 100.0
 

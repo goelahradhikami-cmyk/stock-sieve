@@ -29,9 +29,7 @@ SM_SCHEMA = (
     "CREATE TABLE security_master (security_id TEXT, code TEXT, industry TEXT, "
     "total_mv REAL, float_mv REAL)"
 )
-FS_SCHEMA = (
-    "CREATE TABLE finance_snapshots (code TEXT, date TEXT, turnover_pct REAL)"
-)
+FS_SCHEMA = "CREATE TABLE finance_snapshots (code TEXT, date TEXT, turnover_pct REAL)"
 
 
 class FakeLocal:
@@ -107,7 +105,9 @@ class TestLoadKlineBefore:
         out = c._load_kline_before("600519", "2024-03-13", days=70)
         # 03-13 and 03-14 excluded (strict <)
         assert list(out["date"].dt.strftime("%Y-%m-%d")) == [
-            "2024-03-10", "2024-03-11", "2024-03-12",
+            "2024-03-10",
+            "2024-03-11",
+            "2024-03-12",
         ]
 
     def test_tail_when_enough_rows(self, calc):

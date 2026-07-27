@@ -20,6 +20,11 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    # Pinned tool versions keep CI, pre-commit, and local runs on the same
+    # diagnostics (ruff matches .pre-commit-config.yaml; mypy matches the
+    # 2026-07-27 zero-error baseline — see docs/REMEDIATION.md round 10).
+    "ruff==0.15.22",
+    "mypy==2.3.0",
 ]
 
 # Console entry point. `pip install -e .` exposes the `stock-sieve` command,

@@ -155,7 +155,7 @@
 
 **strict 层扩编**：清零后逐包测量 `disallow_untyped_defs` 增量——utils 1、factors 2、thesis 7，修完 10 处缺失注解后三包晋升 strict 层（现共 **9 包**：api/market/memory/simulation/paper_trading/execution/utils/factors/thesis）。剩余待晋升：validation 11、evolution 25、agents 28、data 88、audit 10 个 untyped def。
 
-**CI mypy 门禁**：暂保持 `continue-on-error: true`（informational）——虽然全库已归零，但 mypy 不在项目 dev 依赖中、CI 自行安装，版本漂移可能引入新诊断；待 mypy 版本钉入依赖后再转硬门禁（见 backlog）。
+**CI mypy 门禁**：**已转硬门禁**（2026-07-27，第十轮收尾）——`ruff==0.15.22` 与 `mypy==2.3.0` 钉入 `pyproject.toml` dev extras（与 pre-commit 及本地基线一致），CI 安装改为 `pip install -e ".[dev]"`，mypy 步骤移除 `continue-on-error`。任何类型错误回潮将直接红 CI。
 
 ---
 
@@ -164,7 +164,7 @@
 ### P1 — 测试与质量门禁
 
 1. ~~**测试覆盖不足**~~：**已完成**（2026-07-27，见上方第九轮）——`thesis/` 全部 20 个模块 332 个特征化测试补齐；全量 582 passed。剩余已知空白：`test_real_data.py` 2 个失败为 mootdx 环境依赖（需本机安装 mootdx 才能转绿）。
-2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。mypy 首轮收紧（第九轮 `check_untyped_defs = True`）与 **186 错误全库清零均已完成**（第十轮，0 errors / 145 files）。剩余路线：① validation/evolution/agents/data/audit 五包补齐 untyped def 注解后晋升 strict 层（增量 11/25/28/88/10）；② mypy 版本钉入 dev 依赖后，CI mypy 步骤从 `continue-on-error` 转硬门禁。
+2. ~~CI 门禁收紧~~、~~静默吞错~~、~~F841~~：**已完成**（见上方第二轮）。mypy 首轮收紧（第九轮 `check_untyped_defs = True`）、**186 错误全库清零**与 **CI mypy 硬门禁**均已完成（第十轮，0 errors / 145 files，`mypy==2.3.0` 钉入 dev extras）。剩余路线：validation/evolution/agents/data/audit 五包补齐 untyped def 注解后晋升 strict 层（增量 11/25/28/88/10）。
 3. ~~**tests/ 与 scripts/ 残余风格项**~~：**已完成**（2026-07-27，见上方第九轮）——19 处全部修复，`ruff check src tests scripts` 与 format 检查全绿；归档脚本排除出 lint 范围。
 
 ### P1 — 模块冗余/演进残留

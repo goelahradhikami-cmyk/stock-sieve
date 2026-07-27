@@ -19,7 +19,7 @@ jobs:
       - name: Install project + dev deps
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]" ruff mypy
+          pip install -e ".[dev]"
 
       # src/ baseline is zero-error and fully formatted (cleaned 2026-07-23).
       # Lint and format are now hard gates — keep them green.
@@ -29,11 +29,10 @@ jobs:
       - name: Format check (ruff format)
         run: ruff format --check src/
 
-      # Type check stays informational until the mypy baseline is tightened
-      # (see docs/REMEDIATION.md backlog).
+      # Full src/ tree is at zero mypy errors since 2026-07-27 (see
+      # docs/REMEDIATION.md round 10). Hard gate — keep it at zero.
       - name: Type check (mypy)
         run: mypy src/
-        continue-on-error: true
 
       - name: Run tests (pytest)
         run: pytest tests/ -v --tb=short

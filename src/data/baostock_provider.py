@@ -193,8 +193,8 @@ class BaostockProvider:
         back = (n_years or self.n_years)
         years = range(cur_year, cur_year - back - 1, -1)
 
-        out = {'profit': [], 'growth': [], 'balance': [], 'operation': [],
-               'cashflow': [], 'dupont': []}
+        out: dict = {'profit': [], 'growth': [], 'balance': [], 'operation': [],
+                     'cashflow': [], 'dupont': []}
 
         # Phase 1: profit_data for all year-quarters (needed for growth derivation)
         for y in years:

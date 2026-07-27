@@ -70,7 +70,7 @@ def _get_sector_weights(portfolio_state):
 
 
 def _get_expected_drawdown(security_analysis):
-    ra = {}
+    ra: dict = {}
     if security_analysis is not None:
         if hasattr(security_analysis, "risk_assessment"):
             ra = security_analysis.risk_assessment or {}

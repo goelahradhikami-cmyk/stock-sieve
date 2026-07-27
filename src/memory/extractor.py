@@ -30,7 +30,7 @@ class ExperienceExtractor:
         self.db = managed_connect(self, db_path)
         self._ensure_table()
 
-    def _ensure_table(self):
+    def _ensure_table(self) -> None:
         self.db.execute("""
             CREATE TABLE IF NOT EXISTS investment_memory (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -65,7 +65,7 @@ class IndustryBootstrap:
     def __init__(self, cache_db: str = "data/cache.db"):
         self.cache_db = cache_db
 
-    def _ensure_table(self):
+    def _ensure_table(self) -> None:
         conn = sqlite3.connect(self.cache_db)
         conn.executescript(DDL_INDUSTRY_DAILY_RETURNS)
         conn.commit()

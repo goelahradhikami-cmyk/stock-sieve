@@ -38,7 +38,7 @@ class CrisisSimulationEngine:
         self._ensure_tables()
         self._seed_scenarios()
 
-    def _ensure_tables(self):
+    def _ensure_tables(self) -> None:
         self.db.execute("""
             CREATE TABLE IF NOT EXISTS crisis_scenarios (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,7 +59,7 @@ class CrisisSimulationEngine:
         """)
         self.db.commit()
 
-    def _seed_scenarios(self):
+    def _seed_scenarios(self) -> None:
         for s in PRESET_SCENARIOS:
             self.db.execute(
                 """

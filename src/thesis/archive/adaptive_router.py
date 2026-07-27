@@ -1,4 +1,6 @@
 """
+ARCHIVED 2026-07-27 — zero production callers; see src/thesis/archive/__init__.py.
+
 Adaptive Doctrine Router - Commit 6-Q.5b.
 
 Replaces single-doctrine weight multiplier with multi-doctrine softmax

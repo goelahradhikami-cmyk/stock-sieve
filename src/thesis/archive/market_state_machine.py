@@ -1,4 +1,7 @@
 """
+ARCHIVED 2026-07-27 — zero production callers; superseded by the frozen
+state_transition.py; see src/thesis/archive/__init__.py.
+
 Market State Machine - Commit 6-S.5.3.
 
 Upgrades Recovery Gate from a single threshold to a 4-state model.

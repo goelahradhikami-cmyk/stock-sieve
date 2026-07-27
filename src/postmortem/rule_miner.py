@@ -6,6 +6,7 @@ candidate rules for the Thesis Validator.
 """
 
 import json
+from typing import Any
 
 
 class RuleMiner:
@@ -44,9 +45,9 @@ class RuleMiner:
         conn.close()
         return generated
 
-    def _build_rule(self, failure_type: str, count: int, avg_sev: float) -> dict:
+    def _build_rule(self, failure_type: str, count: int, avg_sev: float) -> dict | None:
         """Build a candidate rule from a failure type."""
-        rules = {
+        rules: dict[str, dict[str, Any]] = {
             "stock_selection_failure": {
                 "rule_type": "risk_control",
                 "condition_json": json.dumps({"pe_percentile": ">80", "roe_5y_avg": "<0.10"}),

@@ -185,7 +185,7 @@ def run_paper_day(trade_date: str | None = None) -> str | None:
     return episode_id
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Paper Trading Runner")
     parser.add_argument("--date", help="Trading date (YYYY-MM-DD). Default: today.")
     args = parser.parse_args()

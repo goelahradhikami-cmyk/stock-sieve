@@ -206,7 +206,7 @@ class GovernanceStateMachine:
         ).fetchone()
         return row[0] if row else "NORMAL"
 
-    def transition(self, new_state: str, reason: str, trigger: dict = None):
+    def transition(self, new_state: str, reason: str, trigger: dict | None = None):
         if new_state not in self.STATES:
             return
         self.db.execute(

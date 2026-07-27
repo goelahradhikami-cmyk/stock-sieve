@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 from datetime import date
+from typing import Any
 
 
 def create_fingerprint(
@@ -40,7 +41,7 @@ def create_fingerprint(
 
     Returns: JSON string fingerprint for storage in shadow_episode.
     """
-    fingerprint = {
+    fingerprint: dict[str, Any] = {
         "capital_action_source": [],
         "forbidden_inputs_used": [],
         "mus_used": False,

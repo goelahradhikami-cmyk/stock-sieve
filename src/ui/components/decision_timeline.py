@@ -71,7 +71,7 @@ def decision_timeline(decisions: list[dict], stock_name: str = ""):
                         if isinstance(thesis_evidence, str)
                         else thesis_evidence
                     )
-                    ev_count = len(ev)
+                    ev_count: int | str = len(ev)
                 except (json.JSONDecodeError, TypeError):
                     ev_count = "?"
                 st.markdown(

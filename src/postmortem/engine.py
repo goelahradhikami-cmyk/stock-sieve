@@ -16,6 +16,7 @@ Data flow:
 """
 
 import json
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -23,6 +24,9 @@ from src.data.db import managed_connect
 from src.utils.logger import get_logger
 
 from .classifier import FailureClassifier
+
+if TYPE_CHECKING:
+    from src.data.evaluation_db import EvaluationDB
 
 logger = get_logger(__name__)
 
@@ -34,7 +38,9 @@ class PostMortemEngine:
         self.db_path = db_path
         self.db = managed_connect(self, db_path)
         self.classifier = FailureClassifier()
-        self._eval_db = None  # lazily created EvaluationDB for PostMortemAnalyzer
+        self._eval_db: EvaluationDB | None = (
+            None  # lazily created EvaluationDB for PostMortemAnalyzer
+        )
         self._ensure_tables()
 
     def _ensure_tables(self):

@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 SHADOW_DB = "data/shadow_trading.db"
 
 
-def ensure_columns():
+def ensure_columns() -> None:
     """Add execution_mode and decision_fingerprint columns if not present."""
     conn = sqlite3.connect(SHADOW_DB)
     try:

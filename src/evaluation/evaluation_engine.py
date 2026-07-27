@@ -82,7 +82,7 @@ class EvaluationResult:
 class EvaluationEngine:
     """T+N evaluation with Brinson attribution and boundary fixes."""
 
-    def __init__(self, db, config: EvaluationConfig = None):
+    def __init__(self, db, config: EvaluationConfig | None = None):
         self.db = db
         self.config = config or EvaluationConfig()
 
@@ -289,7 +289,7 @@ class EvaluationEngine:
 
     # ── Internal helpers ──────────────────────────────────
 
-    def _get_genome_version(self, research_decision_id: int, created_at: str) -> str | None:
+    def _get_genome_version(self, research_decision_id: int, created_at: str | None) -> str | None:
         """Fix 2: Time-travel protected genome version lookup."""
         conn = self.db.connect()
         row = conn.execute(

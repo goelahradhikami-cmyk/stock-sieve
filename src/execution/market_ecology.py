@@ -79,7 +79,7 @@ class MarketEcologyEngine:
         self.db = managed_connect(self, db_path)
         self._ensure_tables()
 
-    def _ensure_tables(self):
+    def _ensure_tables(self) -> None:
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS market_ecology_state (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,7 +113,7 @@ class MarketEcologyEngine:
         self.db.commit()
 
     def calc_crowding_decay(
-        self, security_id: str, factor_exposure: dict = None, trade_date: date = None
+        self, security_id: str, factor_exposure: dict | None = None, trade_date: date | None = None
     ) -> float:
         """Alpha decay based on strategy crowding (0-1, 1=no decay)."""
         if trade_date is None:
@@ -138,7 +138,7 @@ class MarketEcologyEngine:
         return decay
 
     def calc_capacity_limit(
-        self, genome_id: str, signal_quantity: int, security_id: str, trade_date: date = None
+        self, genome_id: str, signal_quantity: int, security_id: str, trade_date: date | None = None
     ) -> int:
         """Limit position size based on strategy capacity."""
         row = self.db.execute(
@@ -252,7 +252,7 @@ class MarketRealityEngine:
         self._ensure_tables()
         self.config = self._load_config()
 
-    def _ensure_tables(self):
+    def _ensure_tables(self) -> None:
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS market_reality_config (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -303,7 +303,7 @@ class MarketRealityEngine:
         quantity: int,
         signal_price: float,
         trade_date: date,
-        prev_close: float = None,
+        prev_close: float | None = None,
     ) -> dict:
         """Simulate a single order with full market friction."""
         code = security_id.split(".")[0] if "." in security_id else security_id

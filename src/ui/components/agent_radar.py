@@ -16,7 +16,7 @@ def _hex_to_rgba(hex_color: str, alpha: float = 0.1) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def agent_radar(identity_vectors: dict, selected_agents: list[str] = None):
+def agent_radar(identity_vectors: dict, selected_agents: list[str] | None = None):
     """Render radar chart for selected agents' investment identity.
 
     Args:

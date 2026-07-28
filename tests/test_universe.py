@@ -28,7 +28,7 @@ def test_fetch_stock_list():
     assert "SZ" in exchanges
 
 
-def test_filter_exclude_st():
+def test_filter_exclude_st(tmp_path):
     sample = pd.DataFrame(
         [
             {
@@ -49,13 +49,18 @@ def test_filter_exclude_st():
             },
         ]
     )
-    f = UniverseFilter(exclude_st=True, min_avg_amount_20d=0, use_dynamic_liquidity=False)
+    f = UniverseFilter(
+        exclude_st=True,
+        min_avg_amount_20d=0,
+        use_dynamic_liquidity=False,
+        db_path=str(tmp_path / "filter_st.db"),
+    )
     result = f.apply(sample)
     assert len(result) == 1
     assert result.iloc[0]["code"] == "000001"
 
 
-def test_filter_liquidity():
+def test_filter_liquidity(tmp_path):
     sample = pd.DataFrame(
         [
             {
@@ -76,13 +81,13 @@ def test_filter_liquidity():
             },
         ]
     )
-    f = UniverseFilter(min_avg_amount_20d=5000)
+    f = UniverseFilter(min_avg_amount_20d=5000, db_path=str(tmp_path / "filter_liq.db"))
     result = f.apply(sample)
     assert len(result) == 1
     assert result.iloc[0]["code"] == "000001"
 
 
-def test_filter_exclude_bj():
+def test_filter_exclude_bj(tmp_path):
     sample = pd.DataFrame(
         [
             {
@@ -103,7 +108,7 @@ def test_filter_exclude_bj():
             },
         ]
     )
-    f = UniverseFilter(exclude_bj=True, min_avg_amount_20d=0)
+    f = UniverseFilter(exclude_bj=True, min_avg_amount_20d=0, db_path=str(tmp_path / "filter_bj.db"))
     result = f.apply(sample)
     assert len(result) == 1
 
@@ -146,7 +151,7 @@ def test_security_master():
         # Windows file lock
 
 
-def test_universe_filter_stats():
+def test_universe_filter_stats(tmp_path):
     sample = pd.DataFrame(
         [
             {
@@ -160,7 +165,7 @@ def test_universe_filter_stats():
             for i in range(10)
         ]
     )
-    f = UniverseFilter()
+    f = UniverseFilter(db_path=str(tmp_path / "filter_stats.db"))
     result = f.apply(sample)
     stats = f.stats(sample, result)
     assert stats["original"] == 10

@@ -1,0 +1,27 @@
+{
+  "audit_date": "2026-07-28",
+  "period": "2026-07",
+  "n_episodes": 20,
+  "section_a": {
+    "violations": 0,
+    "verdict": "PASS",
+    "buy_count": 0,
+    "block_count": 20,
+    "within_band_results": {}
+  },
+  "section_b": {
+    "verdict": "PASS",
+    "forbidden_reasons": [],
+    "reason_counts": {
+      "LOW_CONFIDENCE": 20,
+      "VOL_NOT_REPAIRING": 20,
+      "TREND_NOT_CONFIRMED": 2
+    }
+  },
+  "section_c": {
+    "verdict": "INSUFFICIENT_DATA",
+    "n": 0
+  },
+  "overall": "PASS",
+  "violations": 0
+}

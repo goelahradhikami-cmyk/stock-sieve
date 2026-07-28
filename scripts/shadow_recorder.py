@@ -63,7 +63,10 @@ class ShadowEpisodeRecorder:
         self.idx = IndexDataProvider()
 
         # Build state history (needed for state lookup)
-        self.ste.run("2021-08-11", "2026-07-17")
+        # Build state history (needed for state lookup). End date tracks today
+        # so newly synced dates are covered (was hardcoded to the last backfill
+        # date 2026-07-17; the state engine is idempotent over the range).
+        self.ste.run("2021-08-11", date.today().isoformat())
 
     def record_episode(self, trade_date: str) -> dict:
         """Record one shadow trading episode.

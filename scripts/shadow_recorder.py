@@ -208,7 +208,13 @@ class ShadowEpisodeRecorder:
                 ),
             )
 
-            # Insert candidates
+            # Insert candidates. Episode rows are INSERT OR REPLACE above, so
+            # re-running the same date must also replace its candidate rows —
+            # otherwise each re-run appends a duplicate set (seen on
+            # 2026-08-26: 4 identical copies after 4 catch-up runs).
+            sconn.execute(
+                "DELETE FROM shadow_candidates WHERE episode_id=?", (episode_id,)
+            )
             for c in candidate_records:
                 sconn.execute(
                     """

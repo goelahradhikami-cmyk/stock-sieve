@@ -33,6 +33,14 @@ logger = get_logger(__name__)
 SHADOW_DB = "data/shadow_trading.db"
 CACHE_DB = "data/cache.db"
 HORIZON = 20
+MIN_POSITIONS = 5  # fallback ladder: index fills slots below this count
+
+FALLBACK_COLUMNS = [
+    ("n_selected", "INTEGER"),
+    ("fallback_weight", "REAL"),
+    ("portfolio_return_t20_fb", "REAL"),
+    ("alpha_vs_hs300_fb", "REAL"),
+]
 
 
 class OutcomeEvaluator:
@@ -53,6 +61,46 @@ class OutcomeEvaluator:
     def __init__(self):
         self.local = LocalDataProvider()
         self.idx = IndexDataProvider()
+        self._ensure_fallback_columns()
+
+    @staticmethod
+    def _ensure_fallback_columns():
+        """Add index-fallback columns to shadow_outcome (idempotent)."""
+        conn = sqlite3.connect(SHADOW_DB)
+        existing = {
+            r[1] for r in conn.execute("PRAGMA table_info(shadow_outcome)")
+        }
+        for name, typ in FALLBACK_COLUMNS:
+            if name not in existing:
+                conn.execute(
+                    f"ALTER TABLE shadow_outcome ADD COLUMN {name} {typ}"
+                )
+        conn.commit()
+        conn.close()
+
+    def _write_fallback(self, conn, episode_id, selected_returns, mkt_return):
+        """Record index-fallback portfolio alongside the frozen baseline.
+
+        Rule: 5 equal slots; selected stocks fill their slots, CSI300 fills
+        the rest (empty book -> 100% index). Baseline columns stay untouched.
+        """
+        n_sel = len(selected_returns)
+        if mkt_return is None:
+            return
+        if n_sel >= MIN_POSITIONS:
+            fb_return = float(np.mean(selected_returns))
+            fb_weight = 0.0
+        else:
+            slots = [r if r is not None else mkt_return for r in selected_returns]
+            slots.extend([mkt_return] * (MIN_POSITIONS - n_sel))
+            fb_return = float(np.mean(slots))
+            fb_weight = (MIN_POSITIONS - n_sel) / MIN_POSITIONS
+        conn.execute(
+            "UPDATE shadow_outcome SET n_selected=?, fallback_weight=?, "
+            "portfolio_return_t20_fb=?, alpha_vs_hs300_fb=? "
+            "WHERE episode_id=?",
+            (n_sel, fb_weight, fb_return, fb_return - mkt_return, episode_id),
+        )
 
     def evaluate_all(self) -> dict:
         """Evaluate all pending episodes that have reached T+20.
@@ -170,7 +218,9 @@ class OutcomeEvaluator:
         # Selected stocks (the ones we would have bought)
         selected = [c for c in candidates if c["selected"] == 1]
         if not selected:
-            # No stocks selected despite BUY -> treat as no position
+            # No stocks selected despite BUY -> baseline records no position
+            # (frozen semantics); fallback column captures 100% index instead.
+            mkt_return = self.idx.get_return("000300", trade_date, eval_date)
             self._write_outcome(
                 conn,
                 ep["episode_id"],
@@ -183,6 +233,7 @@ class OutcomeEvaluator:
                 avoided_loss=None,
                 missed_gain=None,
             )
+            self._write_fallback(conn, ep["episode_id"], [], mkt_return)
             return {"outcome_type": "FAILED_BUY", "alpha": 0.0}
 
         # Compute portfolio return (equal-weight)
@@ -231,6 +282,9 @@ class OutcomeEvaluator:
                     "UPDATE shadow_candidates SET stock_return_t20=? WHERE id=?",
                     (ret, c["id"]),
                 )
+
+        # Index-fallback portfolio (partial books get index top-up)
+        self._write_fallback(conn, ep["episode_id"], returns, mkt_return)
 
         return {"outcome_type": outcome_type, "alpha": alpha, "portfolio_return": portfolio_return}
 

@@ -18,8 +18,11 @@ Three stages:
     - Liquidity gate (volume_ratio > 0.3 from snapshot)
     - FRM hard gate (reject 'deteriorating' earnings direction)
     - Recovery score (FRM-weighted composite)
-  Stage 2 (6-S.13.3): Relative Strength Confirmation
-    - Stock must outperform sector (rs_vs_sector > 0)
+  Stage 2 (6-S.13.3, revised by 6-S.15.2 / v3.3): Relative Strength
+    - NO hard gate: rs_vs_sector retained as diagnostic field only
+      (v3.2.2 proved the RS gate destroys alpha; EV diagnostic
+      2026-08-27 confirmed rejected names outperformed the pass pool)
+    - EGE (ExpectationGapEngine) scores for ranking, does not gate
     - Reuses SectorConfirmationScorer (6-S.12.3)
   Stage 3 (6-S.13.4): Mispricing Detection
     - Reuses MarketAnomalyDetector._detect_anomaly as LAST gate
@@ -53,8 +56,10 @@ logger = get_logger(__name__)
 LIQUIDITY_MIN_VOLUME_RATIO = 0.3  # reject extreme illiquidity
 FRM_HARD_REJECT_DIRECTION = "deteriorating"
 
-# Stage 2 threshold (6-S.13.1 Design Freeze)
-RS_HARD_GATE_THRESHOLD = 0.0  # rs_vs_sector must be > 0
+# Stage 2 threshold — RETIRED (6-S.13.1 Design Freeze, superseded by v3.3).
+# Kept for characterization-test compatibility; the gate itself is gone:
+# _stage2_relative_strength never rejects on rs_vs_sector.
+RS_HARD_GATE_THRESHOLD = 0.0  # unused since v3.3 (6-S.15.2)
 
 
 class CandidateGenerator:

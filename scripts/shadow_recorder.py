@@ -28,6 +28,7 @@ from src.data.local_provider import LocalDataProvider
 from src.factors.snapshot_builder import FactorSnapshotBuilder
 from src.thesis.confidence_overlay import RecoveryConfidence
 from src.thesis.doctrine_underwriting import DoctrineUnderwriter
+from src.thesis.expectation_gap import ExpectationGapEngine
 from src.thesis.market_anomaly import MarketAnomalyDetector
 from src.thesis.state_transition import StateTransitionEngine
 from src.thesis.thesis_ledger import KillCriteria
@@ -39,6 +40,30 @@ SHADOW_DB = "data/shadow_trading.db"
 EVAL_DB = "data/evaluation.db"
 CACHE_DB = "data/cache.db"
 HORIZON = 20
+
+# EGE shadow validation (Issue #3 candidate 1, record-only, 2026-08-28).
+# Rule C from the inverted-U backtest: exclude the episode-internal top
+# EGE-gap quintile, then apply the SAME kill/consensus selection. Marks
+# are stored per candidate (ege_gap, shadow_c_pick) and scored at T+20 by
+# shadow_outcome_evaluator. Production selection is NOT changed.
+EGE_EXTREME_QUANTILE = 0.8
+CANDIDATE_SHADOW_COLUMNS = [
+    ("ege_gap", "REAL"),
+    ("shadow_c_pick", "INTEGER"),
+]
+
+
+def _ensure_candidate_shadow_columns():
+    """Add EGE-shadow columns to shadow_candidates (idempotent)."""
+    conn = sqlite3.connect(SHADOW_DB)
+    try:
+        existing = {r[1] for r in conn.execute("PRAGMA table_info(shadow_candidates)")}
+        for name, typ in CANDIDATE_SHADOW_COLUMNS:
+            if name not in existing:
+                conn.execute(f"ALTER TABLE shadow_candidates ADD COLUMN {name} {typ}")
+        conn.commit()
+    finally:
+        conn.close()
 
 
 class ShadowEpisodeRecorder:
@@ -61,6 +86,8 @@ class ShadowEpisodeRecorder:
         self.builder = FactorSnapshotBuilder()
         self.local = LocalDataProvider()
         self.idx = IndexDataProvider()
+        self.ege = ExpectationGapEngine(CACHE_DB)
+        _ensure_candidate_shadow_columns()
 
         # Build state history (needed for state lookup)
         # Build state history (needed for state lookup). End date tracks today
@@ -107,6 +134,24 @@ class ShadowEpisodeRecorder:
             and abs(a.margin_change) < 0.50
         ]
 
+        # 4b. EGE shadow marks (Issue #3 candidate 1, record-only).
+        # Episode-internal top-quintile gap = "extreme"; rule C would drop
+        # those names before selection. Production selection unchanged.
+        ege_gaps: dict[str, float | None] = {}
+        for a in significant[:50]:
+            try:
+                score = self.ege.compute(a.code, trade_date)
+                ege_gaps[a.code] = score.gap_score if score.data_available else None
+            except Exception as e:
+                logger.debug("ege shadow %s %s failed: %s", trade_date, a.code, e)
+                ege_gaps[a.code] = None
+        valid_gaps = sorted(g for g in ege_gaps.values() if g is not None)
+        ege_cut = (
+            valid_gaps[int(len(valid_gaps) * EGE_EXTREME_QUANTILE)]
+            if len(valid_gaps) >= 5
+            else None
+        )
+
         # 5. Evaluate candidates (kill criteria + doctrine + selection)
         selected_codes = []
         candidate_records = []
@@ -120,6 +165,14 @@ class ShadowEpisodeRecorder:
             )
             if is_selected:
                 selected_codes.append(a.code)
+
+            # EGE shadow (record-only): what rule C would hold if the day
+            # were actionable - same kill/consensus, extreme-gap names out.
+            ege_gap = ege_gaps.get(a.code)
+            ege_extreme = ege_cut is not None and ege_gap is not None and ege_gap > ege_cut
+            shadow_c_pick = (
+                not ege_extreme and not kill_result.killed and consensus["consensus"] == "PASS"
+            )
 
             candidate_records.append(
                 {
@@ -144,6 +197,8 @@ class ShadowEpisodeRecorder:
                     if uw_results.get("value_purist")
                     else None,
                     "selected": 1 if is_selected else 0,
+                    "ege_gap": ege_gap,
+                    "shadow_c_pick": 1 if shadow_c_pick else 0,
                 }
             )
 
@@ -222,8 +277,9 @@ class ShadowEpisodeRecorder:
                     (episode_id, stock_code, anomaly_type, price_drawdown_12m,
                      roe, margin_change, market_pessimism, business_strength,
                      divergence_score, confidence, killed, kill_reason,
-                     quality_verdict, contrarian_verdict, value_verdict, selected)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     quality_verdict, contrarian_verdict, value_verdict, selected,
+                     ege_gap, shadow_c_pick)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """,
                     (
                         episode_id,
@@ -242,6 +298,8 @@ class ShadowEpisodeRecorder:
                         c["contrarian_verdict"],
                         c["value_verdict"],
                         c["selected"],
+                        c["ege_gap"],
+                        c["shadow_c_pick"],
                     ),
                 )
 

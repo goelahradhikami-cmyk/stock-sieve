@@ -42,6 +42,21 @@ FALLBACK_COLUMNS = [
     ("alpha_vs_hs300_fb", "REAL"),
 ]
 
+# EGE rule-C shadow (Issue #3 candidate 1, record-only, 2026-08-28):
+# what the portfolio would have returned if the episode-internal top EGE
+# quintile had been excluded before selection. Same 5-slot index top-up
+# semantics as the fallback columns, so _fb and _egc are comparable.
+EGC_COLUMNS = [
+    ("n_selected_egc", "INTEGER"),
+    ("portfolio_return_t20_egc", "REAL"),
+    ("alpha_vs_hs300_egc", "REAL"),
+]
+
+CANDIDATE_SHADOW_COLUMNS = [
+    ("ege_gap", "REAL"),
+    ("shadow_c_pick", "INTEGER"),
+]
+
 
 class OutcomeEvaluator:
     """Evaluates shadow episodes at T+20.
@@ -62,18 +77,38 @@ class OutcomeEvaluator:
         self.local = LocalDataProvider()
         self.idx = IndexDataProvider()
         self._ensure_fallback_columns()
+        self._ensure_candidate_shadow_columns()
 
     @staticmethod
     def _ensure_fallback_columns():
-        """Add index-fallback columns to shadow_outcome (idempotent)."""
+        """Add index-fallback + EGE-shadow columns to shadow_outcome (idempotent)."""
         conn = sqlite3.connect(SHADOW_DB)
         existing = {
             r[1] for r in conn.execute("PRAGMA table_info(shadow_outcome)")
         }
-        for name, typ in FALLBACK_COLUMNS:
+        for name, typ in FALLBACK_COLUMNS + EGC_COLUMNS:
             if name not in existing:
                 conn.execute(
                     f"ALTER TABLE shadow_outcome ADD COLUMN {name} {typ}"
+                )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def _ensure_candidate_shadow_columns():
+        """Add EGE-shadow columns to shadow_candidates (idempotent).
+
+        The recorder owns these marks; the evaluator only needs the columns
+        to exist so SELECT * never misses keys on pre-shadow episodes.
+        """
+        conn = sqlite3.connect(SHADOW_DB)
+        existing = {
+            r[1] for r in conn.execute("PRAGMA table_info(shadow_candidates)")
+        }
+        for name, typ in CANDIDATE_SHADOW_COLUMNS:
+            if name not in existing:
+                conn.execute(
+                    f"ALTER TABLE shadow_candidates ADD COLUMN {name} {typ}"
                 )
         conn.commit()
         conn.close()
@@ -101,6 +136,46 @@ class OutcomeEvaluator:
             "WHERE episode_id=?",
             (n_sel, fb_weight, fb_return, fb_return - mkt_return, episode_id),
         )
+
+    def _write_egc(self, conn, episode_id, c_returns, mkt_return):
+        """Record the EGE rule-C shadow portfolio (record-only, Issue #3).
+
+        Same 5-slot index top-up semantics as _write_fallback so the two
+        shadow columns stay directly comparable.
+        """
+        if mkt_return is None:
+            return
+        n_sel = len(c_returns)
+        if n_sel >= MIN_POSITIONS:
+            egc_return = float(np.mean(c_returns))
+        else:
+            slots = list(c_returns)
+            slots.extend([mkt_return] * (MIN_POSITIONS - n_sel))
+            egc_return = float(np.mean(slots))
+        conn.execute(
+            "UPDATE shadow_outcome SET n_selected_egc=?, "
+            "portfolio_return_t20_egc=?, alpha_vs_hs300_egc=? "
+            "WHERE episode_id=?",
+            (n_sel, egc_return, egc_return - mkt_return, episode_id),
+        )
+
+    def _evaluate_egc_shadow(self, conn, ep, candidates, trade_date, eval_date, mkt_return):
+        """Score the rule-C shadow book for one episode, if marks exist.
+
+        Pre-shadow episodes have shadow_c_pick NULL on every row -> skip
+        (NULL marks mean 'not computed', not 'empty book').
+        """
+        marks = [c for c in candidates if c["shadow_c_pick"] is not None]
+        if not marks:
+            return
+        c_returns = []
+        for c in marks:
+            if c["shadow_c_pick"] != 1:
+                continue
+            ret = self._get_stock_return(c["stock_code"], trade_date, eval_date)
+            if ret is not None:
+                c_returns.append(ret)
+        self._write_egc(conn, ep["episode_id"], c_returns, mkt_return)
 
     def evaluate_all(self) -> dict:
         """Evaluate all pending episodes that have reached T+20.
@@ -234,6 +309,7 @@ class OutcomeEvaluator:
                 missed_gain=None,
             )
             self._write_fallback(conn, ep["episode_id"], [], mkt_return)
+            self._evaluate_egc_shadow(conn, ep, candidates, trade_date, eval_date, mkt_return)
             return {"outcome_type": "FAILED_BUY", "alpha": 0.0}
 
         # Compute portfolio return (equal-weight)
@@ -285,6 +361,8 @@ class OutcomeEvaluator:
 
         # Index-fallback portfolio (partial books get index top-up)
         self._write_fallback(conn, ep["episode_id"], returns, mkt_return)
+        # EGE rule-C shadow portfolio (record-only)
+        self._evaluate_egc_shadow(conn, ep, candidates, trade_date, eval_date, mkt_return)
 
         return {"outcome_type": outcome_type, "alpha": alpha, "portfolio_return": portfolio_return}
 
@@ -346,6 +424,10 @@ class OutcomeEvaluator:
             avoided_loss=avoided_loss,
             missed_gain=missed_gain,
         )
+
+        # EGE rule-C shadow portfolio (record-only; on BLOCK days it tracks
+        # what the C rule would have held had the day been actionable)
+        self._evaluate_egc_shadow(conn, ep, candidates, trade_date, eval_date, mkt_return)
 
         return {
             "outcome_type": outcome_type,
